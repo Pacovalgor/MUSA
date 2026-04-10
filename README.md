@@ -467,6 +467,16 @@ Flujo recomendado:
 3. `flutter test`
 4. validar manualmente en `macos`
 
+### Changelog
+
+Cada cambio relevante de producto, arquitectura, documentación o flujo de desarrollo debe actualizar [`CHANGELOG.md`](./CHANGELOG.md) antes de hacer commit.
+
+Regla práctica:
+
+1. documentar primero en `Unreleased`,
+2. mover a una fecha o versión cuando se prepare una entrega,
+3. omitir solo cambios triviales que no alteren comportamiento, contrato público ni documentación útil.
+
 ## Referencias rápidas
 
 - Entrada principal: [`lib/main.dart`](./lib/main.dart)
