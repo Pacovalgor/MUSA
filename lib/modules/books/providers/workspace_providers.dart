@@ -24,7 +24,7 @@ import '../services/narrative_workspace_repository.dart';
 /// Repository used to load and persist the canonical workspace aggregate.
 final narrativeWorkspaceRepositoryProvider =
     Provider<NarrativeWorkspaceRepository>((ref) {
-  return LocalWorkspaceStorage();
+  return const LocalWorkspaceStorage();
 });
 
 /// Owns the full workspace state and all write operations against it.

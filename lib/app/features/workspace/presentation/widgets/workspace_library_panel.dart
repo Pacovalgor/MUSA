@@ -36,26 +36,26 @@ class WorkspaceLibraryPanel extends ConsumerWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: tokens.subtleBackground,
+        color: tokens.sidebarBackground,
         border: Border(
           right: BorderSide(color: tokens.borderSoft),
         ),
       ),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
         children: [
           Text(
-            'Workspace',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            'LIBRO ACTIVO',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: tokens.textMuted,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
                 ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             activeBook?.title ?? 'Sin libro activo',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: tokens.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
@@ -92,7 +92,7 @@ class WorkspaceLibraryPanel extends ConsumerWidget {
           if (showDocuments) ...[
             const SizedBox(height: 24),
             _SectionHeader(
-              title: 'Documentos',
+              title: 'DOCUMENTOS',
               trailing: TextButton(
                 onPressed: () => ref
                     .read(narrativeWorkspaceProvider.notifier)
@@ -123,7 +123,7 @@ class WorkspaceLibraryPanel extends ConsumerWidget {
           if (showNotes) ...[
             const SizedBox(height: 24),
             _SectionHeader(
-              title: 'Capturas y notas',
+              title: 'CAPTURAS Y NOTAS',
               trailing: TextButton(
                 onPressed: () => ref
                     .read(narrativeWorkspaceProvider.notifier)
@@ -203,14 +203,22 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: tokens.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: tokens.textMuted,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+          ),
         ),
-        if (trailing != null) trailing!,
+        if (trailing != null) ...[
+          const SizedBox(width: 8),
+          trailing!,
+        ],
       ],
     );
   }
@@ -232,16 +240,25 @@ class _LibraryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = MusaTheme.tokensOf(context);
+    final selectedFill = Color.lerp(
+          tokens.sidebarBackground,
+          tokens.activeBackground,
+          0.72,
+        ) ??
+        tokens.activeBackground;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Material(
-        color: selected ? tokens.activeBackground : tokens.canvasBackground,
+        color: selected ? selectedFill : Colors.transparent,
         borderRadius: BorderRadius.circular(tokens.radiusMd),
         child: InkWell(
           borderRadius: BorderRadius.circular(tokens.radiusMd),
           onTap: onTap,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          hoverColor: Colors.transparent,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -249,9 +266,12 @@ class _LibraryTile extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: tokens.textPrimary,
-                        fontWeight: FontWeight.w600,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: selected
+                            ? tokens.textPrimary
+                            : tokens.textSecondary,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.normal,
                       ),
                 ),
                 const SizedBox(height: 4),
@@ -283,19 +303,14 @@ class _EmptySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = MusaTheme.tokensOf(context);
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: tokens.canvasBackground,
-        borderRadius: BorderRadius.circular(tokens.radiusMd),
-        border: Border.all(color: tokens.borderSoft),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: tokens.textPrimary,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: tokens.textMuted,
                   fontWeight: FontWeight.w600,
                 ),
           ),

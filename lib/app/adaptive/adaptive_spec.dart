@@ -119,7 +119,7 @@ class MusaAdaptiveSpec {
       editorDensity: editorDensity,
       contentPadding: contentPadding,
       editorMaxWidth: editorMaxWidth,
-      sidebarWidth: shellKind == MusaShellKind.studio ? 260.0 : 320.0,
+      sidebarWidth: shellKind == MusaShellKind.capture ? 320.0 : 260.0,
       inspectorWidth: shellKind == MusaShellKind.studio ? 300.0 : 320.0,
       supportsSplitView: shellKind != MusaShellKind.capture &&
           windowClass != MusaWindowClass.compact,

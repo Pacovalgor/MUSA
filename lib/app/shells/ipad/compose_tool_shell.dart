@@ -11,9 +11,8 @@ import '../../adaptive/adaptive_spec.dart';
 import '../../features/editor/presentation/editor_surface_style.dart';
 import '../../features/workspace/presentation/widgets/document_focus_view.dart';
 import '../../features/workspace/presentation/widgets/workspace_library_panel.dart';
+import '../../../ui/widgets/musa_wordmark.dart';
 import 'widgets/compose_inspector_panel.dart';
-
-enum _ComposeSidebarSection { workspace, outline, notes }
 
 class ComposeToolShell extends ConsumerStatefulWidget {
   const ComposeToolShell({super.key});
@@ -24,7 +23,6 @@ class ComposeToolShell extends ConsumerStatefulWidget {
 
 class _ComposeToolShellState extends ConsumerState<ComposeToolShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  _ComposeSidebarSection _sidebarSection = _ComposeSidebarSection.workspace;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +62,7 @@ class _ComposeToolShellState extends ConsumerState<ComposeToolShell> {
           enabled: selection != null && !editorState.isProcessing,
         ),
         if (!spec.supportsPersistentInspector)
-          IconButton.filledTonal(
+          IconButton(
             onPressed: () => _openInspectorSheet(context),
             tooltip: 'Inspector',
             icon: const Icon(Icons.tune, size: 18),
@@ -83,11 +81,7 @@ class _ComposeToolShellState extends ConsumerState<ComposeToolShell> {
               children: [
                 SizedBox(
                   width: spec.sidebarWidth,
-                  child: _ComposeSidebar(
-                    section: _sidebarSection,
-                    onSectionChanged: (value) =>
-                        setState(() => _sidebarSection = value),
-                  ),
+                  child: const _ComposeSidebar(),
                 ),
                 Expanded(
                   child: DecoratedBox(
@@ -119,8 +113,6 @@ class _ComposeToolShellState extends ConsumerState<ComposeToolShell> {
         width: math.min(MediaQuery.sizeOf(context).width * 0.82, 360),
         child: SafeArea(
           child: _ComposeSidebar(
-            section: _sidebarSection,
-            onSectionChanged: (value) => setState(() => _sidebarSection = value),
             onItemChosen: () => Navigator.of(context).maybePop(),
           ),
         ),
@@ -156,13 +148,9 @@ class _ComposeToolShellState extends ConsumerState<ComposeToolShell> {
 
 class _ComposeSidebar extends StatelessWidget {
   const _ComposeSidebar({
-    required this.section,
-    required this.onSectionChanged,
     this.onItemChosen,
   });
 
-  final _ComposeSidebarSection section;
-  final ValueChanged<_ComposeSidebarSection> onSectionChanged;
   final VoidCallback? onItemChosen;
 
   @override
@@ -177,67 +165,16 @@ class _ComposeSidebar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'MUSA Compose',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: tokens.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Biblioteca, índice y notas en una navegación lateral pensada para composición.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: tokens.textSecondary,
-                        height: 1.45,
-                      ),
-                ),
-                const SizedBox(height: 12),
-                SegmentedButton<_ComposeSidebarSection>(
-                  segments: const [
-                    ButtonSegment(
-                      value: _ComposeSidebarSection.workspace,
-                      label: Text('Biblioteca'),
-                    ),
-                    ButtonSegment(
-                      value: _ComposeSidebarSection.outline,
-                      label: Text('Índice'),
-                    ),
-                    ButtonSegment(
-                      value: _ComposeSidebarSection.notes,
-                      label: Text('Notas'),
-                    ),
-                  ],
-                  selected: {section},
-                  onSelectionChanged: (value) =>
-                      onSectionChanged(value.first),
-                ),
-              ],
-            ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 24, 24, 14),
+            child: MusaWordmark(),
           ),
           const Divider(height: 1),
           Expanded(
-            child: switch (section) {
-              _ComposeSidebarSection.workspace => WorkspaceLibraryPanel(
-                  onDocumentSelected: (_) => onItemChosen?.call(),
-                  onNoteSelected: (_) => onItemChosen?.call(),
-                ),
-              _ComposeSidebarSection.outline => WorkspaceLibraryPanel(
-                  showNotes: false,
-                  showWorkspaceSummary: false,
-                  onDocumentSelected: (_) => onItemChosen?.call(),
-                ),
-              _ComposeSidebarSection.notes => WorkspaceLibraryPanel(
-                  showDocuments: false,
-                  showWorkspaceSummary: false,
-                  onNoteSelected: (_) => onItemChosen?.call(),
-                ),
-            },
+            child: WorkspaceLibraryPanel(
+              onDocumentSelected: (_) => onItemChosen?.call(),
+              onNoteSelected: (_) => onItemChosen?.call(),
+            ),
           ),
         ],
       ),
@@ -256,9 +193,17 @@ class _ComposeAnalysisButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.tonal(
+    final tokens = MusaTheme.tokensOf(context);
+    return TextButton.icon(
       onPressed: onPressed,
-      child: Text(hasSelection ? 'Entender fragmento' : 'Entender capítulo'),
+      style: TextButton.styleFrom(
+        foregroundColor: tokens.textPrimary,
+        splashFactory: NoSplash.splashFactory,
+      ).copyWith(
+        overlayColor: WidgetStatePropertyAll(tokens.hoverBackground),
+      ),
+      icon: const Icon(Icons.menu_book_outlined, size: 16),
+      label: Text(hasSelection ? 'Entender fragmento' : 'Entender capítulo'),
     );
   }
 }
@@ -275,7 +220,8 @@ class _ComposeMusaButton extends ConsumerWidget {
     return PopupMenuButton<Musa>(
       enabled: enabled,
       tooltip: 'Invocar Musa',
-      onSelected: (musa) => ref.read(editorProvider.notifier).runMusa(musa: musa),
+      onSelected: (musa) =>
+          ref.read(editorProvider.notifier).runMusa(musa: musa),
       itemBuilder: (context) => [
         for (final musa in musas)
           PopupMenuItem<Musa>(
@@ -283,9 +229,16 @@ class _ComposeMusaButton extends ConsumerWidget {
             child: Text(musa.name),
           ),
       ],
-      child: const FilledButton(
+      child: TextButton.icon(
         onPressed: null,
-        child: Text('Musa'),
+        style: TextButton.styleFrom(
+          foregroundColor: MusaTheme.tokensOf(context).textPrimary,
+          disabledForegroundColor: enabled
+              ? MusaTheme.tokensOf(context).textPrimary
+              : MusaTheme.tokensOf(context).textDisabled,
+        ),
+        icon: const Icon(Icons.auto_awesome_outlined, size: 16),
+        label: const Text('Musa'),
       ),
     );
   }

@@ -13,21 +13,37 @@ import '../../modules/manuscript/models/document.dart';
 import '../../modules/models_runtime/models/model_profile.dart';
 import '../../modules/musa/models/musa_profile.dart';
 import '../utils/id_generator.dart';
+import 'musa_project_document.dart';
 
-/// Persists the full narrative workspace as JSON in application support storage.
+/// Persists the full narrative workspace as one opaque `.musa` project file.
 class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
-  static const _workspaceFileName = 'musa_workspace.json';
+  static const _projectFileName = 'Musa.musa';
+  static const _legacyWorkspaceFileName = 'musa_workspace.json';
+
+  const LocalWorkspaceStorage({
+    this.projectFilePath,
+    MusaProjectDocument projectDocument = const MusaProjectDocument(),
+  }) : _projectDocument = projectDocument;
+
+  final String? projectFilePath;
+  final MusaProjectDocument _projectDocument;
 
   @override
   Future<NarrativeWorkspace> loadWorkspace() async {
-    final file = await _workspaceFile();
-    if (!await file.exists()) {
+    final file = await _projectFile();
+    if (await file.exists()) {
+      final workspace = await _projectDocument.readWorkspace(file);
+      return _normalizeWorkspace(workspace);
+    }
+
+    final legacyFile = await _legacyWorkspaceFile();
+    if (!await legacyFile.exists()) {
       final seeded = _seedWorkspace();
       await saveWorkspace(seeded);
       return seeded;
     }
 
-    final content = await file.readAsString();
+    final content = await legacyFile.readAsString();
     if (content.trim().isEmpty) {
       final seeded = _seedWorkspace();
       await saveWorkspace(seeded);
@@ -35,23 +51,36 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
     }
 
     final decoded = jsonDecode(content) as Map<String, dynamic>;
-    final workspace = NarrativeWorkspace.fromJson(decoded);
-    return _normalizeWorkspace(workspace);
+    final workspace = _normalizeWorkspace(NarrativeWorkspace.fromJson(decoded));
+    await saveWorkspace(workspace);
+    return workspace;
   }
 
   @override
   Future<void> saveWorkspace(NarrativeWorkspace workspace) async {
-    final file = await _workspaceFile();
-    await file.parent.create(recursive: true);
-    await file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(workspace.toJson()),
-    );
+    final file = await _projectFile();
+    await _projectDocument.writeWorkspace(file, workspace);
   }
 
-  Future<File> _workspaceFile() async {
+  Future<File> projectFile() => _projectFile();
+
+  Future<File> _projectFile() async {
+    if (projectFilePath != null) {
+      return File(projectFilePath!);
+    }
     final directory = await getApplicationSupportDirectory();
     final musaDirectory = Directory(p.join(directory.path, 'musa'));
-    return File(p.join(musaDirectory.path, _workspaceFileName));
+    return File(p.join(musaDirectory.path, _projectFileName));
+  }
+
+  Future<File> _legacyWorkspaceFile() async {
+    if (projectFilePath != null) {
+      return File(
+          p.join(p.dirname(projectFilePath!), _legacyWorkspaceFileName));
+    }
+    final directory = await getApplicationSupportDirectory();
+    final musaDirectory = Directory(p.join(directory.path, 'musa'));
+    return File(p.join(musaDirectory.path, _legacyWorkspaceFileName));
   }
 
   /// Repairs legacy or partially populated workspaces after deserialization.

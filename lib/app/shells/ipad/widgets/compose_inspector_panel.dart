@@ -483,6 +483,95 @@ class _ChapterAnalysisCard extends ConsumerWidget {
               ),
             ),
           ],
+          if (_shouldShowExpandDirections(analysis.nextStep)) ...[
+            const SizedBox(height: 10),
+            _ExpandMomentDirectionsCard(analysis: analysis),
+          ],
+          if (_shouldShowConnectDirections(analysis.nextStep)) ...[
+            const SizedBox(height: 10),
+            _ConnectToPlotDirectionsCard(analysis: analysis),
+          ],
+          if (analysis.trajectory != null) ...[
+            const SizedBox(height: 10),
+            _SummaryBlock(
+              title: 'Trayectoria',
+              body: analysis.trajectory!.summary,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpandMomentDirectionsCard extends ConsumerWidget {
+  const _ExpandMomentDirectionsCard({required this.analysis});
+
+  final ChapterAnalysis analysis;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(editorProvider.notifier);
+    final aid = controller.buildExpandMomentEditorialAid(analysis);
+    if (aid.directions.isEmpty) return const SizedBox.shrink();
+
+    return _InspectorCard(
+      title: 'Direcciones de composición',
+      subtitle: aid.problem,
+      child: Column(
+        children: [
+          for (final direction in aid.directions)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _SummaryBlock(
+                title: direction.title,
+                body: '${direction.summary}\n\n${direction.example}',
+                actionLabel: 'Guardar como nota editorial',
+                onAction: () async {
+                  final ok =
+                      await controller.useExpandMomentDirection(direction);
+                  if (!context.mounted) return;
+                  _showDirectionSavedSnackBar(context, ok);
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConnectToPlotDirectionsCard extends ConsumerWidget {
+  const _ConnectToPlotDirectionsCard({required this.analysis});
+
+  final ChapterAnalysis analysis;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(editorProvider.notifier);
+    final aid = controller.buildConnectToPlotEditorialAid(analysis);
+    if (aid.directions.isEmpty) return const SizedBox.shrink();
+
+    return _InspectorCard(
+      title: 'Conectar con trama',
+      subtitle: aid.problem,
+      child: Column(
+        children: [
+          for (final direction in aid.directions.take(3))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _SummaryBlock(
+                title: direction.title,
+                body: '${direction.summary}\n\n${direction.example}',
+                actionLabel: 'Guardar como nota editorial',
+                onAction: () async {
+                  final ok =
+                      await controller.useConnectToPlotDirection(direction);
+                  if (!context.mounted) return;
+                  _showDirectionSavedSnackBar(context, ok);
+                },
+              ),
+            ),
         ],
       ),
     );
@@ -763,6 +852,44 @@ class _NotesCard extends ConsumerWidget {
                                     height: 1.4,
                                   ),
                             ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                TextButton(
+                                  onPressed: () => ref
+                                      .read(narrativeWorkspaceProvider.notifier)
+                                      .selectNote(note.id),
+                                  child: const Text('Abrir'),
+                                ),
+                                TextButton(
+                                  onPressed: note.status == NoteStatus.used
+                                      ? null
+                                      : () => ref
+                                          .read(narrativeWorkspaceProvider
+                                              .notifier)
+                                          .updateNoteStatus(
+                                            note.id,
+                                            NoteStatus.used,
+                                          ),
+                                  child: const Text('Usada'),
+                                ),
+                                TextButton(
+                                  onPressed:
+                                      note.status == NoteStatus.discarded
+                                          ? null
+                                          : () => ref
+                                              .read(narrativeWorkspaceProvider
+                                                  .notifier)
+                                              .updateNoteStatus(
+                                                note.id,
+                                                NoteStatus.discarded,
+                                              ),
+                                  child: const Text('Descartar'),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -911,4 +1038,26 @@ String _chapterNextStepLabel(ChapterNextStep step) {
     NextStepType.connectToPlot => 'Conectar trama',
     NextStepType.expandMoment => 'Expandir momento',
   };
+}
+
+bool _shouldShowExpandDirections(ChapterNextStep? step) {
+  return step?.type == NextStepType.expandMoment ||
+      step?.type == NextStepType.strengthenConflict;
+}
+
+bool _shouldShowConnectDirections(ChapterNextStep? step) {
+  return step?.type == NextStepType.connectToPlot;
+}
+
+void _showDirectionSavedSnackBar(BuildContext context, bool ok) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      content: Text(
+        ok
+            ? 'Dirección guardada como nota editorial.'
+            : 'No se pudo guardar la dirección editorial.',
+      ),
+    ),
+  );
 }

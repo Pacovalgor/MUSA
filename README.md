@@ -238,10 +238,16 @@ Cada musa incorpora:
 
 ## Persistencia local
 
-El workspace narrativo se guarda como JSON en el directorio de soporte de la aplicación:
+El workspace narrativo se guarda como un único documento de proyecto `.musa`
+en el directorio de soporte de la aplicación. El documento es un contenedor
+opaco y versionado para que el usuario no pueda borrar partes internas del
+proyecto por accidente:
 
-- archivo principal: `musa_workspace.json`
+- archivo principal: `Musa.musa`
 - ubicación base: `Application Support/musa/`
+
+Las instalaciones con el formato anterior se migran automáticamente desde
+`musa_workspace.json` al abrir la app.
 
 El sistema genera un workspace semilla si no existe ninguno, con:
 

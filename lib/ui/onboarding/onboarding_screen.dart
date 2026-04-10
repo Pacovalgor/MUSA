@@ -1,10 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../app/adaptive/adaptive_router.dart';
 import '../../services/ia/embedded/management/model_manager.dart';
 import '../../services/ia/embedded/management/model_catalog.dart';
 import '../../services/ia/embedded/management/hardware_detector.dart';
 import '../../services/ia/embedded/management/model_persistence.dart';
-import '../layout/main_screen.dart';
 
 class ModelOnboardingScreen extends ConsumerStatefulWidget {
   const ModelOnboardingScreen({super.key});
@@ -22,7 +24,9 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    _detectHardware();
+    if (Platform.isMacOS) {
+      _detectHardware();
+    }
   }
 
   Future<void> _detectHardware() async {
@@ -37,7 +41,7 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, anim1, anim2) => const MusaMainScreen(),
+        pageBuilder: (context, anim1, anim2) => const MusaAdaptiveRouter(),
         transitionsBuilder: (context, anim1, anim2, child) {
           return FadeTransition(opacity: anim1, child: child);
         },
@@ -48,6 +52,19 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!Platform.isMacOS) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: _OnboardingBase(
+          title: "MUSA Compose",
+          subtitle:
+              "En iPad, MUSA se abre como herramienta de composición y revisión local-first. La IA local completa sigue reservada para macOS por ahora; puedes escribir, revisar contexto y usar análisis editorial ligero.",
+          buttonLabel: "Entrar a Compose",
+          onPressed: _finishOnboarding,
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: PageView(
