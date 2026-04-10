@@ -407,6 +407,18 @@ class _NextStepSection extends ConsumerWidget {
                 }
                 return;
               }
+              if (item.type == NextStepType.connectToPlot) {
+                final analysis = ref.read(editorProvider).currentChapterAnalysis;
+                if (analysis != null) {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => _ConnectToPlotSheet(analysis: analysis),
+                  );
+                }
+                return;
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(_nextStepHint(item)),
@@ -626,6 +638,167 @@ class _ExpandMomentSheetState extends ConsumerState<_ExpandMomentSheet> {
                         child: const Text('Cerrar'),
                       ),
                     ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ConnectToPlotSheet extends ConsumerStatefulWidget {
+  const _ConnectToPlotSheet({required this.analysis});
+
+  final ChapterAnalysis analysis;
+
+  @override
+  ConsumerState<_ConnectToPlotSheet> createState() =>
+      _ConnectToPlotSheetState();
+}
+
+class _ConnectToPlotSheetState extends ConsumerState<_ConnectToPlotSheet> {
+  int _selectedIndex = 0;
+  bool _isSaving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = MusaTheme.tokensOf(context);
+    final controller = ref.read(editorProvider.notifier);
+    final aid = controller.buildConnectToPlotEditorialAid(widget.analysis);
+    final directions = aid.directions;
+    if (directions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final selected = directions[_selectedIndex.clamp(0, directions.length - 1)];
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 520),
+              padding: const EdgeInsets.all(18),
+              decoration: MusaTheme.panelDecoration(
+                context,
+                backgroundColor: tokens.canvasBackground,
+                radius: 22,
+                elevated: true,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Conectar este capítulo con la trama',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    aid.problem,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: tokens.textSecondary,
+                          height: 1.35,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...List.generate(directions.length, (index) {
+                    final item = directions[index];
+                    final selectedItem = index == _selectedIndex;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () => setState(() => _selectedIndex = index),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: selectedItem
+                                ? tokens.hoverBackground
+                                : tokens.subtleBackground,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: selectedItem
+                                  ? tokens.textPrimary
+                                  : tokens.borderSoft,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.title,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                      color: tokens.textPrimary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                item.summary,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: tokens.textSecondary,
+                                      height: 1.35,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                item.example,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: tokens.textSecondary,
+                                      fontStyle: FontStyle.italic,
+                                      height: 1.35,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _isSaving
+                          ? null
+                          : () async {
+                              setState(() => _isSaving = true);
+                              final saved = await controller
+                                  .useConnectToPlotDirection(selected);
+                              if (!context.mounted) return;
+                              setState(() => _isSaving = false);
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(saved
+                                      ? 'La dirección quedó guardada como nota editorial.'
+                                      : 'No se pudo guardar la dirección.'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                      child: Text(_isSaving
+                          ? 'Guardando…'
+                          : 'Guardar dirección editorial'),
+                    ),
                   ),
                 ],
               ),

@@ -3,16 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'core/theme.dart';
 import 'core/constants.dart';
+import 'app/adaptive/adaptive_router.dart';
 import 'modules/books/models/app_settings.dart';
 import 'modules/books/providers/workspace_providers.dart';
-import 'ui/layout/main_screen.dart';
 import 'ui/onboarding/onboarding_screen.dart';
 import 'ui/widgets/musa_settings_dialog.dart';
 import 'services/ia/embedded/management/model_persistence.dart';
 
+/// Exposes whether the initial model onboarding has already been completed.
 final onboardingCompletedProvider = Provider<bool>((ref) => false);
+
+/// Global navigator used by native menu callbacks to open dialogs safely.
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Boots Flutter, restores onboarding state and mounts the application shell.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -29,6 +33,7 @@ Future<void> main() async {
   );
 }
 
+/// Root application widget that wires theme, onboarding and adaptive routing.
 class MusaApp extends ConsumerStatefulWidget {
   const MusaApp({super.key});
 
@@ -73,7 +78,7 @@ class _MusaAppState extends ConsumerState<MusaApp> {
           ? ThemeMode.dark
           : ThemeMode.light,
       home: hasCompletedOnboarding
-          ? const MusaMainScreen()
+          ? const MusaAdaptiveRouter()
           : const ModelOnboardingScreen(),
     );
   }

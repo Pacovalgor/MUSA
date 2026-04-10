@@ -1755,10 +1755,7 @@ class ChapterAnalysisService {
         (observationDrivenMoment || trajectoryReinforcesPattern);
     final hasStrongConflict =
         analysis.chapterFunction == ChapterFunction.escalation ||
-            conflictSignals >= 2 ||
-            (topCharacterDevelopment?.type ==
-                    CharacterDevelopmentType.conflict_signal &&
-                (topCharacterDevelopment?.score ?? 0) >= 8);
+            conflictSignals >= 2;
 
     final needsPlotConnection = analysis.trajectory != null &&
         analysis.trajectory!.endLabel == 'investigación' &&

@@ -43,6 +43,7 @@ enum MusaGenerationPhase {
   failed,
 }
 
+/// Immutable state snapshot for the editor surface and its editorial overlays.
 class EditorState {
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -174,6 +175,7 @@ class EditorState {
   }
 }
 
+/// Coordinates editor text, selection UI, analysis and Musa invocation flows.
 class EditorController extends StateNotifier<EditorState> {
   final Ref _ref;
   final GlobalKey editorKey = GlobalKey();
@@ -641,21 +643,59 @@ class EditorController extends StateNotifier<EditorState> {
       documentTitle: document.title,
       isSpanish: isSpanish,
     );
+    final note =
+        await _ref.read(narrativeWorkspaceProvider.notifier).createWorkflowNote(
+              title: title,
+              content: content,
+              workflowType: EditorialWorkflowType.expandMoment,
+              workflowDirectionKey: direction.type.name,
+              sourceDocumentId: document.id,
+              sourceDocumentTitle: document.title,
+            );
+    return note != null;
+  }
 
-    await _ref.read(narrativeWorkspaceProvider.notifier).createNote(
-          title: title,
-          kind: NoteKind.structural,
-        );
-    final workspace = _ref.read(narrativeWorkspaceProvider).value;
-    final noteId = workspace?.selectedNoteId;
-    if (noteId == null) {
+  ConnectToPlotEditorialAid buildConnectToPlotEditorialAid(
+    ChapterAnalysis analysis,
+  ) {
+    final isSpanish = _inferChapterAnalysisLanguage(analysis) == 'Spanish';
+    return ConnectToPlotEditorialAid(
+      problem: isSpanish
+          ? 'El capítulo ya sostiene una línea de investigación, pero todavía necesita amarrarse mejor a la trama que viene empujando el libro.'
+          : 'The chapter already sustains an investigative line, but it still needs a clearer tie back into the book-wide plot.',
+      directions: _buildConnectToPlotDirections(isSpanish: isSpanish),
+    );
+  }
+
+  Future<bool> useConnectToPlotDirection(
+    ConnectToPlotDirection direction,
+  ) async {
+    final analysis = state.currentChapterAnalysis;
+    final document = _ref.read(currentDocumentProvider);
+    if (analysis == null || document == null) {
       return false;
     }
 
-    await _ref
-        .read(narrativeWorkspaceProvider.notifier)
-        .updateNoteContent(noteId, content);
-    return true;
+    final isSpanish = _inferChapterAnalysisLanguage(analysis) == 'Spanish';
+    final title = isSpanish
+        ? 'Conectar trama en ${document.title}'
+        : 'Connect plot in ${document.title}';
+    final content = _buildConnectToPlotNoteContent(
+      analysis: analysis,
+      direction: direction,
+      documentTitle: document.title,
+      isSpanish: isSpanish,
+    );
+    final note =
+        await _ref.read(narrativeWorkspaceProvider.notifier).createWorkflowNote(
+              title: title,
+              content: content,
+              workflowType: EditorialWorkflowType.connectToPlot,
+              workflowDirectionKey: direction.type.name,
+              sourceDocumentId: document.id,
+              sourceDocumentTitle: document.title,
+            );
+    return note != null;
   }
 
   void requestAutopilotRecommendation() {
@@ -970,15 +1010,26 @@ class EditorController extends StateNotifier<EditorState> {
     if (character == null) return;
 
     final selectedText = selectionContext.selectedText.trim();
-    if (selectedText.isEmpty) return;
-
-    _markSelectionActionUsed();
     await _ref
         .read(narrativeWorkspaceProvider.notifier)
         .linkCharacterToDocument(
           documentId: document.id,
           characterId: character.id,
         );
+    await _ref
+        .read(narrativeWorkspaceProvider.notifier)
+        .selectCharacter(character.id);
+    if (selectedText.isEmpty) {
+      state = state.copyWith(
+        selectionContext: null,
+        showOverlay: false,
+        clearSelectionOffset: true,
+        clearFragmentAnalysis: true,
+      );
+      return;
+    }
+
+    _markSelectionActionUsed();
 
     state = state.copyWith(
       selectionContext: null,
@@ -1207,9 +1258,6 @@ class EditorController extends StateNotifier<EditorState> {
     if (scenario == null) return;
 
     final selectedText = selectionContext.selectedText.trim();
-    if (selectedText.isEmpty) return;
-
-    _markSelectionActionUsed();
     await _ref.read(narrativeWorkspaceProvider.notifier).linkScenarioToDocument(
           documentId: document.id,
           scenarioId: scenario.id,
@@ -1217,6 +1265,17 @@ class EditorController extends StateNotifier<EditorState> {
     await _ref
         .read(narrativeWorkspaceProvider.notifier)
         .selectScenario(scenario.id);
+    if (selectedText.isEmpty) {
+      state = state.copyWith(
+        selectionContext: null,
+        showOverlay: false,
+        clearSelectionOffset: true,
+        clearFragmentAnalysis: true,
+      );
+      return;
+    }
+
+    _markSelectionActionUsed();
 
     state = state.copyWith(
       selectionContext: null,
@@ -2815,6 +2874,43 @@ class EditorController extends StateNotifier<EditorState> {
     };
   }
 
+  List<ConnectToPlotDirection> _buildConnectToPlotDirections({
+    required bool isSpanish,
+  }) {
+    return <ConnectToPlotDirection>[
+      ConnectToPlotDirection(
+        type: ConnectToPlotDirectionType.connect_symbol,
+        title: isSpanish ? 'Conectar con el símbolo' : 'Connect to the symbol',
+        summary: isSpanish
+            ? 'Haz que el elemento recurrente vuelva a cargar sentido dentro del capítulo.'
+            : 'Let the recurring element gain clearer narrative meaning inside the chapter.',
+        example: isSpanish
+            ? 'El símbolo dejó de parecer una rareza aislada. Empezó a comportarse como una firma.'
+            : 'The symbol stopped feeling isolated. It started behaving like a signature.',
+      ),
+      ConnectToPlotDirection(
+        type: ConnectToPlotDirectionType.introduce_consequence,
+        title: isSpanish ? 'Introducir consecuencia' : 'Introduce consequence',
+        summary: isSpanish
+            ? 'Haz visible qué cambia ahora que este capítulo ya ha visto lo que vio.'
+            : 'Make visible what changes now that the chapter has already seen what it saw.',
+        example: isSpanish
+            ? 'No resolví nada esa noche, pero salí con una obligación nueva pegada al cuerpo.'
+            : 'I did not solve anything that night, but I left carrying a new obligation.',
+      ),
+      ConnectToPlotDirection(
+        type: ConnectToPlotDirectionType.link_character,
+        title: isSpanish ? 'Enlazar con personaje' : 'Tie it to character',
+        summary: isSpanish
+            ? 'Haz que la trama toque una relación, una voz o un conflicto personal concreto.'
+            : 'Let the plot line touch a concrete relationship, voice, or personal conflict.',
+        example: isSpanish
+            ? 'De pronto ya no era solo una pista. Era algo que también rozaba a Julia.'
+            : 'Suddenly it was no longer just a clue. It also brushed against Julia.',
+      ),
+    ];
+  }
+
   String _buildExpandMomentNoteContent({
     required ChapterAnalysis analysis,
     required ExpandMomentDirection direction,
@@ -2853,6 +2949,47 @@ class EditorController extends StateNotifier<EditorState> {
       '',
       'Limit',
       'Push this moment without resolving it or rewriting the whole scene.',
+    ].join('\n');
+  }
+
+  String _buildConnectToPlotNoteContent({
+    required ChapterAnalysis analysis,
+    required ConnectToPlotDirection direction,
+    required String documentTitle,
+    required bool isSpanish,
+  }) {
+    if (isSpanish) {
+      return [
+        'Nota editorial para "$documentTitle"',
+        '',
+        'Trayectoria: ${analysis.trajectory?.summary ?? analysis.dominantNarrativeMoment.title}',
+        'Foco de ajuste: conectar mejor este capítulo con la trama que está emergiendo.',
+        '',
+        'Dirección elegida',
+        '${direction.title}: ${direction.summary}',
+        '',
+        'Empuje posible',
+        direction.example,
+        '',
+        'Límite',
+        'Conecta la línea del capítulo con la trama sin explicarlo todo ni adelantar resoluciones.',
+      ].join('\n');
+    }
+
+    return [
+      'Editorial note for "$documentTitle"',
+      '',
+      'Trajectory: ${analysis.trajectory?.summary ?? analysis.dominantNarrativeMoment.title}',
+      'Adjustment focus: tie this chapter more clearly into the emerging plot.',
+      '',
+      'Chosen direction',
+      '${direction.title}: ${direction.summary}',
+      '',
+      'Possible push',
+      direction.example,
+      '',
+      'Limit',
+      'Connect the chapter to the plot without overexplaining or resolving it too early.',
     ].join('\n');
   }
 

@@ -1,5 +1,6 @@
 import 'character.dart';
 
+/// Partial character proposal generated from context before being merged.
 class CharacterAutofillDraft {
   final String summary;
   final String voice;

@@ -1,3 +1,4 @@
+/// Lightweight pointer to a scene-like span inside a larger manuscript document.
 class SceneReference {
   final String id;
   final String documentId;

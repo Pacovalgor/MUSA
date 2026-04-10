@@ -1,3 +1,4 @@
+/// Legacy chapter entity used by the older file-based project subsystem.
 class Chapter {
   final String id;
   final String title;
@@ -14,18 +15,18 @@ class Chapter {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'content': content,
-    'order': order,
-    'lastModified': lastModified.toIso8601String(),
-  };
+        'id': id,
+        'title': title,
+        'content': content,
+        'order': order,
+        'lastModified': lastModified.toIso8601String(),
+      };
 
   factory Chapter.fromJson(Map<String, dynamic> json) => Chapter(
-    id: json['id'],
-    title: json['title'],
-    content: json['content'],
-    order: json['order'],
-    lastModified: DateTime.parse(json['lastModified']),
-  );
+        id: json['id'],
+        title: json['title'],
+        content: json['content'],
+        order: json['order'],
+        lastModified: DateTime.parse(json['lastModified']),
+      );
 }

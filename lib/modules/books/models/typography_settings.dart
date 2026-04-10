@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+/// Semantic text roles customized by the workspace typography settings.
 enum TypographyRole { title, subtitle, body, note }
 
+/// Supported weight and italic presets for typography customization.
 enum TypographyStylePreset {
   light,
   regular,
@@ -12,6 +14,7 @@ enum TypographyStylePreset {
   semiboldItalic,
 }
 
+/// Concrete visual style for one typography role.
 class TypographyStyleSettings {
   final String fontFamily;
   final double fontSize;
@@ -92,6 +95,7 @@ class TypographyStyleSettings {
   }
 }
 
+/// Collection of text styles applied across book, editor and note surfaces.
 class TypographySettings {
   final TypographyStyleSettings title;
   final TypographyStyleSettings subtitle;

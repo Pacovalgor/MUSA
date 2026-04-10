@@ -1,7 +1,9 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Lifecycle status for a book inside the workspace.
 enum BookStatus { draft, active, archived }
 
+/// Top-level narrative container for manuscript, continuity and editorial setup.
 class Book {
   final String id;
   final String title;

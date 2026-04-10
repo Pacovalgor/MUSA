@@ -1,7 +1,9 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Lifecycle state of a recorded voice memo.
 enum VoiceMemoStatus { recorded, transcribed, linked, archived }
 
+/// Audio capture linked to the narrative workspace and optionally summarized.
 class VoiceMemo {
   final String id;
   final String bookId;

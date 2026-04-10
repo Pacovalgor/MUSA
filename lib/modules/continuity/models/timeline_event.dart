@@ -1,7 +1,9 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Timeline event categories tracked by the continuity subsystem.
 enum TimelineEventType { plot, character, world, editorial }
 
+/// Time-ordered event linked to a book, characters, scenarios and documents.
 class TimelineEvent {
   final String id;
   final String bookId;

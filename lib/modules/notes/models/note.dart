@@ -1,11 +1,18 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Broad editorial buckets used to classify notes.
 enum NoteKind { idea, research, structural, character, scenario, loose }
 
-enum NoteStatus { inbox, linked, archived }
+/// Workflow state for a note inside the editorial pipeline.
+enum NoteStatus { inbox, linked, used, discarded, archived }
 
+/// Quality of the note's attachment to a manuscript span.
 enum NoteAnchorState { exact, fuzzy, detached }
 
+/// Supported editorial workflows that can originate notes automatically.
+enum EditorialWorkflowType { expandMoment, connectToPlot }
+
+/// Resolution metadata for a note anchored to manuscript text.
 class NoteAnchorResolution {
   const NoteAnchorResolution({
     required this.noteId,
@@ -22,6 +29,7 @@ class NoteAnchorResolution {
   final int? resolvedEndOffset;
 }
 
+/// Free-form or workflow-generated note attached to the current book context.
 class Note {
   final String id;
   final String bookId;
@@ -38,6 +46,10 @@ class Note {
   final int? anchorStartOffset;
   final int? anchorEndOffset;
   final NoteAnchorState? anchorState;
+  final EditorialWorkflowType? workflowType;
+  final String? workflowDirectionKey;
+  final String? sourceDocumentId;
+  final String? sourceDocumentTitle;
 
   const Note({
     required this.id,
@@ -55,6 +67,10 @@ class Note {
     this.anchorStartOffset,
     this.anchorEndOffset,
     this.anchorState,
+    this.workflowType,
+    this.workflowDirectionKey,
+    this.sourceDocumentId,
+    this.sourceDocumentTitle,
   });
 
   Note copyWith({
@@ -71,6 +87,14 @@ class Note {
     int? anchorStartOffset,
     int? anchorEndOffset,
     NoteAnchorState? anchorState,
+    EditorialWorkflowType? workflowType,
+    bool clearWorkflowType = false,
+    String? workflowDirectionKey,
+    bool clearWorkflowDirectionKey = false,
+    String? sourceDocumentId,
+    bool clearSourceDocumentId = false,
+    String? sourceDocumentTitle,
+    bool clearSourceDocumentTitle = false,
   }) {
     return Note(
       id: id,
@@ -88,6 +112,17 @@ class Note {
       anchorStartOffset: anchorStartOffset ?? this.anchorStartOffset,
       anchorEndOffset: anchorEndOffset ?? this.anchorEndOffset,
       anchorState: anchorState ?? this.anchorState,
+      workflowType:
+          clearWorkflowType ? null : (workflowType ?? this.workflowType),
+      workflowDirectionKey: clearWorkflowDirectionKey
+          ? null
+          : (workflowDirectionKey ?? this.workflowDirectionKey),
+      sourceDocumentId: clearSourceDocumentId
+          ? null
+          : (sourceDocumentId ?? this.sourceDocumentId),
+      sourceDocumentTitle: clearSourceDocumentTitle
+          ? null
+          : (sourceDocumentTitle ?? this.sourceDocumentTitle),
     );
   }
 
@@ -107,6 +142,10 @@ class Note {
         'anchorStartOffset': anchorStartOffset,
         'anchorEndOffset': anchorEndOffset,
         'anchorState': anchorState?.name,
+        'workflowType': workflowType?.name,
+        'workflowDirectionKey': workflowDirectionKey,
+        'sourceDocumentId': sourceDocumentId,
+        'sourceDocumentTitle': sourceDocumentTitle,
       };
 
   factory Note.fromJson(Map<String, dynamic> json) => Note(
@@ -141,5 +180,15 @@ class Note {
                 json['anchorState'] as String?,
                 NoteAnchorState.exact,
               ),
+        workflowType: (json['workflowType'] as String?) == null
+            ? null
+            : enumFromName(
+                EditorialWorkflowType.values,
+                json['workflowType'] as String?,
+                EditorialWorkflowType.expandMoment,
+              ),
+        workflowDirectionKey: json['workflowDirectionKey'] as String?,
+        sourceDocumentId: json['sourceDocumentId'] as String?,
+        sourceDocumentTitle: json['sourceDocumentTitle'] as String?,
       );
 }

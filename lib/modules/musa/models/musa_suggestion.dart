@@ -1,3 +1,4 @@
+/// Final editorial suggestion produced by a Musa session.
 class MusaSuggestion {
   final String id;
   final String musaSessionId;

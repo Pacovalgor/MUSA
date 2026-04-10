@@ -1,3 +1,4 @@
+/// Legacy aggregate of manuscript progress and immediate narrative direction.
 class NarrativeState {
   final int currentChapterIndex;
   final int totalWordCount;
@@ -12,16 +13,16 @@ class NarrativeState {
   });
 
   Map<String, dynamic> toJson() => {
-    'currentChapterIndex': currentChapterIndex,
-    'totalWordCount': totalWordCount,
-    'currentTensionLevel': currentTensionLevel,
-    'nextGoal': nextGoal,
-  };
+        'currentChapterIndex': currentChapterIndex,
+        'totalWordCount': totalWordCount,
+        'currentTensionLevel': currentTensionLevel,
+        'nextGoal': nextGoal,
+      };
 
   factory NarrativeState.fromJson(Map<String, dynamic> json) => NarrativeState(
-    currentChapterIndex: json['currentChapterIndex'],
-    totalWordCount: json['totalWordCount'],
-    currentTensionLevel: json['currentTensionLevel'],
-    nextGoal: json['nextGoal'],
-  );
+        currentChapterIndex: json['currentChapterIndex'],
+        totalWordCount: json['totalWordCount'],
+        currentTensionLevel: json['currentTensionLevel'],
+        nextGoal: json['nextGoal'],
+      );
 }

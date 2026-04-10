@@ -18,13 +18,16 @@ import '../models/musa_settings.dart';
 import '../models/narrative_workspace.dart';
 import '../models/typography_settings.dart';
 import '../models/writing_settings.dart';
+import '../models/workspace_snapshot.dart';
 import '../services/narrative_workspace_repository.dart';
 
+/// Repository used to load and persist the canonical workspace aggregate.
 final narrativeWorkspaceRepositoryProvider =
     Provider<NarrativeWorkspaceRepository>((ref) {
   return LocalWorkspaceStorage();
 });
 
+/// Owns the full workspace state and all write operations against it.
 class NarrativeWorkspaceNotifier
     extends StateNotifier<AsyncValue<NarrativeWorkspace>> {
   NarrativeWorkspaceNotifier(this._repository)
@@ -34,6 +37,7 @@ class NarrativeWorkspaceNotifier
 
   final NarrativeWorkspaceRepository _repository;
 
+  /// Loads the local workspace on startup and exposes it to the rest of the app.
   Future<void> bootstrap() async {
     try {
       final workspace = await _repository.loadWorkspace();
@@ -48,6 +52,7 @@ class NarrativeWorkspaceNotifier
     await _repository.saveWorkspace(workspace);
   }
 
+  /// Switches the editor focus to a manuscript document.
   Future<void> selectDocument(String documentId) async {
     final workspace = state.value;
     if (workspace == null) return;
@@ -65,6 +70,7 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  /// Switches the editor focus to a note.
   Future<void> selectNote(String noteId) async {
     final workspace = state.value;
     if (workspace == null) return;
@@ -81,6 +87,7 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  /// Marks a note as selected without forcing the note editor surface.
   Future<void> focusNoteInInspector(String noteId) async {
     final workspace = state.value;
     if (workspace == null) return;
@@ -96,6 +103,7 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  /// Clears the current note selection.
   Future<void> clearSelectedNote() async {
     final workspace = state.value;
     if (workspace == null || workspace.selectedNoteId == null) return;
@@ -106,6 +114,7 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  /// Switches the editor focus to a character sheet.
   Future<void> selectCharacter(String characterId) async {
     final workspace = state.value;
     if (workspace == null) return;
@@ -121,6 +130,7 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  /// Switches the editor focus to a scenario sheet.
   Future<void> selectScenario(String scenarioId) async {
     final workspace = state.value;
     if (workspace == null) return;
@@ -136,6 +146,7 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  /// Activates a book and rebinds the current selection to its first document.
   Future<void> selectBook(String bookId) async {
     final workspace = state.value;
     if (workspace == null) {
@@ -166,6 +177,7 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  /// Opens the high-level book view instead of a specific entity sheet.
   Future<void> openActiveBookView() async {
     final workspace = state.value;
     if (workspace == null || workspace.activeBook == null) return;
@@ -337,6 +349,49 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  Future<Note?> createWorkflowNote({
+    required String title,
+    required String content,
+    required EditorialWorkflowType workflowType,
+    required String workflowDirectionKey,
+    required String sourceDocumentId,
+    required String sourceDocumentTitle,
+  }) async {
+    final workspace = state.value;
+    final activeBook = workspace?.activeBook;
+    if (workspace == null || activeBook == null) return null;
+
+    final now = DateTime.now();
+    final newNote = Note(
+      id: generateEntityId('note'),
+      bookId: activeBook.id,
+      title: title.trim().isEmpty ? null : title.trim(),
+      content: content.trim(),
+      kind: NoteKind.structural,
+      status: NoteStatus.inbox,
+      createdAt: now,
+      updatedAt: now,
+      documentIds: [sourceDocumentId],
+      workflowType: workflowType,
+      workflowDirectionKey: workflowDirectionKey,
+      sourceDocumentId: sourceDocumentId,
+      sourceDocumentTitle: sourceDocumentTitle,
+    );
+
+    await _persist(
+      workspace.copyWith(
+        notes: [...workspace.notes, newNote],
+        books: _touchActiveBook(workspace.books, activeBook.id, now),
+        selectedNoteId: newNote.id,
+        clearSelectedCharacterId: true,
+        clearSelectedScenarioId: true,
+        editorMode: WorkspaceEditorMode.note,
+      ),
+    );
+
+    return newNote;
+  }
+
   Future<void> createAnchoredNote({
     required String anchorTextSnapshot,
     required int anchorStartOffset,
@@ -395,7 +450,8 @@ class NarrativeWorkspaceNotifier
 
       final nextSnapshot =
           resolution.resolvedTextSnapshot ?? note.anchorTextSnapshot;
-      final nextStart = resolution.resolvedStartOffset ?? note.anchorStartOffset;
+      final nextStart =
+          resolution.resolvedStartOffset ?? note.anchorStartOffset;
       final nextEnd = resolution.resolvedEndOffset ?? note.anchorEndOffset;
       final nextState = resolution.state;
 
@@ -1106,6 +1162,72 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  Future<void> updateNoteStatus(String noteId, NoteStatus status) async {
+    final workspace = state.value;
+    if (workspace == null) return;
+
+    final now = DateTime.now();
+    final updatedNotes = workspace.notes.map((note) {
+      if (note.id != noteId) return note;
+      return note.copyWith(status: status, updatedAt: now);
+    }).toList();
+
+    await _persist(
+      workspace.copyWith(
+        notes: updatedNotes,
+        books: _touchActiveBook(workspace.books, workspace.activeBook?.id, now),
+      ),
+    );
+  }
+
+  Future<WorkspaceSnapshot?> createSnapshot({
+    String? label,
+  }) async {
+    final workspace = state.value;
+    final activeBook = workspace?.activeBook;
+    if (workspace == null || activeBook == null) return null;
+
+    final now = DateTime.now();
+    final snapshot = WorkspaceSnapshot(
+      id: generateEntityId('snapshot'),
+      bookId: activeBook.id,
+      label: (label?.trim().isNotEmpty ?? false)
+          ? label!.trim()
+          : 'Estado guardado ${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+      createdAt: now,
+      payload: workspace.copyWith(snapshots: const []).toJson(),
+    );
+
+    await _persist(
+      workspace.copyWith(
+        snapshots: [...workspace.snapshots, snapshot],
+        books: _touchActiveBook(workspace.books, activeBook.id, now),
+      ),
+    );
+
+    return snapshot;
+  }
+
+  Future<void> restoreSnapshot(String snapshotId) async {
+    final workspace = state.value;
+    if (workspace == null) return;
+
+    WorkspaceSnapshot? snapshot;
+    for (final item in workspace.snapshots) {
+      if (item.id == snapshotId) {
+        snapshot = item;
+        break;
+      }
+    }
+    if (snapshot == null) return;
+
+    final restored = NarrativeWorkspace.fromJson(snapshot.payload).copyWith(
+      snapshots: workspace.snapshots,
+    );
+    state = AsyncValue.data(restored);
+    await _repository.saveWorkspace(restored);
+  }
+
   Future<void> deleteNote(String noteId) async {
     final workspace = state.value;
     if (workspace == null) return;
@@ -1330,31 +1452,38 @@ final narrativeWorkspaceProvider = StateNotifierProvider<
   return NarrativeWorkspaceNotifier(repository);
 });
 
+/// List of books available in the loaded workspace.
 final booksProvider = Provider<List<Book>>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.books ?? const [];
 });
 
+/// Currently active book resolved from app settings.
 final activeBookProvider = Provider<Book?>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.activeBook;
 });
 
+/// Global settings snapshot consumed across theme and editing surfaces.
 final appSettingsProvider = Provider<AppSettings>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.appSettings ??
       const AppSettings();
 });
 
+/// Musa-specific preferences extracted from app settings.
 final musaSettingsProvider = Provider<MusaSettings>((ref) {
   return ref.watch(appSettingsProvider).musaSettings;
 });
 
+/// Typography configuration derived from the current workspace settings.
 final typographySettingsProvider = Provider<TypographySettings>((ref) {
   return ref.watch(appSettingsProvider).typographySettings;
 });
 
+/// Writing-surface preferences consumed by editor widgets and controllers.
 final writingSettingsProvider = Provider<WritingSettings>((ref) {
   return ref.watch(appSettingsProvider).writingSettings;
 });
 
+/// Active editor mode for the current workspace selection.
 final editorModeProvider = Provider<WorkspaceEditorMode>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.editorMode ??
       WorkspaceEditorMode.document;

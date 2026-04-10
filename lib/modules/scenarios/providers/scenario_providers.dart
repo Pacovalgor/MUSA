@@ -4,10 +4,13 @@ import '../../books/providers/workspace_providers.dart';
 import '../../manuscript/models/document.dart';
 import '../models/scenario.dart';
 
+/// Progress states for AI-assisted scenario autofill.
 enum ScenarioAutofillPhase { idle, drafting, completed, failed }
 
+/// Whether the autofill flow is creating or enriching a scenario sheet.
 enum ScenarioAutofillKind { create, enrich }
 
+/// UI state for scenario autofill banners and progress indicators.
 class ScenarioAutofillState {
   final String? scenarioId;
   final ScenarioAutofillPhase phase;
@@ -24,6 +27,7 @@ class ScenarioAutofillState {
   bool appliesTo(String? id) => id != null && id == scenarioId;
 }
 
+/// Drives the transient UI state around scenario autofill operations.
 class ScenarioAutofillNotifier extends StateNotifier<ScenarioAutofillState> {
   ScenarioAutofillNotifier() : super(const ScenarioAutofillState());
 
@@ -88,15 +92,18 @@ class ScenarioAutofillNotifier extends StateNotifier<ScenarioAutofillState> {
   }
 }
 
+/// Scenarios available in the active book.
 final scenariosProvider = Provider<List<Scenario>>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.activeBookScenarios ??
       const [];
 });
 
+/// Scenario currently selected in the workspace.
 final selectedScenarioProvider = Provider<Scenario?>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.selectedScenario;
 });
 
+/// Documents in which the selected scenario is explicitly referenced.
 final selectedScenarioDocumentsProvider = Provider<List<Document>>((ref) {
   final workspace = ref.watch(narrativeWorkspaceProvider).value;
   final scenario = ref.watch(selectedScenarioProvider);
@@ -110,6 +117,7 @@ final selectedScenarioDocumentsProvider = Provider<List<Document>>((ref) {
     ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 });
 
+/// Notifier that exposes the live scenario autofill status to the UI.
 final scenarioAutofillProvider =
     StateNotifierProvider<ScenarioAutofillNotifier, ScenarioAutofillState>(
   (ref) => ScenarioAutofillNotifier(),

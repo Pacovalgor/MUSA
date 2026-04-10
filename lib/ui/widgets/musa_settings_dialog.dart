@@ -237,6 +237,16 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 writingSettings.copyWith(typewriterModeEnabled: value),
                               ),
                             ),
+                            _BooleanField(
+                              label: 'Focus mode visual',
+                              description:
+                                  'Atenúa paneles periféricos mientras escribes para dejar más peso visual al manuscrito.',
+                              value: writingSettings.focusModeEnabled,
+                              onChanged: (value) => _saveWritingSettings(
+                                ref,
+                                writingSettings.copyWith(focusModeEnabled: value),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 28),

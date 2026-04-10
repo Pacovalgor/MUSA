@@ -1,4 +1,6 @@
 import 'package:musa/editor/services/chapter_analysis_service.dart';
+import 'package:musa/modules/characters/models/character.dart';
+import 'package:musa/modules/scenarios/models/scenario.dart';
 
 void main() {
   const text = '''San Francisco, 4:03 a.m.
@@ -94,7 +96,13 @@ Pero podía investigar.
 Y eso, para mí, era suficiente.''';
 
   final service = ChapterAnalysisService();
-  final analysis = service.analyze(text);
+  final analysis = service.analyze(
+    chapterText: text,
+    characters: const <Character>[],
+    scenarios: const <Scenario>[],
+    linkedCharacterIds: const <String>[],
+    linkedScenarioIds: const <String>[],
+  );
   print('moment=${analysis.dominantNarrativeMoment.title}');
   print('summary=${analysis.dominantNarrativeMoment.summary}');
   print('function=${analysis.chapterFunction}');

@@ -14,6 +14,7 @@ import '../../modules/models_runtime/models/model_profile.dart';
 import '../../modules/musa/models/musa_profile.dart';
 import '../utils/id_generator.dart';
 
+/// Persists the full narrative workspace as JSON in application support storage.
 class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
   static const _workspaceFileName = 'musa_workspace.json';
 
@@ -53,6 +54,7 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
     return File(p.join(musaDirectory.path, _workspaceFileName));
   }
 
+  /// Repairs legacy or partially populated workspaces after deserialization.
   NarrativeWorkspace _normalizeWorkspace(NarrativeWorkspace workspace) {
     if (workspace.books.isNotEmpty && workspace.documents.isNotEmpty) {
       final normalizedActiveBookId =
@@ -108,6 +110,7 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
     return _seedWorkspace();
   }
 
+  /// Creates the first local workspace so the user can start writing immediately.
   NarrativeWorkspace _seedWorkspace() {
     final now = DateTime.now();
     final bookId = generateEntityId('book');

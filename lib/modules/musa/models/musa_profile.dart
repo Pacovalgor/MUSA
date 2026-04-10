@@ -1,5 +1,6 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Editorial specialization exposed as a selectable Musa profile.
 enum MusaProfileKind {
   style,
   tension,
@@ -9,6 +10,7 @@ enum MusaProfileKind {
   scenario,
 }
 
+/// Metadata describing one available Musa persona and its prompt template.
 class MusaProfile {
   final String id;
   final String name;

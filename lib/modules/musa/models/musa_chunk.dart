@@ -1,3 +1,4 @@
+/// Persisted streaming chunk emitted while a Musa session is generating text.
 class MusaChunk {
   final String id;
   final String musaSessionId;

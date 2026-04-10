@@ -1,7 +1,9 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Hardware and capability tier used to group model offerings.
 enum ModelFamily { lite, standard, pro }
 
+/// Catalog entry describing how a model should be downloaded and executed.
 class ModelProfile {
   final String id;
   final String displayName;

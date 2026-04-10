@@ -7,15 +7,18 @@ import '../../scenarios/models/scenario.dart';
 import '../../scenarios/providers/scenario_providers.dart';
 import '../models/document.dart';
 
+/// Documents belonging to the active book, already sorted for editor usage.
 final documentsProvider = Provider<List<Document>>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.activeBookDocuments ??
       const [];
 });
 
+/// Currently selected manuscript document.
 final currentDocumentProvider = Provider<Document?>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.selectedDocument;
 });
 
+/// Characters explicitly linked from the current document metadata.
 final currentDocumentCharactersProvider = Provider<List<Character>>((ref) {
   final document = ref.watch(currentDocumentProvider);
   final characters = ref.watch(charactersProvider);
@@ -27,6 +30,7 @@ final currentDocumentCharactersProvider = Provider<List<Character>>((ref) {
       .toList();
 });
 
+/// Scenarios explicitly linked from the current document metadata.
 final currentDocumentScenariosProvider = Provider<List<Scenario>>((ref) {
   final document = ref.watch(currentDocumentProvider);
   final scenarios = ref.watch(scenariosProvider);

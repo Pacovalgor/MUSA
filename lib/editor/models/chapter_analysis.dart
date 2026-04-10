@@ -143,6 +143,12 @@ enum ExpandMomentDirectionType {
   link_emotion_to_action,
 }
 
+enum ConnectToPlotDirectionType {
+  connect_symbol,
+  introduce_consequence,
+  link_character,
+}
+
 class ExpandMomentDirection {
   final ExpandMomentDirectionType type;
   final String title;
@@ -162,6 +168,30 @@ class ExpandMomentEditorialAid {
   final List<ExpandMomentDirection> directions;
 
   const ExpandMomentEditorialAid({
+    required this.problem,
+    required this.directions,
+  });
+}
+
+class ConnectToPlotDirection {
+  final ConnectToPlotDirectionType type;
+  final String title;
+  final String summary;
+  final String example;
+
+  const ConnectToPlotDirection({
+    required this.type,
+    required this.title,
+    required this.summary,
+    required this.example,
+  });
+}
+
+class ConnectToPlotEditorialAid {
+  final String problem;
+  final List<ConnectToPlotDirection> directions;
+
+  const ConnectToPlotEditorialAid({
     required this.problem,
     required this.directions,
   });

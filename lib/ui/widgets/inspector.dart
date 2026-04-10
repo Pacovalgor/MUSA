@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../../modules/books/models/book.dart';
 import '../../modules/books/models/narrative_workspace.dart';
+import '../../modules/books/models/workspace_snapshot.dart';
 import '../../modules/books/models/writing_settings.dart';
 import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/characters/models/character.dart';
@@ -20,6 +21,7 @@ import '../../modules/scenarios/providers/scenario_providers.dart';
 import '../../modules/scenarios/widgets/scenario_picker_sheet.dart';
 import '../../core/theme.dart';
 import '../../editor/controller/editor_controller.dart';
+import '../../editor/models/chapter_analysis.dart';
 
 class MusaInspector extends ConsumerWidget {
   const MusaInspector({super.key});
@@ -43,6 +45,7 @@ class MusaInspector extends ConsumerWidget {
     final linkedScenarios = ref.watch(currentDocumentScenariosProvider);
     final characterDocuments = ref.watch(selectedCharacterDocumentsProvider);
     final scenarioDocuments = ref.watch(selectedScenarioDocumentsProvider);
+    final snapshots = ref.watch(snapshotsProvider);
     final continuity = workspace?.activeContinuityState;
 
     return Container(
@@ -83,6 +86,7 @@ class MusaInspector extends ConsumerWidget {
                   notes,
                   characters,
                   scenarios,
+                  snapshots,
                 ),
               WorkspaceEditorMode.document => _buildDocumentMode(
                   context,
@@ -148,6 +152,7 @@ class MusaInspector extends ConsumerWidget {
     List<Note> notes,
     List<Character> characters,
     List<Scenario> scenarios,
+    List<WorkspaceSnapshot> snapshots,
   ) {
     if (book == null) {
       return const SizedBox.shrink();
@@ -216,8 +221,167 @@ class MusaInspector extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 18),
+        _PanelSection(
+          title: 'Snapshots',
+          trailingActionLabel: 'Guardar',
+          onTrailingAction: () => ref
+              .read(narrativeWorkspaceProvider.notifier)
+              .createSnapshot(),
+          child: snapshots.isEmpty
+              ? const _MutedMessage(
+                  'Guarda estados del libro para volver atrás sin miedo.',
+                )
+              : Column(
+                  children: snapshots.take(4).map((snapshot) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration:
+                            MusaTheme.panelDecoration(context, radius: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    snapshot.label,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(
+                                          color: MusaTheme.tokensOf(context)
+                                              .textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatDateTime(snapshot.createdAt),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: MusaTheme.tokensOf(context)
+                                              .textMuted,
+                                          letterSpacing: 0.3,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => ref
+                                  .read(narrativeWorkspaceProvider.notifier)
+                                  .restoreSnapshot(snapshot.id),
+                              child: const Text('Restaurar'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+        ),
       ],
     );
+  }
+
+  _DocumentContinuityState _buildDocumentContinuityState(
+    Document document,
+    List<Character> linkedCharacters,
+    List<Scenario> linkedScenarios,
+    ChapterAnalysis? analysis,
+  ) {
+    final alerts = <String>[];
+
+    if (analysis != null) {
+      for (final item in analysis.mainCharacters) {
+        if (item.existingCharacterId == null) {
+          alerts.add('Aparece ${item.name} sin ficha o vínculo claro.');
+        } else if (!document.characterIds.contains(item.existingCharacterId)) {
+          alerts.add('${item.name} pesa en el capítulo pero no está vinculada.');
+        }
+      }
+      final mainScenario = analysis.mainScenario;
+      if (mainScenario != null) {
+        if (mainScenario.existingScenarioId == null) {
+          alerts.add(
+            'El espacio "${mainScenario.name}" gana peso sin escenario consolidado.',
+          );
+        } else if (!document.scenarioIds.contains(mainScenario.existingScenarioId)) {
+          alerts.add(
+            '${mainScenario.name} pesa en el capítulo pero no está vinculado.',
+          );
+        }
+      }
+    }
+
+    return _DocumentContinuityState(
+      activeCharacters: linkedCharacters,
+      activeScenarios: linkedScenarios,
+      alerts: alerts,
+    );
+  }
+
+  Widget _buildContinuityPanel(
+    BuildContext context,
+    _DocumentContinuityState continuityState,
+  ) {
+    if (continuityState.activeCharacters.isEmpty &&
+        continuityState.activeScenarios.isEmpty &&
+        continuityState.alerts.isEmpty) {
+      return const _MutedMessage(
+        'Aquí aparecerán señales de continuidad de este capítulo.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (continuityState.activeCharacters.isNotEmpty)
+          _MetricRow(
+            label: 'Personajes activos',
+            value: continuityState.activeCharacters
+                .map((item) => item.displayName)
+                .join(', '),
+          ),
+        if (continuityState.activeScenarios.isNotEmpty)
+          _MetricRow(
+            label: 'Escenarios activos',
+            value: continuityState.activeScenarios
+                .map((item) => item.displayName)
+                .join(', '),
+          ),
+        if (continuityState.alerts.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          ...continuityState.alerts.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '• $item',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: MusaTheme.tokensOf(context).warningText,
+                      height: 1.35,
+                    ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String _workflowSummary(Note note) {
+    final workflowLabel = switch (note.workflowType) {
+      EditorialWorkflowType.expandMoment => 'Expandir momento',
+      EditorialWorkflowType.connectToPlot => 'Conectar con trama',
+      null => 'Dirección editorial',
+    };
+    return '$workflowLabel · ${_noteStatusLabel(note.status)}';
   }
 
   Widget _buildDocumentMode(
@@ -234,6 +398,15 @@ class MusaInspector extends ConsumerWidget {
     if (document == null) {
       return const SizedBox.shrink();
     }
+    final chapterAnalysis =
+        ref.watch(editorProvider.select((state) => state.currentChapterAnalysis));
+    final workflowNotes = ref.watch(currentDocumentWorkflowNotesProvider);
+    final continuityState = _buildDocumentContinuityState(
+      document,
+      linkedCharacters,
+      linkedScenarios,
+      chapterAnalysis,
+    );
 
     final suggestion = _buildDocumentSuggestion(
       context,
@@ -289,6 +462,95 @@ class MusaInspector extends ConsumerWidget {
                 ? 'Aquí verás el contexto narrativo de este capítulo.'
                 : 'Personajes y escenarios se reúnen aquí mientras escribes.',
           ),
+        ),
+        const SizedBox(height: 18),
+        _PanelSection(
+          title: 'Continuidad',
+          child: _buildContinuityPanel(context, continuityState),
+        ),
+        const SizedBox(height: 18),
+        _PanelSection(
+          title: 'Flujo editorial',
+          child: workflowNotes.isEmpty
+              ? const _MutedMessage(
+                  'Las direcciones editoriales guardadas para este capítulo aparecerán aquí.',
+                )
+              : Column(
+                  children: workflowNotes
+                      .map(
+                        (note) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration:
+                                MusaTheme.panelDecoration(context, radius: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  note.title ?? 'Dirección editorial',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        color:
+                                            MusaTheme.tokensOf(context).textPrimary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _workflowSummary(note),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color:
+                                            MusaTheme.tokensOf(context).textSecondary,
+                                        height: 1.35,
+                                      ),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    TextButton(
+                                      onPressed: () => ref
+                                          .read(narrativeWorkspaceProvider.notifier)
+                                          .selectNote(note.id),
+                                      child: const Text('Abrir'),
+                                    ),
+                                    TextButton(
+                                      onPressed: note.status == NoteStatus.used
+                                          ? null
+                                          : () => ref
+                                              .read(narrativeWorkspaceProvider.notifier)
+                                              .updateNoteStatus(
+                                                note.id,
+                                                NoteStatus.used,
+                                              ),
+                                      child: const Text('Usada'),
+                                    ),
+                                    TextButton(
+                                      onPressed: note.status == NoteStatus.discarded
+                                          ? null
+                                          : () => ref
+                                              .read(narrativeWorkspaceProvider.notifier)
+                                              .updateNoteStatus(
+                                                note.id,
+                                                NoteStatus.discarded,
+                                              ),
+                                      child: const Text('Descartar'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
         ),
         const SizedBox(height: 18),
         _PanelSection(
@@ -523,11 +785,24 @@ class MusaInspector extends ConsumerWidget {
                 : () {},
           ),
           const SizedBox(height: 8),
-          _MetricRow(label: 'Estado', value: note.status.name),
+          _MetricRow(label: 'Estado', value: _noteStatusLabel(note.status)),
+          if (note.workflowType != null)
+            _MetricRow(
+              label: 'Workflow',
+              value: switch (note.workflowType!) {
+                EditorialWorkflowType.expandMoment => 'Expandir momento',
+                EditorialWorkflowType.connectToPlot => 'Conectar con trama',
+              },
+            ),
           if (anchorState != null)
             _MetricRow(
               label: 'Ancla',
               value: _anchorStateLabel(anchorState),
+            ),
+          if ((note.sourceDocumentTitle ?? '').trim().isNotEmpty)
+            _MetricRow(
+              label: 'Origen',
+              value: note.sourceDocumentTitle!.trim(),
             ),
           _MetricRow(
             label: 'Actualizada',
@@ -1572,6 +1847,18 @@ class _MutedMessage extends StatelessWidget {
   }
 }
 
+class _DocumentContinuityState {
+  const _DocumentContinuityState({
+    required this.activeCharacters,
+    required this.activeScenarios,
+    required this.alerts,
+  });
+
+  final List<Character> activeCharacters;
+  final List<Scenario> activeScenarios;
+  final List<String> alerts;
+}
+
 class _AssistiveHint extends StatelessWidget {
   const _AssistiveHint({
     required this.text,
@@ -2140,6 +2427,14 @@ String _noteKindLabel(NoteKind kind) => switch (kind) {
       NoteKind.character => 'Personaje',
       NoteKind.scenario => 'Escenario',
       NoteKind.loose => 'Libre',
+    };
+
+String _noteStatusLabel(NoteStatus status) => switch (status) {
+      NoteStatus.inbox => 'inbox',
+      NoteStatus.linked => 'vinculada',
+      NoteStatus.used => 'usada',
+      NoteStatus.discarded => 'descartada',
+      NoteStatus.archived => 'archivada',
     };
 
 String _anchorStateLabel(NoteAnchorState state) => switch (state) {

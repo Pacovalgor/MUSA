@@ -3,6 +3,7 @@ import 'summary.dart';
 import 'narrative_state.dart';
 import 'continuity_memory.dart';
 
+/// Legacy top-level project aggregate preserved alongside the newer workspace model.
 class MusaProject {
   final String id;
   final String name;
@@ -23,8 +24,8 @@ class MusaProject {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'path': path,
-  };
+        'id': id,
+        'name': name,
+        'path': path,
+      };
 }

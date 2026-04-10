@@ -1,3 +1,4 @@
+/// Character sheet used by the manuscript, continuity and editor inspector.
 class Character {
   final String id;
   final String bookId;

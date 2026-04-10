@@ -1,3 +1,4 @@
+/// Scenario or location sheet connected to the active book and manuscript.
 class Scenario {
   final String id;
   final String bookId;

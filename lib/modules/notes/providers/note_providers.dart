@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../books/models/narrative_workspace.dart';
+import '../../books/models/workspace_snapshot.dart';
 import '../../books/providers/workspace_providers.dart';
 import '../../manuscript/providers/document_providers.dart';
 import '../models/note.dart';
 import '../models/voice_memo.dart';
 
+/// Notes scoped to the active book and ordered by recent activity.
 final notesProvider = Provider<List<Note>>((ref) {
   final workspace = ref.watch(narrativeWorkspaceProvider).value;
   final activeBookId = workspace?.activeBook?.id;
@@ -17,6 +19,7 @@ final notesProvider = Provider<List<Note>>((ref) {
   return results;
 });
 
+/// Voice memos associated with the active book.
 final voiceMemosProvider = Provider<List<VoiceMemo>>((ref) {
   final workspace = ref.watch(narrativeWorkspaceProvider).value;
   final activeBookId = workspace?.activeBook?.id;
@@ -27,6 +30,7 @@ final voiceMemosProvider = Provider<List<VoiceMemo>>((ref) {
     ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 });
 
+/// Currently selected note, resolved against the active note collection.
 final currentNoteProvider = Provider<Note?>((ref) {
   final workspace = ref.watch(narrativeWorkspaceProvider).value;
   final selectedNoteId = workspace?.selectedNoteId;
@@ -38,6 +42,28 @@ final currentNoteProvider = Provider<Note?>((ref) {
   return notes.first;
 });
 
+/// Workflow notes attached to the document currently open in the editor.
+final currentDocumentWorkflowNotesProvider = Provider<List<Note>>((ref) {
+  final document = ref.watch(currentDocumentProvider);
+  final notes = ref.watch(notesProvider);
+  if (document == null) return const [];
+  return notes
+      .where((note) =>
+          note.kind == NoteKind.structural &&
+          note.workflowType != null &&
+          (note.sourceDocumentId == document.id ||
+              note.documentIds.contains(document.id)))
+      .toList()
+    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+});
+
+/// Saved snapshots available for the active book.
+final snapshotsProvider = Provider<List<WorkspaceSnapshot>>((ref) {
+  final workspace = ref.watch(narrativeWorkspaceProvider).value;
+  return workspace?.activeBookSnapshots ?? const [];
+});
+
+/// Small adapter used by the editor to consume documents and notes uniformly.
 class EditorContentItem {
   final String id;
   final String title;
@@ -52,6 +78,7 @@ class EditorContentItem {
   });
 }
 
+/// Current editable content item, abstracting over document and note modes.
 final currentEditorContentProvider = Provider<EditorContentItem?>((ref) {
   final mode = ref.watch(editorModeProvider);
   if (mode == WorkspaceEditorMode.note) {

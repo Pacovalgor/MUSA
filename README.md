@@ -47,6 +47,10 @@ El proyecto ya supera la fase de prototipo visual. Hay una base funcional clara 
 - Edición de manuscrito y entidades narrativas.
 - Flujo de sugerencias editoriales con IA embebida en macOS.
 - Análisis heurístico del texto para continuidad y ayudas contextuales.
+- Workflows editoriales estructurados para expandir momentos y conectar trama.
+- Notas editoriales con estado, origen de capítulo y dirección reutilizable.
+- Snapshots manuales ligeros del workspace.
+- Focus mode visual y modo máquina de escribir.
 - Impresión de capítulos y libro completo en PDF.
 
 Todavía hay recorrido en robustez, packaging, testing automatizado y documentación operativa de producción.
@@ -87,10 +91,12 @@ flowchart LR
     Workspace --> Storage["Local Workspace Storage"]
     State --> Editor["Editor Controller"]
     Editor --> Analysis["Fragment / Chapter Analysis"]
+    Editor --> Workflow["Editorial Workflow Notes"]
     Editor --> IA["IA Service"]
     IA --> Embedded["Embedded IA Service (macOS)"]
     Embedded --> Models["Model Manager + GGUF Models"]
     State --> Print["Print Service"]
+    Workspace --> Snapshots["Manual Snapshots"]
 ```
 
 ## Flujo principal de producto
@@ -106,9 +112,16 @@ flowchart TD
     App --> Book["Abrir libro activo"]
     Book --> Write["Escribir capítulo / escena / nota"]
     Write --> Analyze["Analizar fragmento o capítulo"]
-    Analyze --> Invoke["Invocar Musa"]
+    Analyze --> Decide["Resolver nextStep editorial"]
+    Decide --> Workflow{"Acción estructurada?"}
+    Workflow -- "expandMoment" --> Expand["Guardar dirección para expandir momento"]
+    Workflow -- "connectToPlot" --> Plot["Guardar dirección para conectar trama"]
+    Workflow -- "Musa" --> Invoke["Invocar Musa"]
+    Expand --> Notes["Nota editorial con estado"]
+    Plot --> Notes
     Invoke --> Review["Revisar sugerencia"]
     Review --> Persist["Persistir cambios en workspace local"]
+    Notes --> Persist
 ```
 
 ## Estructura funcional
@@ -126,6 +139,8 @@ flowchart TD
 - Escenarios vinculables a documentos.
 - Notas y memorias de voz dentro del workspace.
 - Estado de continuidad asociado al libro activo.
+- Señales ligeras de continuidad por capítulo desde el inspector.
+- Snapshots manuales para guardar estados del libro sin introducir versionado complejo.
 
 ### IA editorial
 
@@ -140,6 +155,15 @@ flowchart TD
 - Detección de personajes y escenarios presentes en un fragmento.
 - Análisis de capítulo por fragmentación interna.
 - Resolución de momento dominante, función del capítulo y siguiente paso sugerido.
+- Motor de `nextStep` con acciones estructuradas para `expandMoment` y `connectToPlot`.
+- Filtro de ruido visible para evitar entidades no defendibles en la UI.
+
+### Workflows editoriales
+
+- `expandMoment`: convierte una recomendación de desarrollo de escena en una nota estructural con dirección elegida.
+- `connectToPlot`: permite conectar un capítulo con símbolo, consecuencia o personaje.
+- Cada dirección queda persistida como nota editorial con origen, estado y tipo de workflow.
+- Las notas pueden abrirse desde el inspector y marcarse como usadas o descartadas.
 
 ### Salida editorial
 
@@ -188,6 +212,7 @@ Cada musa incorpora:
 - `lib/editor/services/fragment_analysis_service.dart`
 - `lib/editor/services/chapter_analysis_service.dart`
 - `lib/editor/widgets/suggestion_review_panel.dart`
+- `lib/editor/widgets/chapter_insight_panel.dart`
 
 ### IA local
 
@@ -199,6 +224,17 @@ Cada musa incorpora:
 ### Impresión
 
 - `lib/services/print/print_service.dart`
+
+### Shell adaptativo y documentación interna
+
+- `lib/app/adaptive/`
+- `lib/app/shells/desktop/`
+- `lib/app/shells/ipad/`
+- `lib/app/shells/iphone/`
+- `docs/codebase_overview.md`
+- `docs/mobile_adaptive_architecture.md`
+- `docs/mobile_ipad_foundation_plan.md`
+- `docs/ipad_compose_phase2_plan.md`
 
 ## Persistencia local
 
@@ -214,6 +250,8 @@ El sistema genera un workspace semilla si no existe ninguno, con:
 - un estado base de continuidad,
 - perfiles de musas,
 - un perfil de modelo inicial.
+
+Las notas estructurales y los snapshots se guardan dentro del mismo workspace local. Los snapshots son copias manuales ligeras: no hay branching, merge ni versionado complejo.
 
 ## Requisitos de desarrollo
 
@@ -277,7 +315,8 @@ flutter analyze
 3. Escribe directamente en el editor.
 4. Usa el inspector para enriquecer sinopsis, tono, personajes y escenarios vinculados.
 5. Invoca una musa sobre el fragmento que quieras revisar.
-6. Compara la sugerencia y decide si aceptarla o descartarla.
+6. Si el análisis propone `expandMoment` o `connectToPlot`, abre la dirección editorial y guárdala como nota.
+7. Compara la sugerencia y decide si aceptarla o descartarla.
 
 ### Gestión de contexto narrativo
 
@@ -287,6 +326,23 @@ flutter analyze
 4. Añade escenarios.
 5. Vincula personajes y escenarios a capítulos o escenas.
 6. Revisa la continuidad desde el panel derecho.
+7. Atiende las señales ligeras del inspector cuando una entidad pesa en el capítulo pero no está vinculada.
+
+### Workflows editoriales
+
+1. Analiza un capítulo.
+2. Revisa el `nextStep` propuesto.
+3. Abre la acción estructurada cuando sea `expandMoment` o `connectToPlot`.
+4. Elige una dirección editorial.
+5. MUSA crea una nota estructural vinculada al capítulo.
+6. Desde el inspector puedes abrirla, marcarla como usada o descartarla.
+
+### Snapshots
+
+1. Abre la vista del libro.
+2. En el inspector, usa `Guardar` dentro de `Snapshots`.
+3. Sigue escribiendo sin miedo a perder el estado anterior.
+4. Restaura un snapshot si quieres volver a una versión guardada.
 
 ### Impresión editorial
 
@@ -317,19 +373,30 @@ Durante el desarrollo de una novela, el autor mantiene personajes, escenarios y 
 
 Cuando el manuscrito necesita otra lectura, el autor imprime capítulo o cuadernillo para revisarlo fuera de pantalla con una maquetación legible.
 
+### Caso 6. Dirección editorial persistente
+
+El análisis detecta que un capítulo necesita desarrollar un momento o conectarse mejor con la trama. El autor elige una dirección en el sheet y MUSA la guarda como nota estructural, reutilizable y marcable como usada o descartada.
+
+### Caso 7. Escritura sin miedo
+
+Antes de una reescritura fuerte, el autor guarda un snapshot manual del libro. Puede probar cambios y restaurar el estado anterior si la dirección no funciona.
+
 ## Diferenciadores frente a un editor genérico con IA
 
 - El contexto narrativo no es accesorio; forma parte del modelo mental de la app.
 - La IA trabaja con perfiles editoriales concretos, no con prompts genéricos opacos.
 - El almacenamiento local y la instalación del modelo son parte explícita del producto.
 - La continuidad, el capítulo y el fragmento tienen herramientas de análisis propias.
+- Los `nextStep` importantes se convierten en acciones estructuradas, no solo consejos.
+- Las notas funcionan como sistema vivo de trabajo editorial.
 - La salida editorial incluye impresión, no solo edición en pantalla.
 
 ## Limitaciones actuales
 
-- El target real hoy es macOS; no hay un flujo equivalente acabado para otras plataformas.
+- El target principal hoy es macOS; ya existe base de arquitectura adaptativa para iPad/iPhone, pero no equivale todavía a una distribución final móvil.
 - La robustez del motor IA depende del modelo instalado y del hardware disponible.
 - El análisis narrativo actual es mayoritariamente heurístico; no sustituye lectura editorial humana.
+- La continuidad actual es light: señala actividad y vínculos básicos, no contradicciones globales profundas.
 - Faltan más tests de integración y validación de regresiones en flujos complejos.
 - El README documenta el estado observable del código, no una distribución empaquetada para usuarios finales.
 
@@ -338,9 +405,9 @@ Cuando el manuscrito necesita otra lectura, el autor imprime capítulo o cuadern
 ### Producto
 
 - Biblioteca de proyectos con apertura reciente y archivado.
-- Sistema de snapshots o historial editorial del manuscrito.
+- Historial editorial más profundo sobre los snapshots actuales.
 - Exportación adicional a formatos editoriales más allá de impresión.
-- Panel de continuidad más profundo con conflictos abiertos y alertas.
+- Panel de continuidad más profundo con conflictos abiertos y alertas cross-capítulo.
 - Modo de revisión por escenas, no solo por capítulo.
 
 ### IA
@@ -363,10 +430,10 @@ Cuando el manuscrito necesita otra lectura, el autor imprime capítulo o cuadern
 ```mermaid
 timeline
     title Roadmap propuesto de MUSA
-    Q2 2026 : endurecer persistencia local
+    Q2 2026 : cerrar motor editorial y workflows
             : mejorar tests y CI
             : refinar README y docs internas
-    Q3 2026 : historial editorial y snapshots
+    Q3 2026 : profundizar snapshots
             : análisis de continuidad cross-capítulo
             : exportación editorial mejorada
     Q4 2026 : multi-proyecto
@@ -406,8 +473,11 @@ Flujo recomendado:
 - Layout principal: [`lib/ui/layout/main_screen.dart`](./lib/ui/layout/main_screen.dart)
 - Persistencia local: [`lib/shared/storage/local_workspace_storage.dart`](./lib/shared/storage/local_workspace_storage.dart)
 - Controlador del editor: [`lib/editor/controller/editor_controller.dart`](./lib/editor/controller/editor_controller.dart)
+- Workflows de capítulo: [`lib/editor/widgets/chapter_insight_panel.dart`](./lib/editor/widgets/chapter_insight_panel.dart)
+- Snapshots: [`lib/modules/books/models/workspace_snapshot.dart`](./lib/modules/books/models/workspace_snapshot.dart)
 - Modelos locales: [`lib/services/ia/embedded/management/model_manager.dart`](./lib/services/ia/embedded/management/model_manager.dart)
 - Impresión: [`lib/services/print/print_service.dart`](./lib/services/print/print_service.dart)
+- Arquitectura adaptativa: [`docs/mobile_adaptive_architecture.md`](./docs/mobile_adaptive_architecture.md)
 
 ## Resumen
 

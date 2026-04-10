@@ -1,5 +1,6 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Installation progress state for a local model asset.
 enum InstalledModelStatus {
   notInstalled,
   downloading,
@@ -9,6 +10,7 @@ enum InstalledModelStatus {
   failed,
 }
 
+/// Runtime installation record for a model downloaded into the local machine.
 class InstalledModel {
   final String id;
   final String modelProfileId;

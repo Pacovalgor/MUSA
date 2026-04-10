@@ -1,3 +1,4 @@
+/// Running continuity digest for the active book.
 class ContinuityState {
   final String bookId;
   final String projectSummary;

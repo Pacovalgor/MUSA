@@ -1,7 +1,9 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Origin of a stored manuscript revision.
 enum DocumentRevisionSourceType { manual, musa, import }
 
+/// Before/after checkpoint captured for a document edit.
 class DocumentRevision {
   final String id;
   final String documentId;

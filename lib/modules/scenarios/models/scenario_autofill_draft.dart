@@ -1,5 +1,6 @@
 import 'scenario.dart';
 
+/// Partial scenario proposal generated before being merged into a full sheet.
 class ScenarioAutofillDraft {
   final String summary;
   final String atmosphere;

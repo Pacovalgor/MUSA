@@ -5,10 +5,13 @@ import '../../manuscript/models/document.dart';
 import '../models/character.dart';
 import '../models/character_relation.dart';
 
+/// Progress states for AI-assisted character autofill.
 enum CharacterAutofillPhase { idle, drafting, completed, failed }
 
+/// Whether the autofill flow is creating a new sheet or enriching an existing one.
 enum CharacterAutofillKind { create, enrich }
 
+/// UI state for character autofill banners and progress indicators.
 class CharacterAutofillState {
   final String? characterId;
   final CharacterAutofillPhase phase;
@@ -25,6 +28,7 @@ class CharacterAutofillState {
   bool appliesTo(String? id) => id != null && id == characterId;
 }
 
+/// Drives the transient UI state around character autofill operations.
 class CharacterAutofillNotifier extends StateNotifier<CharacterAutofillState> {
   CharacterAutofillNotifier() : super(const CharacterAutofillState());
 
@@ -88,15 +92,18 @@ class CharacterAutofillNotifier extends StateNotifier<CharacterAutofillState> {
   }
 }
 
+/// Characters available in the active book.
 final charactersProvider = Provider<List<Character>>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.activeBookCharacters ??
       const [];
 });
 
+/// Character currently selected in the workspace.
 final selectedCharacterProvider = Provider<Character?>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.selectedCharacter;
 });
 
+/// Documents in which the selected character is explicitly referenced.
 final selectedCharacterDocumentsProvider = Provider<List<Document>>((ref) {
   final workspace = ref.watch(narrativeWorkspaceProvider).value;
   final character = ref.watch(selectedCharacterProvider);
@@ -110,6 +117,7 @@ final selectedCharacterDocumentsProvider = Provider<List<Document>>((ref) {
   return documents;
 });
 
+/// Relations between characters scoped to the active book.
 final characterRelationsProvider = Provider<List<CharacterRelation>>((ref) {
   final workspace = ref.watch(narrativeWorkspaceProvider).value;
   final activeBookId = workspace?.activeBook?.id;
@@ -119,6 +127,7 @@ final characterRelationsProvider = Provider<List<CharacterRelation>>((ref) {
       .toList();
 });
 
+/// Notifier that exposes the live character autofill status to the UI.
 final characterAutofillProvider =
     StateNotifierProvider<CharacterAutofillNotifier, CharacterAutofillState>(
   (ref) => CharacterAutofillNotifier(),

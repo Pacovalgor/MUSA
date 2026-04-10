@@ -1,7 +1,9 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Relationship categories tracked between characters in the same book.
 enum CharacterRelationType { family, romance, conflict, ally, mentor, unknown }
 
+/// Directed link between two characters, including friction and description.
 class CharacterRelation {
   final String id;
   final String bookId;

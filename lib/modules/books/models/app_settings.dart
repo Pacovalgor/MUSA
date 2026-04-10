@@ -2,8 +2,10 @@ import 'musa_settings.dart';
 import 'typography_settings.dart';
 import 'writing_settings.dart';
 
+/// Global appearance mode for the desktop shell.
 enum AppAppearance { light, dark }
 
+/// Stores app-wide preferences that apply across the entire workspace.
 class AppSettings {
   final AppAppearance appearance;
   final double editorFontSize;
@@ -92,8 +94,7 @@ class AppSettings {
         activeInstalledModelId: json['activeInstalledModelId'] as String?,
         backgroundDownloadsEnabled:
             json['backgroundDownloadsEnabled'] as bool? ?? true,
-        edgeHoverPanelsEnabled:
-            json['edgeHoverPanelsEnabled'] as bool? ?? true,
+        edgeHoverPanelsEnabled: json['edgeHoverPanelsEnabled'] as bool? ?? true,
         musaSettings: MusaSettings.fromJson(
           json['musaSettings'] as Map<String, dynamic>? ?? const {},
         ),

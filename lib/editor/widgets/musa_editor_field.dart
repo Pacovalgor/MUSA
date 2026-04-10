@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../app/features/editor/presentation/editor_surface_style.dart';
 import '../controller/editor_controller.dart';
 import '../controller/musa_text_editing_controller.dart';
 import 'musa_selection_controls.dart';
@@ -27,6 +28,12 @@ class _MusaEditorState extends ConsumerState<MusaEditor> {
   TextEditingController? _activeController;
   List<String> _lastSyncedNoteSignature = const [];
   List<String> _lastResolvedAnchorSignature = const [];
+
+  void _handleEditorFocusChanged() {
+    if (!mounted) return;
+    ref.read(editorFocusProvider.notifier).state =
+        ref.read(editorProvider).focusNode.hasFocus;
+  }
 
   void _handleTypewriterScroll() {
     if (!mounted) return;
@@ -235,11 +242,13 @@ class _MusaEditorState extends ConsumerState<MusaEditor> {
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
+    ref.read(editorProvider).focusNode.addListener(_handleEditorFocusChanged);
   }
 
   @override
   void dispose() {
     _activeController?.removeListener(_handleTypewriterScroll);
+    ref.read(editorProvider).focusNode.removeListener(_handleEditorFocusChanged);
     _scrollController
       ..removeListener(_handleScroll)
       ..dispose();
@@ -267,6 +276,7 @@ class _MusaEditorState extends ConsumerState<MusaEditor> {
     final editorMode = ref.watch(editorModeProvider);
     final typography = ref.watch(typographySettingsProvider);
     final writingSettings = ref.watch(writingSettingsProvider);
+    final surfaceStyle = ref.watch(musaEditorSurfaceStyleProvider);
     final documents = ref.watch(documentsProvider);
     final notes = ref.watch(notesProvider);
     final currentNote = ref.watch(currentNoteProvider);
@@ -386,6 +396,8 @@ class _MusaEditorState extends ConsumerState<MusaEditor> {
           EditorMaxWidthMode.medium => MusaConstants.editorMaxWidth,
           EditorMaxWidthMode.wide => 920.0,
         };
+        final effectiveMaxWidth =
+            surfaceStyle.maxWidthOverride ?? mappedMaxWidth;
 
         final bodyStyle = (editorMode == WorkspaceEditorMode.note
                 ? typography.note
@@ -418,15 +430,16 @@ class _MusaEditorState extends ConsumerState<MusaEditor> {
           child: Center(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: mappedMaxWidth,
+                maxWidth: effectiveMaxWidth,
               ),
               padding: EdgeInsets.only(
-                left: 72.0,
-                right: 72.0,
-                top: 112.0,
+                left: surfaceStyle.horizontalPadding,
+                right: surfaceStyle.horizontalPadding,
+                top: surfaceStyle.topPadding,
                 bottom: writingSettings.typewriterModeEnabled
-                    ? MediaQuery.of(context).size.height * 0.6
-                    : 112.0,
+                    ? MediaQuery.of(context).size.height *
+                        surfaceStyle.typewriterBottomFactor
+                    : surfaceStyle.bottomPadding,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,7 +562,7 @@ class _MusaEditorState extends ConsumerState<MusaEditor> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 60),
+                  SizedBox(height: surfaceStyle.titleToBodySpacing),
                   CompositedTransformTarget(
                     link: editorState.layerLink,
                     child: Shortcuts(

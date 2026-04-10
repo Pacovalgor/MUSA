@@ -1,7 +1,9 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// Execution status for a Musa run associated with a fragment or document.
 enum MusaSessionStatus { queued, streaming, completed, failed, cancelled }
 
+/// Audit record for one Musa invocation and the context it used.
 class MusaSession {
   final String id;
   final String bookId;

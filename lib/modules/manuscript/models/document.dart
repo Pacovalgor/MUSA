@@ -1,7 +1,9 @@
 import '../../../shared/utils/enum_codec.dart';
 
+/// High-level document kinds stored inside a book workspace.
 enum DocumentKind { chapter, scene, noteDoc, scratch }
 
+/// Editable manuscript unit such as a chapter, scene or scratch page.
 class Document {
   final String id;
   final String bookId;

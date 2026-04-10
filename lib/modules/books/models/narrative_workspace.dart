@@ -16,9 +16,12 @@ import '../../notes/models/voice_memo.dart';
 import '../../scenarios/models/scenario.dart';
 import 'app_settings.dart';
 import 'book.dart';
+import 'workspace_snapshot.dart';
 
+/// Identifies which editorial surface is currently active in the workspace.
 enum WorkspaceEditorMode { book, document, note, character, scenario }
 
+/// Canonical in-memory representation of the user's full local writing workspace.
 class NarrativeWorkspace {
   final AppSettings appSettings;
   final List<Book> books;
@@ -38,6 +41,7 @@ class NarrativeWorkspace {
   final List<MusaSuggestion> musaSuggestions;
   final List<ModelProfile> modelProfiles;
   final List<InstalledModel> installedModels;
+  final List<WorkspaceSnapshot> snapshots;
   final String? selectedDocumentId;
   final String? selectedNoteId;
   final String? selectedCharacterId;
@@ -63,6 +67,7 @@ class NarrativeWorkspace {
     this.musaSuggestions = const [],
     this.modelProfiles = const [],
     this.installedModels = const [],
+    this.snapshots = const [],
     this.selectedDocumentId,
     this.selectedNoteId,
     this.selectedCharacterId,
@@ -73,6 +78,7 @@ class NarrativeWorkspace {
   WorkspaceEditorMode get editorMode =>
       _editorMode ?? WorkspaceEditorMode.document;
 
+  /// Returns the currently active book, falling back to the first available one.
   Book? get activeBook {
     final activeBookId = appSettings.activeBookId;
     if (activeBookId == null) return books.isEmpty ? null : books.first;
@@ -149,6 +155,16 @@ class NarrativeWorkspace {
     return results;
   }
 
+  List<WorkspaceSnapshot> get activeBookSnapshots {
+    final book = activeBook;
+    if (book == null) return const [];
+    final results = snapshots
+        .where((snapshot) => snapshot.bookId == book.id)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return results;
+  }
+
   Scenario? get selectedScenario {
     final activeScenarios = activeBookScenarios;
     if (activeScenarios.isEmpty) return null;
@@ -186,6 +202,7 @@ class NarrativeWorkspace {
     List<MusaSuggestion>? musaSuggestions,
     List<ModelProfile>? modelProfiles,
     List<InstalledModel>? installedModels,
+    List<WorkspaceSnapshot>? snapshots,
     String? selectedDocumentId,
     bool clearSelectedDocumentId = false,
     String? selectedNoteId,
@@ -215,6 +232,7 @@ class NarrativeWorkspace {
       musaSuggestions: musaSuggestions ?? this.musaSuggestions,
       modelProfiles: modelProfiles ?? this.modelProfiles,
       installedModels: installedModels ?? this.installedModels,
+      snapshots: snapshots ?? this.snapshots,
       selectedDocumentId: clearSelectedDocumentId
           ? null
           : (selectedDocumentId ?? this.selectedDocumentId),
@@ -255,6 +273,7 @@ class NarrativeWorkspace {
         'modelProfiles': modelProfiles.map((item) => item.toJson()).toList(),
         'installedModels':
             installedModels.map((item) => item.toJson()).toList(),
+        'snapshots': snapshots.map((item) => item.toJson()).toList(),
         'selectedDocumentId': selectedDocumentId,
         'selectedNoteId': selectedNoteId,
         'selectedCharacterId': selectedCharacterId,
@@ -323,6 +342,10 @@ class NarrativeWorkspace {
         installedModels: (json['installedModels'] as List? ?? const [])
             .map(
                 (item) => InstalledModel.fromJson(item as Map<String, dynamic>))
+            .toList(),
+        snapshots: (json['snapshots'] as List? ?? const [])
+            .map((item) =>
+                WorkspaceSnapshot.fromJson(item as Map<String, dynamic>))
             .toList(),
         selectedDocumentId: json['selectedDocumentId'] as String?,
         selectedNoteId: json['selectedNoteId'] as String?,

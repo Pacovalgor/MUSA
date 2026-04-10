@@ -1,25 +1,36 @@
 import '../../../muses/musa.dart';
 
+/// Overall editorial assertiveness applied to Musa interventions.
 enum EditorialIntensity { gentle, balanced, expressive }
 
+/// How closely the generated text should adhere to the selected fragment.
 enum FragmentFidelity { veryFaithful, faithful, freer }
 
+/// Guardrail level for preventing the model from expanding beyond the passage.
 enum ScopeProtection { strict, balanced, flexible }
 
+/// Preferred language policy for editorial responses.
 enum OutputLanguageMode { matchSelection, spanish, english }
 
+/// High-level tonal tendency requested for generated suggestions.
 enum PreferredEditorialTone { sober, literary, tense, clear }
 
+/// Controls how much editorial activity should surface in the UI.
 enum VisualPresence { visible, subtle, minimal }
 
+/// Intensity dial specific to the style Musa.
 enum StyleMusaIntensity { contained, balanced, expressive }
 
+/// Intensity dial specific to the tension Musa.
 enum TensionMusaIntensity { subtle, medium, marked }
 
+/// Intensity dial specific to the rhythm Musa.
 enum RhythmMusaIntensity { light, medium, corrective }
 
+/// Intensity dial specific to the clarity Musa.
 enum ClarityMusaIntensity { light, medium, strict }
 
+/// Aggregates the author-facing knobs that shape Musa behaviour and UI feedback.
 class MusaSettings {
   final EditorialIntensity editorialIntensity;
   final FragmentFidelity fragmentFidelity;
@@ -138,6 +149,7 @@ class MusaSettings {
         ),
       );
 
+  /// Computes the allowed expansion ratio for a concrete Musa invocation.
   double expansionRatioFor(Musa musa) {
     final baseRatio = musa.maxLengthExpansionRatio;
     final intensityMultiplier = switch (editorialIntensity) {

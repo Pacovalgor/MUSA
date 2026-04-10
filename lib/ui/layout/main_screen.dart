@@ -81,11 +81,18 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
     final sidebarAutoOpened = ref.watch(sidebarAutoOpenedProvider);
     final inspectorAutoOpened = ref.watch(inspectorAutoOpenedProvider);
     final appSettings = ref.watch(appSettingsProvider);
+    final writingSettings = ref.watch(writingSettingsProvider);
     final editorMode = ref.watch(editorModeProvider);
+    final isEditorFocused = ref.watch(editorFocusProvider);
     final isBookMode = editorMode == workspace.WorkspaceEditorMode.book;
     final isCharacterMode =
         editorMode == workspace.WorkspaceEditorMode.character;
     final isScenarioMode = editorMode == workspace.WorkspaceEditorMode.scenario;
+    final focusFadeEnabled = writingSettings.focusModeEnabled &&
+        isEditorFocused &&
+        !isCharacterMode &&
+        !isScenarioMode &&
+        !isBookMode;
     const sidebarKeepOpenDistance = _sidebarWidth * _edgeKeepOpenMultiplier;
     const inspectorKeepOpenDistance = _inspectorWidth * _edgeKeepOpenMultiplier;
 
@@ -132,7 +139,11 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                 duration: tokens.motionNormal,
                 curve: Curves.ease,
                 width: showSidebar ? 260 : 0,
-                child: const MusaSidebar(),
+                child: AnimatedOpacity(
+                  duration: tokens.motionNormal,
+                  opacity: focusFadeEnabled ? 0.46 : 1,
+                  child: const MusaSidebar(),
+                ),
               ),
               Expanded(
                 child: Container(
@@ -184,7 +195,11 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                 duration: tokens.motionNormal,
                 curve: Curves.ease,
                 width: showInspector ? 300 : 0,
-                child: const MusaInspector(),
+                child: AnimatedOpacity(
+                  duration: tokens.motionNormal,
+                  opacity: focusFadeEnabled ? 0.52 : 1,
+                  child: const MusaInspector(),
+                ),
               ),
             ],
           ),
