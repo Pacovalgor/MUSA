@@ -201,12 +201,86 @@ void main() {
         state.currentChapterFunction, isNot(CurrentChapterFunction.confront));
     expect(state.globalTension, lessThan(45));
   });
+
+  test('research document does not contaminate previous story state', () {
+    final previous = StoryState(
+      bookId: 'book-1',
+      currentAct: StoryAct.actII,
+      currentChapterFunction: CurrentChapterFunction.complicate,
+      globalTension: 62,
+      nextBestMove:
+          'Complica la línea principal con una elección que tenga coste narrativo.',
+      updatedAt: now,
+    );
+    final state = _analyze(
+      now: now,
+      profile: const BookNarrativeProfile(
+        primaryGenre: BookPrimaryGenre.mystery,
+        readerPromise: 'Una investigación íntima.',
+      ),
+      texts: const [
+        'Resumen ejecutivo. Este documento analiza símbolos, apofenia y sesgos cognitivos. '
+            'Objetivo de este documento: servir como material de investigación, no como escena.',
+      ],
+      previous: previous,
+    );
+
+    expect(state.currentAct, previous.currentAct);
+    expect(state.globalTension, previous.globalTension);
+    expect(
+        state.diagnostics, contains('Documento no narrativo: investigación.'));
+    expect(state.nextBestMove, contains('material de apoyo'));
+  });
+
+  test('technical document is ignored as narrative input', () {
+    final state = _analyze(
+      now: now,
+      profile: const BookNarrativeProfile(
+        primaryGenre: BookPrimaryGenre.thriller,
+        readerPromise: 'Presión progresiva.',
+      ),
+      texts: const [
+        'ENTREVISTA FULL STACK — MANUAL COMPLETO. OBJETIVO Transmitir estabilidad. '
+            'REGLA BASE: pensar antes de responder. API, frontend, backend y pull request.',
+      ],
+    );
+
+    expect(state.diagnostics, contains('Documento no narrativo: técnico.'));
+    expect(state.nextBestMove, contains('material técnico'));
+    expect(state.globalTension, 0);
+  });
+
+  test('repeated information strategy is diversified into decision', () {
+    final previous = StoryState(
+      bookId: 'book-1',
+      nextBestMove:
+          'Cierra o transforma una pregunta abierta antes de plantar otra.',
+      updatedAt: now,
+    );
+    final state = _analyze(
+      now: now,
+      profile: const BookNarrativeProfile(
+        primaryGenre: BookPrimaryGenre.thriller,
+        readerPromise: 'Una investigación con presión creciente.',
+      ),
+      texts: const [
+        'San Francisco, 6:48 a.m. Me desperté con tres preguntas encima. '
+            '¿Quién dejó el símbolo? ¿Por qué apareció en mi puerta? ¿Qué sabía la víctima? '
+            'Miré la pantalla, salí al pasillo y decidí llamar a Clara antes de abrir otra pista.',
+      ],
+      previous: previous,
+    );
+
+    expect(state.nextBestMove, contains('decisión de escena'));
+    expect(state.nextBestMoveReason, contains('pregunta pendiente'));
+  });
 }
 
 StoryState _analyze({
   required DateTime now,
   required BookNarrativeProfile profile,
   required List<String> texts,
+  StoryState? previous,
 }) {
   final book = Book(
     id: 'book-1',
@@ -241,7 +315,7 @@ StoryState _analyze({
     book: book,
     documents: documents,
     memory: memory,
-    previous: null,
+    previous: previous,
     now: now,
   );
 }

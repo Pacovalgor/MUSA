@@ -53,6 +53,28 @@ void main() {
     expect(recents.single.path, projectFile.path);
   });
 
+  test('blocks saving over a project changed outside this app', () async {
+    final directory = await Directory.systemTemp.createTemp('musa_project_');
+    addTearDown(() => directory.delete(recursive: true));
+
+    final projectFile = File('${directory.path}/MiProyecto.musa');
+    final storage = LocalWorkspaceStorage(projectFilePath: projectFile.path);
+
+    await storage.saveWorkspace(_workspace());
+    await storage.loadWorkspace();
+
+    await const MusaProjectDocument().writeWorkspace(
+      projectFile,
+      _workspace(title: 'Cambio externo'),
+      preserveProjectIdentity: true,
+    );
+
+    expect(
+      () => storage.saveWorkspace(_workspace(title: 'Cambio local')),
+      throwsA(isA<ProjectFileConflictException>()),
+    );
+  });
+
   test('migrates legacy workspace JSON into a .musa project file', () async {
     final directory = await Directory.systemTemp.createTemp('musa_project_');
     addTearDown(() => directory.delete(recursive: true));
@@ -80,7 +102,7 @@ void main() {
   });
 }
 
-NarrativeWorkspace _workspace() {
+NarrativeWorkspace _workspace({String title = 'Libro sincronizable'}) {
   final now = DateTime(2026, 4, 10, 12);
   const bookId = 'book-1';
   const documentId = 'document-1';
@@ -90,7 +112,7 @@ NarrativeWorkspace _workspace() {
     books: [
       Book(
         id: bookId,
-        title: 'Libro sincronizable',
+        title: title,
         status: BookStatus.active,
         createdAt: now,
         updatedAt: now,

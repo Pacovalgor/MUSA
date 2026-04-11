@@ -1,6 +1,7 @@
 import '../../manuscript/models/document.dart';
 import '../models/book.dart';
 import '../models/narrative_copilot.dart';
+import 'narrative_document_classifier.dart';
 import 'next_best_move_service.dart';
 
 class StoryStateInput {
@@ -20,9 +21,11 @@ class StoryStateInput {
 class StoryStateUpdater {
   const StoryStateUpdater({
     this.nextBestMoveService = const NextBestMoveService(),
+    this.documentClassifier = const NarrativeDocumentClassifier(),
   });
 
   final NextBestMoveService nextBestMoveService;
+  final NarrativeDocumentClassifier documentClassifier;
 
   StoryState update({
     required Book book,
@@ -34,10 +37,37 @@ class StoryStateUpdater {
   }) {
     final ordered = documents.toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
-    final chapterCount =
-        ordered.where((item) => item.kind == DocumentKind.chapter).length;
+    final classified = [
+      for (final document in ordered)
+        _ClassifiedDocument(
+          document: document,
+          classification: documentClassifier.classify(document),
+        ),
+    ];
+    final narrativeDocuments = classified
+        .where((item) => item.classification.updatesStoryState)
+        .map((item) => item.document)
+        .toList();
+    final latestClassification =
+        classified.isEmpty ? null : classified.last.classification;
+
+    if (latestClassification != null &&
+        !latestClassification.updatesStoryState) {
+      return _nonNarrativeState(
+        book: book,
+        previous: previous,
+        now: now,
+        classification: latestClassification,
+      );
+    }
+
+    final effectiveDocuments =
+        narrativeDocuments.isEmpty ? ordered : narrativeDocuments;
+    final chapterCount = effectiveDocuments
+        .where((item) => item.kind == DocumentKind.chapter)
+        .length;
     final act = _inferAct(chapterCount);
-    final recentText = ordered.reversed
+    final recentText = effectiveDocuments.reversed
         .take(3)
         .map((document) => document.content)
         .join('\n\n');
@@ -48,7 +78,7 @@ class StoryStateUpdater {
       genre: book.narrativeProfile.primaryGenre,
     );
     final rhythm = _inferRhythm(
-      documents: ordered,
+      documents: effectiveDocuments,
       targetPace: book.narrativeProfile.targetPace,
       globalTension: globalTension,
     );
@@ -97,12 +127,52 @@ class StoryStateUpdater {
       hasInvestigationLoop: hasInvestigationLoop,
       memory: memory,
       diagnostics: diagnostics,
+      previousMove: previous?.nextBestMove,
     );
 
     return draft.copyWith(
       nextBestMove: recommendation.move,
       nextBestMoveReason: recommendation.reason,
     );
+  }
+
+  StoryState _nonNarrativeState({
+    required Book book,
+    required StoryState? previous,
+    required DateTime now,
+    required NarrativeDocumentClassification classification,
+  }) {
+    final base = previous ?? StoryState.empty(book.id, now);
+    final move = switch (classification.kind) {
+      NarrativeDocumentKind.research =>
+        'Guarda esto como material de apoyo: no lo usaría para medir progreso narrativo.',
+      NarrativeDocumentKind.worldbuilding =>
+        'Úsalo para coherencia e implicaciones de mundo, no para exigir conflicto inmediato.',
+      NarrativeDocumentKind.technical =>
+        'Esto parece material técnico; no debe contaminar el estado narrativo del libro.',
+      NarrativeDocumentKind.unknown =>
+        'No lo trataría como escena hasta que haya acción narrativa más clara.',
+      NarrativeDocumentKind.scene =>
+        'Continúa la escena desde una decisión o consecuencia concreta.',
+    };
+    return base.copyWith(
+      diagnostics: [
+        'Documento no narrativo: ${_documentKindLabel(classification.kind)}.',
+      ],
+      nextBestMove: move,
+      nextBestMoveReason: classification.reason,
+      updatedAt: now,
+    );
+  }
+
+  String _documentKindLabel(NarrativeDocumentKind kind) {
+    return switch (kind) {
+      NarrativeDocumentKind.scene => 'escena',
+      NarrativeDocumentKind.research => 'investigación',
+      NarrativeDocumentKind.worldbuilding => 'worldbuilding',
+      NarrativeDocumentKind.technical => 'técnico',
+      NarrativeDocumentKind.unknown => 'desconocido',
+    };
   }
 
   StoryAct _inferAct(int chapterCount) {
@@ -361,4 +431,14 @@ class StoryStateUpdater {
     }
     return results;
   }
+}
+
+class _ClassifiedDocument {
+  final Document document;
+  final NarrativeDocumentClassification classification;
+
+  const _ClassifiedDocument({
+    required this.document,
+    required this.classification,
+  });
 }

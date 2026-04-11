@@ -229,7 +229,7 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'No se pudo abrir el proyecto',
+                    'El proyecto necesita atención',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: tokens.textPrimary,
                           fontWeight: FontWeight.w700,
@@ -237,7 +237,7 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'El archivo anterior no está disponible. Puedes abrir otro proyecto, volver al proyecto local o crear uno nuevo.',
+                    'El archivo anterior no está disponible o cambió fuera de MUSA. Abre la versión actual, vuelve al proyecto local o crea uno nuevo.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: tokens.textSecondary,
                           height: 1.45,

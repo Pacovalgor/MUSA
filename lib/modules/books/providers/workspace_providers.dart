@@ -83,7 +83,11 @@ class NarrativeWorkspaceNotifier
 
   Future<void> _persist(NarrativeWorkspace workspace) async {
     state = AsyncValue.data(workspace);
-    await _repository.saveWorkspace(workspace);
+    try {
+      await _repository.saveWorkspace(workspace);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
   }
 
   Future<void> openProjectFile(String path) async {

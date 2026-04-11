@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +21,7 @@ import 'musa_project_document.dart';
 class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
   static const activeProjectPathKey = 'musa.activeProjectPath';
   static const recentProjectsKey = 'musa.recentProjects';
+  static const _projectFingerprintKeyPrefix = 'musa.projectFingerprint.';
   static const _projectFileName = 'Musa.musa';
   static const _legacyWorkspaceFileName = 'musa_workspace.json';
   static const _maxRecentProjects = 10;
@@ -38,6 +40,7 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
     final file = target.file;
     if (await file.exists()) {
       final workspace = await _projectDocument.readWorkspace(file);
+      await _rememberProjectFingerprint(file);
       await rememberProject(file.path);
       return _normalizeWorkspace(workspace);
     }
@@ -71,12 +74,16 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
   @override
   Future<void> saveWorkspace(NarrativeWorkspace workspace) async {
     final file = await _projectFile();
+    await _assertProjectUnchanged(file);
     await _projectDocument.writeWorkspace(file, workspace);
+    await _rememberProjectFingerprint(file);
     await rememberProject(file.path);
   }
 
   Future<NarrativeWorkspace> loadProjectFile(String path) async {
-    final workspace = await _projectDocument.readWorkspace(File(path));
+    final file = File(path);
+    final workspace = await _projectDocument.readWorkspace(file);
+    await _rememberProjectFingerprint(file);
     return _normalizeWorkspace(workspace);
   }
 
@@ -92,6 +99,7 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
       preserveProjectIdentity: false,
     );
     await selectProjectFile(path);
+    await _rememberProjectFingerprint(File(path));
     await rememberProject(path);
   }
 
@@ -103,6 +111,7 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
       preserveProjectIdentity: false,
     );
     await selectProjectFile(path);
+    await _rememberProjectFingerprint(File(path));
     await rememberProject(path);
     return workspace;
   }
@@ -168,6 +177,36 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
           .map((item) => jsonEncode(item.toJson()))
           .toList(growable: false),
     );
+  }
+
+  Future<void> _assertProjectUnchanged(File file) async {
+    if (!await file.exists()) return;
+    final prefs = await SharedPreferences.getInstance();
+    final knownFingerprint = prefs.getString(_projectFingerprintKey(file.path));
+    if (knownFingerprint == null || knownFingerprint.isEmpty) return;
+
+    final currentFingerprint = await _fingerprintFile(file);
+    if (currentFingerprint != knownFingerprint) {
+      throw ProjectFileConflictException(file.path);
+    }
+  }
+
+  Future<void> _rememberProjectFingerprint(File file) async {
+    if (!await file.exists()) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _projectFingerprintKey(file.path),
+      await _fingerprintFile(file),
+    );
+  }
+
+  Future<String> _fingerprintFile(File file) async {
+    final digest = sha256.convert(await file.readAsBytes());
+    return digest.toString();
+  }
+
+  String _projectFingerprintKey(String path) {
+    return '$_projectFingerprintKeyPrefix${base64Url.encode(utf8.encode(path))}';
   }
 
   Future<File> projectFile() => _projectFile();
@@ -384,4 +423,15 @@ class RecentProject {
         'lastOpenedAt': lastOpenedAt.toUtc().toIso8601String(),
         'updatedAt': updatedAt.toUtc().toIso8601String(),
       };
+}
+
+class ProjectFileConflictException implements Exception {
+  const ProjectFileConflictException(this.path);
+
+  final String path;
+
+  @override
+  String toString() {
+    return 'El proyecto cambió fuera de MUSA. Abre la versión actual antes de guardar: $path';
+  }
 }

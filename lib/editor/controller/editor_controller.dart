@@ -187,6 +187,7 @@ class EditorController extends StateNotifier<EditorState> {
   bool _suppressSelectionOverlayOnce = false;
   int _activeRunToken = 0;
   Timer? _narrativeRefreshDebounce;
+  Timer? _contentPersistDebounce;
 
   EditorController(this._ref)
       : super(EditorState(
@@ -248,21 +249,24 @@ class EditorController extends StateNotifier<EditorState> {
     final selectedId = state.documentId;
     if (selectedId == null) return;
     final editorMode = _ref.read(editorModeProvider);
+    final currentText = state.controller.text;
 
-    if (editorMode == WorkspaceEditorMode.note) {
+    _contentPersistDebounce?.cancel();
+    _contentPersistDebounce = Timer(const Duration(milliseconds: 500), () {
+      if (editorMode == WorkspaceEditorMode.note) {
+        unawaited(
+          _ref
+              .read(narrativeWorkspaceProvider.notifier)
+              .updateNoteContent(selectedId, currentText),
+        );
+        return;
+      }
       unawaited(
         _ref
             .read(narrativeWorkspaceProvider.notifier)
-            .updateNoteContent(selectedId, state.controller.text),
+            .updateDocumentContent(selectedId, currentText),
       );
-      return;
-    }
-
-    unawaited(
-      _ref
-          .read(narrativeWorkspaceProvider.notifier)
-          .updateDocumentContent(selectedId, state.controller.text),
-    );
+    });
     _scheduleNarrativeRefresh(selectedId);
   }
 
@@ -3072,6 +3076,7 @@ class EditorController extends StateNotifier<EditorState> {
 
   @override
   void dispose() {
+    _contentPersistDebounce?.cancel();
     _narrativeRefreshDebounce?.cancel();
     unawaited(_refreshNarrativeCopilot(documentId: state.documentId));
     _aiSubscription?.cancel();
