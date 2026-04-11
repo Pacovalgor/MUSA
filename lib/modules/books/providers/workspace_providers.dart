@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/storage/local_workspace_storage.dart';
+import '../../../shared/storage/project_document_picker.dart';
 import '../../../shared/utils/id_generator.dart';
 import '../../characters/models/character.dart';
 import '../../characters/models/character_autofill_draft.dart';
@@ -15,11 +16,14 @@ import '../../scenarios/models/scenario_autofill_draft.dart';
 import '../models/app_settings.dart';
 import '../models/book.dart';
 import '../models/musa_settings.dart';
+import '../models/narrative_copilot.dart';
 import '../models/narrative_workspace.dart';
 import '../models/typography_settings.dart';
 import '../models/writing_settings.dart';
 import '../models/workspace_snapshot.dart';
 import '../services/narrative_workspace_repository.dart';
+import '../services/narrative_memory_updater.dart';
+import '../services/story_state_updater.dart';
 
 /// Repository used to load and persist the canonical workspace aggregate.
 final narrativeWorkspaceRepositoryProvider =
@@ -27,15 +31,45 @@ final narrativeWorkspaceRepositoryProvider =
   return const LocalWorkspaceStorage();
 });
 
+final projectDocumentPickerProvider = Provider<ProjectDocumentPicker>((ref) {
+  return const ProjectDocumentPicker();
+});
+
+final activeProjectPathProvider = FutureProvider<String>((ref) async {
+  final repository = ref.watch(narrativeWorkspaceRepositoryProvider);
+  if (repository is LocalWorkspaceStorage) {
+    ref.watch(narrativeWorkspaceProvider);
+    return repository.activeProjectPath();
+  }
+  return '';
+});
+
+final recentProjectsProvider = FutureProvider<List<RecentProject>>((ref) async {
+  final repository = ref.watch(narrativeWorkspaceRepositoryProvider);
+  if (repository is LocalWorkspaceStorage) {
+    ref.watch(narrativeWorkspaceProvider);
+    return repository.recentProjects();
+  }
+  return const [];
+});
+
 /// Owns the full workspace state and all write operations against it.
 class NarrativeWorkspaceNotifier
     extends StateNotifier<AsyncValue<NarrativeWorkspace>> {
-  NarrativeWorkspaceNotifier(this._repository)
-      : super(const AsyncValue.loading()) {
+  NarrativeWorkspaceNotifier(
+    this._repository, {
+    NarrativeMemoryUpdater narrativeMemoryUpdater =
+        const NarrativeMemoryUpdater(),
+    StoryStateUpdater storyStateUpdater = const StoryStateUpdater(),
+  })  : _narrativeMemoryUpdater = narrativeMemoryUpdater,
+        _storyStateUpdater = storyStateUpdater,
+        super(const AsyncValue.loading()) {
     unawaited(bootstrap());
   }
 
   final NarrativeWorkspaceRepository _repository;
+  final NarrativeMemoryUpdater _narrativeMemoryUpdater;
+  final StoryStateUpdater _storyStateUpdater;
 
   /// Loads the local workspace on startup and exposes it to the rest of the app.
   Future<void> bootstrap() async {
@@ -50,6 +84,57 @@ class NarrativeWorkspaceNotifier
   Future<void> _persist(NarrativeWorkspace workspace) async {
     state = AsyncValue.data(workspace);
     await _repository.saveWorkspace(workspace);
+  }
+
+  Future<void> openProjectFile(String path) async {
+    final repository = _repository;
+    if (repository is! LocalWorkspaceStorage) return;
+
+    state = const AsyncValue.loading();
+    try {
+      final workspace = await repository.loadProjectFile(path);
+      await repository.selectProjectFile(path);
+      await repository.rememberProject(path);
+      state = AsyncValue.data(workspace);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+  Future<void> saveProjectFileAs(String path) async {
+    final workspace = state.value;
+    final repository = _repository;
+    if (workspace == null || repository is! LocalWorkspaceStorage) return;
+
+    await repository.saveWorkspaceAs(path, workspace);
+    state = AsyncValue.data(workspace);
+  }
+
+  Future<void> createProjectFile(String path) async {
+    final repository = _repository;
+    if (repository is! LocalWorkspaceStorage) return;
+
+    state = const AsyncValue.loading();
+    try {
+      final workspace = await repository.createNewProjectFile(path);
+      state = AsyncValue.data(workspace);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+  Future<void> useLocalProjectFile() async {
+    final repository = _repository;
+    if (repository is! LocalWorkspaceStorage) return;
+
+    state = const AsyncValue.loading();
+    try {
+      await repository.clearSelectedProjectFile();
+      final workspace = await repository.loadWorkspace();
+      state = AsyncValue.data(workspace);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
   }
 
   /// Switches the editor focus to a manuscript document.
@@ -216,6 +301,7 @@ class NarrativeWorkspaceNotifier
     bool clearSubtitle = false,
     String? summary,
     String? toneNotes,
+    BookNarrativeProfile? narrativeProfile,
   }) async {
     final workspace = state.value;
     if (workspace == null) return;
@@ -229,11 +315,94 @@ class NarrativeWorkspaceNotifier
         clearSubtitle: clearSubtitle,
         summary: summary,
         toneNotes: toneNotes,
+        narrativeProfile: narrativeProfile,
         updatedAt: now,
       );
     }).toList();
 
     await _persist(workspace.copyWith(books: updatedBooks));
+  }
+
+  Future<void> updateBookNarrativeProfile({
+    required String bookId,
+    required BookNarrativeProfile narrativeProfile,
+  }) async {
+    final workspace = state.value;
+    if (workspace == null) return;
+
+    final now = DateTime.now();
+    final updatedBooks = workspace.books.map((book) {
+      if (book.id != bookId) return book;
+      return book.copyWith(
+        narrativeProfile: narrativeProfile,
+        updatedAt: now,
+      );
+    }).toList();
+
+    await _persist(workspace.copyWith(books: updatedBooks));
+    await recalculateNarrativeCopilot(bookId: bookId);
+  }
+
+  Future<void> recalculateNarrativeCopilot({
+    String? bookId,
+    StoryStateInput input = const StoryStateInput(),
+  }) async {
+    final workspace = state.value;
+    if (workspace == null) return;
+
+    final targetBook = bookId == null
+        ? workspace.activeBook
+        : workspace.books.cast<Book?>().firstWhere(
+              (book) => book?.id == bookId,
+              orElse: () => null,
+            );
+    if (targetBook == null) return;
+
+    final now = DateTime.now();
+    final documents = workspace.documents
+        .where((document) => document.bookId == targetBook.id)
+        .toList()
+      ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+    final previousMemory =
+        workspace.narrativeMemories.cast<NarrativeMemory?>().firstWhere(
+              (memory) => memory?.bookId == targetBook.id,
+              orElse: () => null,
+            );
+    final previousStoryState =
+        workspace.storyStates.cast<StoryState?>().firstWhere(
+              (storyState) => storyState?.bookId == targetBook.id,
+              orElse: () => null,
+            );
+
+    final memory = _narrativeMemoryUpdater.update(
+      bookId: targetBook.id,
+      documents: documents,
+      previous: previousMemory,
+      now: now,
+    );
+    final storyState = _storyStateUpdater.update(
+      book: targetBook,
+      documents: documents,
+      memory: memory,
+      previous: previousStoryState,
+      now: now,
+      input: input,
+    );
+
+    await _persist(
+      workspace.copyWith(
+        narrativeMemories: _replaceByBookId<NarrativeMemory>(
+          workspace.narrativeMemories,
+          memory,
+          (item) => item.bookId,
+        ),
+        storyStates: _replaceByBookId<StoryState>(
+          workspace.storyStates,
+          storyState,
+          (item) => item.bookId,
+        ),
+      ),
+    );
   }
 
   Future<void> reorderActiveBookDocuments(
@@ -1429,6 +1598,21 @@ class NarrativeWorkspaceNotifier
         appSettings: appSettings,
       ),
     );
+  }
+
+  List<T> _replaceByBookId<T>(
+    List<T> items,
+    T replacement,
+    String Function(T item) bookIdOf,
+  ) {
+    var replaced = false;
+    final results = items.map((item) {
+      if (bookIdOf(item) != bookIdOf(replacement)) return item;
+      replaced = true;
+      return replacement;
+    }).toList();
+    if (!replaced) results.add(replacement);
+    return results;
   }
 
   List<Book> _touchActiveBook(List<Book> books, String? bookId, DateTime now) {

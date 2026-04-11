@@ -8,6 +8,27 @@ El formato sigue una variante ligera de Keep a Changelog: las entradas nuevas em
 
 - Pendiente de documentar en el próximo cambio relevante.
 
+## 2026-04-11 - Proyectos `.musa` y copiloto narrativo
+
+### Added
+
+- Menú de proyecto para abrir, guardar como, crear, volver a proyecto local y reabrir proyectos recientes.
+- Selector de documentos `.musa` basado en `file_selector`.
+- Manifiesto de proyecto `.musa` con identidad, nombre, versión de esquema, libro activo y conteo de libros.
+- Persistencia de proyecto activo y lista de recientes con `shared_preferences`.
+- Pantalla de recuperación cuando el proyecto seleccionado no está disponible.
+- ADN narrativo editable por libro: género, subgénero, tono, escala, ritmo objetivo, prioridad, promesa de lectura y tipo de final.
+- Copiloto narrativo con memoria ligera, estado de historia y recomendación de siguiente mejor movimiento.
+- Heurísticas por género para thriller, ciencia ficción y fantasía.
+- Documento de auditoría editorial para validar salidas reales del copiloto.
+- Tests para manifiesto `.musa`, proyectos recientes y heurísticas del copiloto narrativo.
+
+### Changed
+
+- El editor recalcula el copiloto narrativo al guardar texto, cerrar el controlador o completar análisis de capítulo.
+- El workspace serializa `storyStates` y `narrativeMemories`.
+- El README documenta proyectos `.musa`, ADN narrativo, copiloto y nuevos casos de uso.
+
 ## 2026-04-10 - Cierre de workflow editorial
 
 Commit: `d87538e`

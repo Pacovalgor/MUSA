@@ -44,9 +44,12 @@ El proyecto ya supera la fase de prototipo visual. Hay una base funcional clara 
 
 - Onboarding con detección de hardware y selección de modelo local.
 - Gestión de workspace narrativa persistida localmente.
+- Proyectos `.musa` abribles, guardables y recordados como recientes.
 - Edición de manuscrito y entidades narrativas.
 - Flujo de sugerencias editoriales con IA embebida en macOS.
 - Análisis heurístico del texto para continuidad y ayudas contextuales.
+- ADN narrativo del libro con género, escala, ritmo objetivo, prioridad y promesa de lectura.
+- Copiloto narrativo con memoria ligera, estado de historia y siguiente mejor movimiento.
 - Workflows editoriales estructurados para expandir momentos y conectar trama.
 - Notas editoriales con estado, origen de capítulo y dirección reutilizable.
 - Snapshots manuales ligeros del workspace.
@@ -89,8 +92,11 @@ flowchart LR
     UI["UI Flutter Desktop"] --> State["Riverpod State + Notifiers"]
     State --> Workspace["Narrative Workspace"]
     Workspace --> Storage["Local Workspace Storage"]
+    Storage --> Project[".musa Project Document"]
+    Storage --> Recent["Recent Projects"]
     State --> Editor["Editor Controller"]
     Editor --> Analysis["Fragment / Chapter Analysis"]
+    Editor --> Copilot["Narrative Copilot"]
     Editor --> Workflow["Editorial Workflow Notes"]
     Editor --> IA["IA Service"]
     IA --> Embedded["Embedded IA Service (macOS)"]
@@ -109,9 +115,16 @@ flowchart TD
     Pick --> Download["Descargar e instalar modelo"]
     Download --> App["Entrar al estudio de escritura"]
     Onboarding -- Sí --> App
-    App --> Book["Abrir libro activo"]
+    App --> Project{"Proyecto activo?"}
+    Project -- No --> OpenProject["Abrir, crear o usar proyecto local"]
+    Project -- Sí --> Book["Abrir libro activo"]
+    OpenProject --> Book
     Book --> Write["Escribir capítulo / escena / nota"]
+    Book --> Profile["Definir ADN narrativo"]
     Write --> Analyze["Analizar fragmento o capítulo"]
+    Profile --> Copilot["Actualizar estado narrativo"]
+    Analyze --> Copilot
+    Copilot --> Move["Siguiente mejor movimiento"]
     Analyze --> Decide["Resolver nextStep editorial"]
     Decide --> Workflow{"Acción estructurada?"}
     Workflow -- "expandMoment" --> Expand["Guardar dirección para expandir momento"]
@@ -135,11 +148,14 @@ flowchart TD
 ### Contexto narrativo
 
 - Libros con metadatos, sinopsis y notas de tono.
+- ADN narrativo por libro: género, subgénero, escala, ritmo objetivo, prioridad dominante, promesa de lectura y tipo de final.
 - Personajes vinculables a documentos.
 - Escenarios vinculables a documentos.
 - Notas y memorias de voz dentro del workspace.
 - Estado de continuidad asociado al libro activo.
 - Señales ligeras de continuidad por capítulo desde el inspector.
+- Memoria narrativa ligera con preguntas abiertas, pistas, amenazas, hechos importantes y cambios recientes de personaje.
+- Estado de historia con acto, función de capítulo, tensión global, ritmo percibido y siguiente mejor movimiento.
 - Snapshots manuales para guardar estados del libro sin introducir versionado complejo.
 
 ### IA editorial
@@ -156,6 +172,7 @@ flowchart TD
 - Análisis de capítulo por fragmentación interna.
 - Resolución de momento dominante, función del capítulo y siguiente paso sugerido.
 - Motor de `nextStep` con acciones estructuradas para `expandMoment` y `connectToPlot`.
+- Recomendaciones de copiloto sensibles a género para thriller, ciencia ficción y fantasía.
 - Filtro de ruido visible para evitar entidades no defendibles en la UI.
 
 ### Workflows editoriales
@@ -205,6 +222,8 @@ Cada musa incorpora:
 - `lib/modules/scenarios/`
 - `lib/modules/notes/`
 - `lib/shared/storage/local_workspace_storage.dart`
+- `lib/shared/storage/musa_project_document.dart`
+- `lib/shared/storage/project_document_picker.dart`
 
 ### Editor e inferencia
 
@@ -213,6 +232,10 @@ Cada musa incorpora:
 - `lib/editor/services/chapter_analysis_service.dart`
 - `lib/editor/widgets/suggestion_review_panel.dart`
 - `lib/editor/widgets/chapter_insight_panel.dart`
+- `lib/modules/books/models/narrative_copilot.dart`
+- `lib/modules/books/services/narrative_memory_updater.dart`
+- `lib/modules/books/services/story_state_updater.dart`
+- `lib/modules/books/services/next_best_move_service.dart`
 
 ### IA local
 
@@ -235,6 +258,7 @@ Cada musa incorpora:
 - `docs/mobile_adaptive_architecture.md`
 - `docs/mobile_ipad_foundation_plan.md`
 - `docs/ipad_compose_phase2_plan.md`
+- `docs/narrative_copilot_audit.md`
 
 ## Persistencia local
 
@@ -245,6 +269,9 @@ proyecto por accidente:
 
 - archivo principal: `Musa.musa`
 - ubicación base: `Application Support/musa/`
+
+El manifiesto del proyecto guarda metadatos como formato, versión de esquema,
+nombre de proyecto, libro activo y número de libros.
 
 Las instalaciones con el formato anterior se migran automáticamente desde
 `musa_workspace.json` al abrir la app.
@@ -273,6 +300,8 @@ Las notas estructurales y los snapshots se guardan dentro del mismo workspace lo
 - `flutter_riverpod`
 - `google_fonts`
 - `path_provider`
+- `shared_preferences`
+- `file_selector`
 - `ffi`
 - `printing`
 - `pdf`
@@ -316,23 +345,34 @@ flutter analyze
 
 ### Flujo básico de escritura
 
-1. Selecciona el libro activo desde la barra lateral.
-2. Abre un capítulo o crea uno nuevo.
-3. Escribe directamente en el editor.
-4. Usa el inspector para enriquecer sinopsis, tono, personajes y escenarios vinculados.
-5. Invoca una musa sobre el fragmento que quieras revisar.
-6. Si el análisis propone `expandMoment` o `connectToPlot`, abre la dirección editorial y guárdala como nota.
-7. Compara la sugerencia y decide si aceptarla o descartarla.
+1. Abre, crea o guarda un proyecto `.musa` desde el menú de proyecto de la barra superior.
+2. Selecciona el libro activo desde la barra lateral.
+3. Abre un capítulo o crea uno nuevo.
+4. Escribe directamente en el editor.
+5. Usa el inspector para enriquecer sinopsis, tono, personajes y escenarios vinculados.
+6. Invoca una musa sobre el fragmento que quieras revisar.
+7. Si el análisis propone `expandMoment` o `connectToPlot`, abre la dirección editorial y guárdala como nota.
+8. Compara la sugerencia y decide si aceptarla o descartarla.
 
 ### Gestión de contexto narrativo
 
 1. Crea o selecciona un libro.
 2. Define sinopsis y notas de tono.
-3. Añade personajes.
-4. Añade escenarios.
-5. Vincula personajes y escenarios a capítulos o escenas.
-6. Revisa la continuidad desde el panel derecho.
-7. Atiende las señales ligeras del inspector cuando una entidad pesa en el capítulo pero no está vinculada.
+3. Define el ADN narrativo: género, escala, ritmo objetivo, prioridad y promesa de lectura.
+4. Añade personajes.
+5. Añade escenarios.
+6. Vincula personajes y escenarios a capítulos o escenas.
+7. Revisa la continuidad desde el panel derecho.
+8. Atiende las señales ligeras del inspector cuando una entidad pesa en el capítulo pero no está vinculada.
+9. Usa el estado narrativo y el siguiente mejor movimiento para decidir qué debe empujar la próxima escena.
+
+### Gestión de proyectos
+
+1. Usa `Abrir proyecto...` para cargar un archivo `.musa` existente.
+2. Usa `Guardar como...` para convertir el workspace activo en un documento `.musa` independiente.
+3. Usa `Crear proyecto nuevo...` para empezar un workspace limpio en una ubicación elegida.
+4. Vuelve a proyectos recientes desde el mismo menú.
+5. Usa `Usar proyecto local` para regresar al proyecto guardado en `Application Support/musa/`.
 
 ### Workflows editoriales
 
@@ -387,6 +427,14 @@ El análisis detecta que un capítulo necesita desarrollar un momento o conectar
 
 Antes de una reescritura fuerte, el autor guarda un snapshot manual del libro. Puede probar cambios y restaurar el estado anterior si la dirección no funciona.
 
+### Caso 8. Proyecto portable
+
+El autor guarda una novela como `.musa`, la mueve a otra carpeta o disco, y puede reabrirla desde recientes sin depender del workspace interno de la app.
+
+### Caso 9. Copiloto de dirección narrativa
+
+El autor define que el libro es thriller, ciencia ficción o fantasía, añade una promesa de lectura y deja que MUSA proponga un siguiente mejor movimiento coherente con el género y el estado reciente del manuscrito.
+
 ## Diferenciadores frente a un editor genérico con IA
 
 - El contexto narrativo no es accesorio; forma parte del modelo mental de la app.
@@ -394,6 +442,8 @@ Antes de una reescritura fuerte, el autor guarda un snapshot manual del libro. P
 - El almacenamiento local y la instalación del modelo son parte explícita del producto.
 - La continuidad, el capítulo y el fragmento tienen herramientas de análisis propias.
 - Los `nextStep` importantes se convierten en acciones estructuradas, no solo consejos.
+- El copiloto narrativo cruza ADN del libro, memoria reciente y señales de género para proponer una decisión breve.
+- Los proyectos `.musa` permiten tratar cada novela como documento portable, no solo como estado interno de aplicación.
 - Las notas funcionan como sistema vivo de trabajo editorial.
 - La salida editorial incluye impresión, no solo edición en pantalla.
 
@@ -403,6 +453,7 @@ Antes de una reescritura fuerte, el autor guarda un snapshot manual del libro. P
 - La robustez del motor IA depende del modelo instalado y del hardware disponible.
 - El análisis narrativo actual es mayoritariamente heurístico; no sustituye lectura editorial humana.
 - La continuidad actual es light: señala actividad y vínculos básicos, no contradicciones globales profundas.
+- El copiloto narrativo es V1 heurístico y requiere auditoría editorial con muestras reales por género.
 - Faltan más tests de integración y validación de regresiones en flujos complejos.
 - El README documenta el estado observable del código, no una distribución empaquetada para usuarios finales.
 
@@ -410,7 +461,7 @@ Antes de una reescritura fuerte, el autor guarda un snapshot manual del libro. P
 
 ### Producto
 
-- Biblioteca de proyectos con apertura reciente y archivado.
+- Archivado y organización avanzada de proyectos recientes.
 - Historial editorial más profundo sobre los snapshots actuales.
 - Exportación adicional a formatos editoriales más allá de impresión.
 - Panel de continuidad más profundo con conflictos abiertos y alertas cross-capítulo.
@@ -422,6 +473,7 @@ Antes de una reescritura fuerte, el autor guarda un snapshot manual del libro. P
 - Pipeline multi-musa con estrategias combinadas.
 - Memoria editorial persistente por libro y por personaje.
 - Análisis de arco de personaje y evolución de tensión a nivel de libro.
+- Auditoría editorial del copiloto narrativo con 20-30 salidas reales por género.
 - Detección de contradicciones entre capítulos.
 
 ### Operación técnica
@@ -488,12 +540,17 @@ Regla práctica:
 - Entrada principal: [`lib/main.dart`](./lib/main.dart)
 - Layout principal: [`lib/ui/layout/main_screen.dart`](./lib/ui/layout/main_screen.dart)
 - Persistencia local: [`lib/shared/storage/local_workspace_storage.dart`](./lib/shared/storage/local_workspace_storage.dart)
+- Documento `.musa`: [`lib/shared/storage/musa_project_document.dart`](./lib/shared/storage/musa_project_document.dart)
+- Selector de proyectos: [`lib/shared/storage/project_document_picker.dart`](./lib/shared/storage/project_document_picker.dart)
 - Controlador del editor: [`lib/editor/controller/editor_controller.dart`](./lib/editor/controller/editor_controller.dart)
 - Workflows de capítulo: [`lib/editor/widgets/chapter_insight_panel.dart`](./lib/editor/widgets/chapter_insight_panel.dart)
+- Copiloto narrativo: [`lib/modules/books/models/narrative_copilot.dart`](./lib/modules/books/models/narrative_copilot.dart)
+- Siguiente mejor movimiento: [`lib/modules/books/services/next_best_move_service.dart`](./lib/modules/books/services/next_best_move_service.dart)
 - Snapshots: [`lib/modules/books/models/workspace_snapshot.dart`](./lib/modules/books/models/workspace_snapshot.dart)
 - Modelos locales: [`lib/services/ia/embedded/management/model_manager.dart`](./lib/services/ia/embedded/management/model_manager.dart)
 - Impresión: [`lib/services/print/print_service.dart`](./lib/services/print/print_service.dart)
 - Arquitectura adaptativa: [`docs/mobile_adaptive_architecture.md`](./docs/mobile_adaptive_architecture.md)
+- Auditoría del copiloto: [`docs/narrative_copilot_audit.md`](./docs/narrative_copilot_audit.md)
 
 ## Resumen
 

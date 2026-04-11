@@ -8,6 +8,7 @@ import '../models/editor_selection_context.dart';
 import '../../domain/musa/musa_objects.dart' as narrative;
 import '../../domain/ia/engine_status.dart';
 import '../../modules/books/models/narrative_workspace.dart';
+import '../../modules/books/models/narrative_copilot.dart';
 import '../../services/ia_providers.dart';
 import '../../services/character_autofill_providers.dart';
 import '../../services/scenario_autofill_providers.dart';
@@ -17,6 +18,7 @@ import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/characters/models/character.dart';
 import '../../modules/characters/models/character_autofill_draft.dart';
 import '../../modules/characters/providers/character_providers.dart';
+import '../../modules/manuscript/models/document.dart';
 import '../../modules/manuscript/providers/document_providers.dart';
 import '../../modules/notes/models/note.dart';
 import '../../modules/notes/providers/note_providers.dart';
@@ -33,6 +35,7 @@ import '../services/fragment_analysis_service.dart';
 import '../services/fragment_inference_utils.dart';
 import 'musa_text_editing_controller.dart';
 import '../../modules/books/models/writing_settings.dart';
+import '../../modules/books/services/story_state_updater.dart';
 
 enum MusaGenerationPhase {
   idle,
@@ -183,6 +186,7 @@ class EditorController extends StateNotifier<EditorState> {
   bool _isSyncingControllers = false;
   bool _suppressSelectionOverlayOnce = false;
   int _activeRunToken = 0;
+  Timer? _narrativeRefreshDebounce;
 
   EditorController(this._ref)
       : super(EditorState(
@@ -259,6 +263,7 @@ class EditorController extends StateNotifier<EditorState> {
           .read(narrativeWorkspaceProvider.notifier)
           .updateDocumentContent(selectedId, state.controller.text),
     );
+    _scheduleNarrativeRefresh(selectedId);
   }
 
   void _handleSelectionChange() {
@@ -531,6 +536,10 @@ class EditorController extends StateNotifier<EditorState> {
       clearFragmentAnalysis: true,
       isChapterAnalysisPending: false,
     );
+    unawaited(_refreshNarrativeCopilot(
+      documentId: document.id,
+      chapterAnalysis: analysis,
+    ));
   }
 
   void dismissFragmentAnalysis() {
@@ -2993,8 +3002,78 @@ class EditorController extends StateNotifier<EditorState> {
     ].join('\n');
   }
 
+  void _scheduleNarrativeRefresh(String documentId) {
+    _narrativeRefreshDebounce?.cancel();
+    _narrativeRefreshDebounce = Timer(const Duration(milliseconds: 1400), () {
+      unawaited(_refreshNarrativeCopilot(documentId: documentId));
+    });
+  }
+
+  Future<void> _refreshNarrativeCopilot({
+    String? documentId,
+    ChapterAnalysis? chapterAnalysis,
+  }) async {
+    final workspace = _ref.read(narrativeWorkspaceProvider).value;
+    if (workspace == null) return;
+
+    final document = documentId == null
+        ? _ref.read(currentDocumentProvider)
+        : workspace.documents.cast<Document?>().firstWhere(
+              (item) => item?.id == documentId,
+              orElse: () => null,
+            );
+    final bookId = document?.bookId ?? workspace.activeBook?.id;
+    if (bookId == null) return;
+
+    await _ref
+        .read(narrativeWorkspaceProvider.notifier)
+        .recalculateNarrativeCopilot(
+          bookId: bookId,
+          input: chapterAnalysis == null
+              ? const StoryStateInput()
+              : _storyStateInputFromChapterAnalysis(chapterAnalysis),
+        );
+  }
+
+  StoryStateInput _storyStateInputFromChapterAnalysis(
+    ChapterAnalysis analysis,
+  ) {
+    final realProgress = analysis.characterDevelopments.isNotEmpty ||
+        analysis.scenarioDevelopments.isNotEmpty ||
+        analysis.chapterFunction == ChapterFunction.discovery ||
+        analysis.chapterFunction == ChapterFunction.escalation;
+    return StoryStateInput(
+      chapterFunction: _mapChapterFunction(analysis.chapterFunction),
+      realProgress: realProgress,
+      keyEvents: [
+        if (analysis.trajectory != null) analysis.trajectory!.summary,
+        ...analysis.characterDevelopments.map((item) => item.summary),
+        ...analysis.scenarioDevelopments.map((item) => item.summary),
+      ],
+      diagnostics: [
+        if (!realProgress)
+          'El análisis de capítulo no detectó desarrollo claro de personaje, escenario, amenaza o descubrimiento.',
+      ],
+    );
+  }
+
+  CurrentChapterFunction _mapChapterFunction(ChapterFunction function) {
+    return switch (function) {
+      ChapterFunction.introduction => CurrentChapterFunction.introduce,
+      ChapterFunction.development => CurrentChapterFunction.complicate,
+      ChapterFunction.escalation => CurrentChapterFunction.confront,
+      ChapterFunction.discovery => CurrentChapterFunction.reveal,
+      ChapterFunction.transition => CurrentChapterFunction.transition,
+      ChapterFunction.character_building =>
+        CurrentChapterFunction.deepenCharacter,
+      ChapterFunction.setup => CurrentChapterFunction.setup,
+    };
+  }
+
   @override
   void dispose() {
+    _narrativeRefreshDebounce?.cancel();
+    unawaited(_refreshNarrativeCopilot(documentId: state.documentId));
     _aiSubscription?.cancel();
     state.controller.removeListener(_handleSelectionChange);
     state.controller.removeListener(_handleContentChanged);

@@ -1,4 +1,5 @@
 import '../../../shared/utils/enum_codec.dart';
+import 'narrative_copilot.dart';
 
 /// Lifecycle status for a book inside the workspace.
 enum BookStatus { draft, active, archived }
@@ -15,6 +16,7 @@ class Book {
   final String summary;
   final String toneNotes;
   final String? activeModelProfileId;
+  final BookNarrativeProfile narrativeProfile;
 
   const Book({
     required this.id,
@@ -27,6 +29,7 @@ class Book {
     this.summary = '',
     this.toneNotes = '',
     this.activeModelProfileId,
+    this.narrativeProfile = const BookNarrativeProfile(),
   });
 
   Book copyWith({
@@ -40,6 +43,7 @@ class Book {
     String? toneNotes,
     String? activeModelProfileId,
     bool clearActiveModelProfileId = false,
+    BookNarrativeProfile? narrativeProfile,
   }) {
     return Book(
       id: id,
@@ -54,6 +58,7 @@ class Book {
       activeModelProfileId: clearActiveModelProfileId
           ? null
           : (activeModelProfileId ?? this.activeModelProfileId),
+      narrativeProfile: narrativeProfile ?? this.narrativeProfile,
     );
   }
 
@@ -68,6 +73,7 @@ class Book {
         'summary': summary,
         'toneNotes': toneNotes,
         'activeModelProfileId': activeModelProfileId,
+        'narrativeProfile': narrativeProfile.toJson(),
       };
 
   factory Book.fromJson(Map<String, dynamic> json) => Book(
@@ -85,5 +91,8 @@ class Book {
         summary: json['summary'] as String? ?? '',
         toneNotes: json['toneNotes'] as String? ?? '',
         activeModelProfileId: json['activeModelProfileId'] as String?,
+        narrativeProfile: BookNarrativeProfile.fromJson(
+          json['narrativeProfile'] as Map<String, dynamic>?,
+        ),
       );
 }

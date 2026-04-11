@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../modules/books/models/app_settings.dart';
 import '../../modules/books/models/book.dart';
@@ -17,8 +18,11 @@ import 'musa_project_document.dart';
 
 /// Persists the full narrative workspace as one opaque `.musa` project file.
 class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
+  static const activeProjectPathKey = 'musa.activeProjectPath';
+  static const recentProjectsKey = 'musa.recentProjects';
   static const _projectFileName = 'Musa.musa';
   static const _legacyWorkspaceFileName = 'musa_workspace.json';
+  static const _maxRecentProjects = 10;
 
   const LocalWorkspaceStorage({
     this.projectFilePath,
@@ -30,14 +34,22 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
 
   @override
   Future<NarrativeWorkspace> loadWorkspace() async {
-    final file = await _projectFile();
+    final target = await _projectFileTarget();
+    final file = target.file;
     if (await file.exists()) {
       final workspace = await _projectDocument.readWorkspace(file);
+      await rememberProject(file.path);
       return _normalizeWorkspace(workspace);
     }
 
     final legacyFile = await _legacyWorkspaceFile();
     if (!await legacyFile.exists()) {
+      if (target.userSelected) {
+        throw FileSystemException(
+          'Selected MUSA project file does not exist',
+          file.path,
+        );
+      }
       final seeded = _seedWorkspace();
       await saveWorkspace(seeded);
       return seeded;
@@ -60,17 +72,124 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
   Future<void> saveWorkspace(NarrativeWorkspace workspace) async {
     final file = await _projectFile();
     await _projectDocument.writeWorkspace(file, workspace);
+    await rememberProject(file.path);
+  }
+
+  Future<NarrativeWorkspace> loadProjectFile(String path) async {
+    final workspace = await _projectDocument.readWorkspace(File(path));
+    return _normalizeWorkspace(workspace);
+  }
+
+  Future<MusaProjectManifest> readProjectManifest(String path) {
+    return _projectDocument.readManifest(File(path));
+  }
+
+  Future<void> saveWorkspaceAs(
+      String path, NarrativeWorkspace workspace) async {
+    await _projectDocument.writeWorkspace(
+      File(path),
+      workspace,
+      preserveProjectIdentity: false,
+    );
+    await selectProjectFile(path);
+    await rememberProject(path);
+  }
+
+  Future<NarrativeWorkspace> createNewProjectFile(String path) async {
+    final workspace = _seedWorkspace();
+    await _projectDocument.writeWorkspace(
+      File(path),
+      workspace,
+      preserveProjectIdentity: false,
+    );
+    await selectProjectFile(path);
+    await rememberProject(path);
+    return workspace;
+  }
+
+  Future<void> selectProjectFile(String path) async {
+    if (projectFilePath != null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(activeProjectPathKey, path);
+  }
+
+  Future<void> clearSelectedProjectFile() async {
+    if (projectFilePath != null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(activeProjectPathKey);
+  }
+
+  Future<String> activeProjectPath() async {
+    return (await _projectFile()).path;
+  }
+
+  Future<List<RecentProject>> recentProjects() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rawItems = prefs.getStringList(recentProjectsKey) ?? const [];
+    final results = <RecentProject>[];
+
+    for (final raw in rawItems) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          results.add(RecentProject.fromJson(decoded));
+        }
+      } catch (_) {
+        // Ignore invalid historical entries.
+      }
+    }
+
+    return results;
+  }
+
+  Future<void> rememberProject(String path) async {
+    final file = File(path);
+    if (!await file.exists()) return;
+
+    final manifest = await _projectDocument.readManifest(file);
+    final now = DateTime.now().toUtc();
+    final updated = RecentProject(
+      projectId: manifest.projectId,
+      name: manifest.projectName,
+      path: path,
+      lastOpenedAt: now,
+      updatedAt: manifest.updatedAt,
+    );
+    final current = await recentProjects();
+    final deduplicated = [
+      updated,
+      ...current.where((item) => item.path != path),
+    ].take(_maxRecentProjects).toList();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      recentProjectsKey,
+      deduplicated
+          .map((item) => jsonEncode(item.toJson()))
+          .toList(growable: false),
+    );
   }
 
   Future<File> projectFile() => _projectFile();
 
   Future<File> _projectFile() async {
+    return (await _projectFileTarget()).file;
+  }
+
+  Future<_ProjectFileTarget> _projectFileTarget() async {
     if (projectFilePath != null) {
-      return File(projectFilePath!);
+      return _ProjectFileTarget(File(projectFilePath!), userSelected: true);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final activePath = prefs.getString(activeProjectPathKey);
+    if (activePath != null && activePath.trim().isNotEmpty) {
+      return _ProjectFileTarget(File(activePath), userSelected: true);
     }
     final directory = await getApplicationSupportDirectory();
     final musaDirectory = Directory(p.join(directory.path, 'musa'));
-    return File(p.join(musaDirectory.path, _projectFileName));
+    return _ProjectFileTarget(
+      File(p.join(musaDirectory.path, _projectFileName)),
+    );
   }
 
   Future<File> _legacyWorkspaceFile() async {
@@ -220,4 +339,49 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
       selectedDocumentId: documentId,
     );
   }
+}
+
+class _ProjectFileTarget {
+  const _ProjectFileTarget(this.file, {this.userSelected = false});
+
+  final File file;
+  final bool userSelected;
+}
+
+class RecentProject {
+  const RecentProject({
+    required this.projectId,
+    required this.name,
+    required this.path,
+    required this.lastOpenedAt,
+    required this.updatedAt,
+  });
+
+  final String projectId;
+  final String name;
+  final String path;
+  final DateTime lastOpenedAt;
+  final DateTime updatedAt;
+
+  factory RecentProject.fromJson(Map<String, dynamic> json) {
+    final now = DateTime.now().toUtc();
+    return RecentProject(
+      projectId: json['projectId'] as String? ?? '',
+      name: json['name'] as String? ?? 'Musa',
+      path: json['path'] as String? ?? '',
+      lastOpenedAt:
+          DateTime.tryParse(json['lastOpenedAt'] as String? ?? '')?.toUtc() ??
+              now,
+      updatedAt:
+          DateTime.tryParse(json['updatedAt'] as String? ?? '')?.toUtc() ?? now,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'projectId': projectId,
+        'name': name,
+        'path': path,
+        'lastOpenedAt': lastOpenedAt.toUtc().toIso8601String(),
+        'updatedAt': updatedAt.toUtc().toIso8601String(),
+      };
 }

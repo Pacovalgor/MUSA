@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 import '../../modules/books/models/narrative_workspace.dart' as workspace;
 import '../../modules/books/providers/workspace_providers.dart';
@@ -19,6 +20,8 @@ import '../../modules/manuscript/models/document.dart';
 import '../../modules/manuscript/providers/document_providers.dart';
 import '../../modules/notes/providers/note_providers.dart';
 import '../../modules/scenarios/providers/scenario_providers.dart';
+import '../../shared/storage/local_workspace_storage.dart';
+import '../../shared/storage/musa_project_document.dart';
 
 import '../providers/ui_providers.dart';
 import '../widgets/sidebar.dart';
@@ -76,6 +79,10 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = MusaTheme.tokensOf(context);
+    final workspaceState = ref.watch(narrativeWorkspaceProvider);
+    if (workspaceState.hasError) {
+      return _buildProjectUnavailableScaffold(tokens);
+    }
     final showSidebar = ref.watch(sidebarVisibilityProvider);
     final showInspector = ref.watch(inspectorVisibilityProvider);
     final sidebarAutoOpened = ref.watch(sidebarAutoOpenedProvider);
@@ -208,6 +215,73 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
     );
   }
 
+  Widget _buildProjectUnavailableScaffold(MusaThemeTokens tokens) {
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: BoxDecoration(color: tokens.canvasBackground),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'No se pudo abrir el proyecto',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'El archivo anterior no está disponible. Puedes abrir otro proyecto, volver al proyecto local o crear uno nuevo.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: tokens.textSecondary,
+                          height: 1.45,
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () => _handleProjectMenuAction(
+                      ref,
+                      const _ProjectMenuSelection(_ProjectMenuAction.open),
+                      null,
+                    ),
+                    icon: const Icon(Icons.folder_open_outlined, size: 18),
+                    label: const Text('Abrir otro .musa'),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => _handleProjectMenuAction(
+                      ref,
+                      const _ProjectMenuSelection(_ProjectMenuAction.useLocal),
+                      null,
+                    ),
+                    icon: const Icon(Icons.storage_outlined, size: 18),
+                    label: const Text('Usar proyecto local'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: () => _handleProjectMenuAction(
+                      ref,
+                      const _ProjectMenuSelection(_ProjectMenuAction.create),
+                      null,
+                    ),
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    label: const Text('Crear proyecto nuevo'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTopBar(
     BuildContext context,
     WidgetRef ref,
@@ -318,6 +392,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                     style: TextStyle(fontSize: 12),
                   ),
                 ),
+              const SizedBox(width: 6),
+              _buildProjectMenu(context, ref, activeBook?.title),
             ],
           ),
           Row(
@@ -527,9 +603,231 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
     }
     return const SizedBox.shrink();
   }
+
+  Widget _buildProjectMenu(
+    BuildContext context,
+    WidgetRef ref,
+    String? activeBookTitle,
+  ) {
+    final tokens = MusaTheme.tokensOf(context);
+    final activeProjectPath = ref.watch(activeProjectPathProvider).valueOrNull;
+    final recentProjects =
+        ref.watch(recentProjectsProvider).valueOrNull ?? const [];
+    final projectLabel = activeProjectPath == null || activeProjectPath.isEmpty
+        ? 'Proyecto'
+        : p.basename(activeProjectPath);
+
+    return PopupMenuButton<_ProjectMenuSelection>(
+      tooltip: 'Proyecto',
+      color: tokens.canvasBackground,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        side: BorderSide(color: tokens.borderSoft),
+      ),
+      onSelected: (selection) => _handleProjectMenuAction(
+        ref,
+        selection,
+        activeBookTitle,
+      ),
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: _ProjectMenuSelection(_ProjectMenuAction.open),
+          child: Text('Abrir proyecto...'),
+        ),
+        const PopupMenuItem(
+          value: _ProjectMenuSelection(_ProjectMenuAction.saveAs),
+          child: Text('Guardar como...'),
+        ),
+        const PopupMenuItem(
+          value: _ProjectMenuSelection(_ProjectMenuAction.create),
+          child: Text('Crear proyecto nuevo...'),
+        ),
+        if (recentProjects.isNotEmpty) ...[
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            enabled: false,
+            child: Text('Recientes'),
+          ),
+          for (final project in recentProjects)
+            PopupMenuItem(
+              value: _ProjectMenuSelection(
+                _ProjectMenuAction.recent,
+                path: project.path,
+              ),
+              child: _RecentProjectMenuItem(project: project),
+            ),
+        ],
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: _ProjectMenuSelection(_ProjectMenuAction.useLocal),
+          child: Text('Usar proyecto local'),
+        ),
+      ],
+      child: TextButton.icon(
+        onPressed: null,
+        style: TextButton.styleFrom(
+          foregroundColor: tokens.textPrimary,
+          disabledForegroundColor: tokens.textPrimary,
+          splashFactory: NoSplash.splashFactory,
+        ),
+        icon: const Icon(Icons.folder_open_outlined, size: 16),
+        label: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 180),
+          child: Text(
+            projectLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleProjectMenuAction(
+    WidgetRef ref,
+    _ProjectMenuSelection selection,
+    String? activeBookTitle,
+  ) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    try {
+      final picker = ref.read(projectDocumentPickerProvider);
+      final notifier = ref.read(narrativeWorkspaceProvider.notifier);
+
+      switch (selection.action) {
+        case _ProjectMenuAction.open:
+          final path = await picker.openProjectPath();
+          if (path == null) return;
+          await notifier.openProjectFile(path);
+          _throwIfWorkspaceError(ref);
+          ref.invalidate(activeProjectPathProvider);
+          ref.invalidate(recentProjectsProvider);
+          if (!mounted) return;
+          _showProjectMessage('Proyecto abierto: ${p.basename(path)}');
+          break;
+        case _ProjectMenuAction.saveAs:
+          final path = await picker.chooseSaveProjectPath(
+            suggestedName: _projectSuggestedName(activeBookTitle),
+          );
+          if (path == null) return;
+          await notifier.saveProjectFileAs(path);
+          _throwIfWorkspaceError(ref);
+          ref.invalidate(activeProjectPathProvider);
+          ref.invalidate(recentProjectsProvider);
+          if (!mounted) return;
+          _showProjectMessage('Proyecto guardado: ${p.basename(path)}');
+          break;
+        case _ProjectMenuAction.create:
+          final path = await picker.chooseSaveProjectPath(
+            suggestedName: _projectSuggestedName(null),
+          );
+          if (path == null) return;
+          await notifier.createProjectFile(path);
+          _throwIfWorkspaceError(ref);
+          ref.invalidate(activeProjectPathProvider);
+          ref.invalidate(recentProjectsProvider);
+          if (!mounted) return;
+          _showProjectMessage('Proyecto creado: ${p.basename(path)}');
+          break;
+        case _ProjectMenuAction.recent:
+          final path = selection.path;
+          if (path == null) return;
+          await notifier.openProjectFile(path);
+          _throwIfWorkspaceError(ref);
+          ref.invalidate(activeProjectPathProvider);
+          ref.invalidate(recentProjectsProvider);
+          if (!mounted) return;
+          _showProjectMessage('Proyecto abierto: ${p.basename(path)}');
+          break;
+        case _ProjectMenuAction.useLocal:
+          await notifier.useLocalProjectFile();
+          _throwIfWorkspaceError(ref);
+          ref.invalidate(activeProjectPathProvider);
+          ref.invalidate(recentProjectsProvider);
+          if (!mounted) return;
+          _showProjectMessage('Proyecto local activo');
+          break;
+      }
+    } catch (error) {
+      if (!mounted) return;
+      final details = error.toString().trim();
+      _showProjectMessage(
+        details.isEmpty
+            ? 'No se pudo completar la operación del proyecto.'
+            : 'No se pudo completar la operación: $details',
+      );
+    }
+  }
+
+  void _throwIfWorkspaceError(WidgetRef ref) {
+    final workspace = ref.read(narrativeWorkspaceProvider);
+    if (workspace.hasError) {
+      throw workspace.error ?? StateError('No se pudo cargar el proyecto.');
+    }
+  }
+
+  String _projectSuggestedName(String? activeBookTitle) {
+    final cleaned = (activeBookTitle ?? 'Musa')
+        .trim()
+        .replaceAll(RegExp(r'[\\/:*?"<>|]+'), '-');
+    final baseName = cleaned.isEmpty ? 'Musa' : cleaned;
+    return '$baseName${MusaProjectDocument.extension}';
+  }
+
+  void _showProjectMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 }
 
 enum _PrintMenuAction { standard, bookletA5 }
+
+enum _ProjectMenuAction { open, saveAs, create, recent, useLocal }
+
+class _ProjectMenuSelection {
+  const _ProjectMenuSelection(this.action, {this.path});
+
+  final _ProjectMenuAction action;
+  final String? path;
+}
+
+class _RecentProjectMenuItem extends StatelessWidget {
+  const _RecentProjectMenuItem({required this.project});
+
+  final RecentProject project;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = MusaTheme.tokensOf(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 300),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            project.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            project.path,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: tokens.textMuted,
+                  fontSize: 11,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _TopBarContext {
   const _TopBarContext({

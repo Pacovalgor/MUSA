@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
+import '../../modules/books/models/narrative_copilot.dart';
 import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/manuscript/models/document.dart';
 import '../../modules/manuscript/providers/document_providers.dart';
@@ -24,9 +25,13 @@ class _BookEditorState extends ConsumerState<BookEditor> {
   final _subtitleController = TextEditingController();
   final _summaryController = TextEditingController();
   final _toneNotesController = TextEditingController();
+  final _subgenreController = TextEditingController();
+  final _narrativeToneController = TextEditingController();
+  final _readerPromiseController = TextEditingController();
   final _scrollController = ScrollController();
 
   Timer? _saveDebounce;
+  Timer? _profileSaveDebounce;
   String? _bookId;
 
   @override
@@ -44,6 +49,7 @@ class _BookEditorState extends ConsumerState<BookEditor> {
   @override
   void dispose() {
     _saveDebounce?.cancel();
+    _profileSaveDebounce?.cancel();
     _scrollController
       ..removeListener(_handleScroll)
       ..dispose();
@@ -51,6 +57,9 @@ class _BookEditorState extends ConsumerState<BookEditor> {
     _subtitleController.dispose();
     _summaryController.dispose();
     _toneNotesController.dispose();
+    _subgenreController.dispose();
+    _narrativeToneController.dispose();
+    _readerPromiseController.dispose();
     super.dispose();
   }
 
@@ -61,6 +70,8 @@ class _BookEditorState extends ConsumerState<BookEditor> {
     final notes = ref.watch(notesProvider);
     final characters = ref.watch(charactersProvider);
     final scenarios = ref.watch(scenariosProvider);
+    final workspace = ref.watch(narrativeWorkspaceProvider).value;
+    final storyState = workspace?.activeStoryState;
 
     if (book == null) {
       return const Center(child: Text('No hay libro activo'));
@@ -71,6 +82,9 @@ class _BookEditorState extends ConsumerState<BookEditor> {
       _subtitleController: book.subtitle ?? '',
       _summaryController: book.summary,
       _toneNotesController: book.toneNotes,
+      _subgenreController: book.narrativeProfile.subgenre ?? '',
+      _narrativeToneController: book.narrativeProfile.tone ?? '',
+      _readerPromiseController: book.narrativeProfile.readerPromise ?? '',
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -168,6 +182,36 @@ class _BookEditorState extends ConsumerState<BookEditor> {
               ),
               const SizedBox(height: 28),
               _Section(
+                title: 'ADN narrativo',
+                subtitle:
+                    'La promesa editorial que orienta el estado narrativo del libro.',
+                child: _NarrativeProfileEditor(
+                  profile: book.narrativeProfile,
+                  subgenreController: _subgenreController,
+                  toneController: _narrativeToneController,
+                  readerPromiseController: _readerPromiseController,
+                  onChanged: (profile) => _updateNarrativeProfile(
+                    book.id,
+                    profile,
+                  ),
+                  onTextChanged: (_) => _scheduleNarrativeProfileSave(book.id),
+                ),
+              ),
+              const SizedBox(height: 28),
+              _Section(
+                title: 'Estado narrativo',
+                subtitle:
+                    'Lectura ligera del libro actual. Se actualiza al guardar, cerrar o analizar capítulo.',
+                child: _StoryStateSummary(storyState: storyState),
+              ),
+              const SizedBox(height: 28),
+              _Section(
+                title: 'Siguiente mejor movimiento',
+                subtitle: 'Una recomendación breve para empujar la novela.',
+                child: _NextBestMoveBlock(storyState: storyState),
+              ),
+              const SizedBox(height: 28),
+              _Section(
                 title: 'Índice',
                 subtitle: 'Vista rápida de capítulos y estructura actual.',
                 actionIcon: Icons.add,
@@ -222,6 +266,40 @@ class _BookEditorState extends ConsumerState<BookEditor> {
             toneNotes: _toneNotesController.text.trim(),
           );
     });
+  }
+
+  void _scheduleNarrativeProfileSave(String bookId) {
+    _profileSaveDebounce?.cancel();
+    _profileSaveDebounce = Timer(const Duration(milliseconds: 280), () {
+      if (!mounted) return;
+      _updateNarrativeProfile(
+        bookId,
+        _currentNarrativeProfile(
+            ref.read(activeBookProvider)?.narrativeProfile),
+      );
+    });
+  }
+
+  void _updateNarrativeProfile(String bookId, BookNarrativeProfile profile) {
+    if (!mounted) return;
+    ref.read(narrativeWorkspaceProvider.notifier).updateBookNarrativeProfile(
+          bookId: bookId,
+          narrativeProfile: profile,
+        );
+  }
+
+  BookNarrativeProfile _currentNarrativeProfile(
+    BookNarrativeProfile? current,
+  ) {
+    final base = current ?? const BookNarrativeProfile();
+    return base.copyWith(
+      subgenre: _subgenreController.text.trim(),
+      clearSubgenre: _subgenreController.text.trim().isEmpty,
+      tone: _narrativeToneController.text.trim(),
+      clearTone: _narrativeToneController.text.trim().isEmpty,
+      readerPromise: _readerPromiseController.text.trim(),
+      clearReaderPromise: _readerPromiseController.text.trim().isEmpty,
+    );
   }
 
   Future<void> _handleCreateChapter(BuildContext context) async {
@@ -364,6 +442,318 @@ class _Section extends StatelessWidget {
           child,
         ],
       ),
+    );
+  }
+}
+
+class _NarrativeProfileEditor extends StatelessWidget {
+  const _NarrativeProfileEditor({
+    required this.profile,
+    required this.subgenreController,
+    required this.toneController,
+    required this.readerPromiseController,
+    required this.onChanged,
+    required this.onTextChanged,
+  });
+
+  final BookNarrativeProfile profile;
+  final TextEditingController subgenreController;
+  final TextEditingController toneController;
+  final TextEditingController readerPromiseController;
+  final ValueChanged<BookNarrativeProfile> onChanged;
+  final ValueChanged<String> onTextChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _EnumField<BookPrimaryGenre>(
+              label: 'Género',
+              value: profile.primaryGenre,
+              values: BookPrimaryGenre.values,
+              labelFor: _primaryGenreLabel,
+              onChanged: (value) => onChanged(profile.copyWith(
+                primaryGenre: value,
+              )),
+            ),
+            _EnumField<NarrativeScale>(
+              label: 'Escala',
+              value: profile.scale,
+              values: NarrativeScale.values,
+              labelFor: _scaleLabel,
+              onChanged: (value) => onChanged(profile.copyWith(scale: value)),
+            ),
+            _EnumField<TargetPace>(
+              label: 'Ritmo objetivo',
+              value: profile.targetPace,
+              values: TargetPace.values,
+              labelFor: _targetPaceLabel,
+              onChanged: (value) => onChanged(profile.copyWith(
+                targetPace: value,
+              )),
+            ),
+            _EnumField<DominantPriority>(
+              label: 'Prioridad',
+              value: profile.dominantPriority,
+              values: DominantPriority.values,
+              labelFor: _dominantPriorityLabel,
+              onChanged: (value) => onChanged(profile.copyWith(
+                dominantPriority: value,
+              )),
+            ),
+            _EnumField<EndingType>(
+              label: 'Final',
+              value: profile.endingType,
+              values: EndingType.values,
+              labelFor: _endingTypeLabel,
+              onChanged: (value) => onChanged(profile.copyWith(
+                endingType: value,
+              )),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _InlineTextField(
+          controller: subgenreController,
+          label: 'Subgénero',
+          hintText: 'noir, space opera, fantasía urbana...',
+          onChanged: onTextChanged,
+        ),
+        const SizedBox(height: 10),
+        _InlineTextField(
+          controller: toneController,
+          label: 'Tono',
+          hintText: 'seco, íntimo, oscuro, luminoso...',
+          onChanged: onTextChanged,
+        ),
+        const SizedBox(height: 10),
+        _InlineTextField(
+          controller: readerPromiseController,
+          label: 'Promesa de lectura',
+          hintText: 'Qué experiencia debe recibir la lectora.',
+          onChanged: onTextChanged,
+          minLines: 2,
+        ),
+      ],
+    );
+  }
+}
+
+class _EnumField<T extends Enum> extends StatelessWidget {
+  const _EnumField({
+    required this.label,
+    required this.value,
+    required this.values,
+    required this.labelFor,
+    required this.onChanged,
+  });
+
+  final String label;
+  final T value;
+  final List<T> values;
+  final String Function(T value) labelFor;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 180,
+      child: DropdownButtonFormField<T>(
+        initialValue: value,
+        items: values
+            .map(
+              (item) => DropdownMenuItem<T>(
+                value: item,
+                child: Text(labelFor(item), overflow: TextOverflow.ellipsis),
+              ),
+            )
+            .toList(),
+        onChanged: (value) {
+          if (value != null) onChanged(value);
+        },
+        decoration: _fieldDecoration(context, label),
+        borderRadius: BorderRadius.circular(8),
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
+            ),
+      ),
+    );
+  }
+}
+
+class _InlineTextField extends StatelessWidget {
+  const _InlineTextField({
+    required this.controller,
+    required this.label,
+    required this.hintText,
+    required this.onChanged,
+    this.minLines = 1,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String hintText;
+  final ValueChanged<String> onChanged;
+  final int minLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      minLines: minLines,
+      maxLines: minLines == 1 ? 1 : 4,
+      onChanged: onChanged,
+      decoration: _fieldDecoration(context, label).copyWith(
+        hintText: hintText,
+        hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.18)),
+      ),
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.black87,
+            height: 1.45,
+          ),
+    );
+  }
+}
+
+class _StoryStateSummary extends StatelessWidget {
+  const _StoryStateSummary({required this.storyState});
+
+  final StoryState? storyState;
+
+  @override
+  Widget build(BuildContext context) {
+    if (storyState == null) {
+      return const _NarrativeEmptyText(
+        'Aún no hay estado narrativo. Se calculará al guardar o analizar un capítulo.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _MetricPill(
+                label: 'Acto', value: _actLabel(storyState!.currentAct)),
+            _MetricPill(
+              label: 'Función',
+              value: _chapterFunctionLabel(storyState!.currentChapterFunction),
+            ),
+            _MetricPill(
+              label: 'Tensión',
+              value: '${storyState!.globalTension}/100',
+            ),
+            _MetricPill(
+              label: 'Ritmo',
+              value: _rhythmLabel(storyState!.perceivedRhythm),
+            ),
+          ],
+        ),
+        if (storyState!.diagnostics.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _NarrativeBulletList(items: storyState!.diagnostics.take(3).toList()),
+        ],
+      ],
+    );
+  }
+}
+
+class _NextBestMoveBlock extends StatelessWidget {
+  const _NextBestMoveBlock({required this.storyState});
+
+  final StoryState? storyState;
+
+  @override
+  Widget build(BuildContext context) {
+    final move = storyState?.nextBestMove.trim();
+    final reason = storyState?.nextBestMoveReason.trim();
+    if (move == null || move.isEmpty) {
+      return const _NarrativeEmptyText(
+        'Define el ADN narrativo o analiza un capítulo para recibir una recomendación.',
+      );
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7F5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            move,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.black87,
+                  height: 1.55,
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+          if (reason != null && reason.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Motivo: $reason',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.black45,
+                    height: 1.45,
+                  ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NarrativeBulletList extends StatelessWidget {
+  const _NarrativeBulletList({required this.items});
+
+  final List<String> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: items
+          .map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                '• $item',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.black54,
+                      height: 1.45,
+                    ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _NarrativeEmptyText extends StatelessWidget {
+  const _NarrativeEmptyText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.black38,
+            height: 1.45,
+          ),
     );
   }
 }
@@ -637,4 +1027,89 @@ String _documentKindLabel(DocumentKind kind) => switch (kind) {
       DocumentKind.scene => 'ESCENA',
       DocumentKind.noteDoc => 'NOTA',
       DocumentKind.scratch => 'BORRADOR',
+    };
+
+InputDecoration _fieldDecoration(BuildContext context, String label) {
+  return InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: const Color(0xFFF7F7F5),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.03)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.03)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.10)),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  );
+}
+
+String _primaryGenreLabel(BookPrimaryGenre value) => switch (value) {
+      BookPrimaryGenre.literary => 'Literaria',
+      BookPrimaryGenre.thriller => 'Thriller',
+      BookPrimaryGenre.scienceFiction => 'Ciencia ficción',
+      BookPrimaryGenre.fantasy => 'Fantasía',
+      BookPrimaryGenre.mystery => 'Misterio',
+      BookPrimaryGenre.romance => 'Romance',
+      BookPrimaryGenre.historical => 'Histórica',
+      BookPrimaryGenre.other => 'Otra',
+    };
+
+String _scaleLabel(NarrativeScale value) => switch (value) {
+      NarrativeScale.intimate => 'Íntima',
+      NarrativeScale.ensemble => 'Coral',
+      NarrativeScale.epic => 'Épica',
+    };
+
+String _targetPaceLabel(TargetPace value) => switch (value) {
+      TargetPace.slow => 'Lento',
+      TargetPace.measured => 'Medido',
+      TargetPace.agile => 'Ágil',
+      TargetPace.urgent => 'Urgente',
+    };
+
+String _dominantPriorityLabel(DominantPriority value) => switch (value) {
+      DominantPriority.character => 'Personaje',
+      DominantPriority.plot => 'Trama',
+      DominantPriority.atmosphere => 'Atmósfera',
+      DominantPriority.idea => 'Idea',
+      DominantPriority.tension => 'Tensión',
+    };
+
+String _endingTypeLabel(EndingType value) => switch (value) {
+      EndingType.open => 'Abierto',
+      EndingType.bittersweet => 'Agridulce',
+      EndingType.resolved => 'Resuelto',
+      EndingType.tragic => 'Trágico',
+      EndingType.ambiguous => 'Ambiguo',
+    };
+
+String _actLabel(StoryAct value) => switch (value) {
+      StoryAct.actI => 'I',
+      StoryAct.actII => 'II',
+      StoryAct.actIII => 'III',
+    };
+
+String _chapterFunctionLabel(CurrentChapterFunction value) => switch (value) {
+      CurrentChapterFunction.introduce => 'Introduce',
+      CurrentChapterFunction.complicate => 'Complica',
+      CurrentChapterFunction.confront => 'Confronta',
+      CurrentChapterFunction.reveal => 'Revela',
+      CurrentChapterFunction.transition => 'Transición',
+      CurrentChapterFunction.deepenCharacter => 'Personaje',
+      CurrentChapterFunction.setup => 'Preparación',
+    };
+
+String _rhythmLabel(PerceivedRhythm value) => switch (value) {
+      PerceivedRhythm.slow => 'Lento',
+      PerceivedRhythm.steady => 'Estable',
+      PerceivedRhythm.uneven => 'Irregular',
+      PerceivedRhythm.tense => 'Tenso',
+      PerceivedRhythm.rushed => 'Precipitado',
     };

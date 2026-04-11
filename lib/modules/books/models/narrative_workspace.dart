@@ -16,6 +16,7 @@ import '../../notes/models/voice_memo.dart';
 import '../../scenarios/models/scenario.dart';
 import 'app_settings.dart';
 import 'book.dart';
+import 'narrative_copilot.dart';
 import 'workspace_snapshot.dart';
 
 /// Identifies which editorial surface is currently active in the workspace.
@@ -42,6 +43,8 @@ class NarrativeWorkspace {
   final List<ModelProfile> modelProfiles;
   final List<InstalledModel> installedModels;
   final List<WorkspaceSnapshot> snapshots;
+  final List<StoryState> storyStates;
+  final List<NarrativeMemory> narrativeMemories;
   final String? selectedDocumentId;
   final String? selectedNoteId;
   final String? selectedCharacterId;
@@ -68,6 +71,8 @@ class NarrativeWorkspace {
     this.modelProfiles = const [],
     this.installedModels = const [],
     this.snapshots = const [],
+    this.storyStates = const [],
+    this.narrativeMemories = const [],
     this.selectedDocumentId,
     this.selectedNoteId,
     this.selectedCharacterId,
@@ -183,6 +188,24 @@ class NarrativeWorkspace {
     return null;
   }
 
+  StoryState? get activeStoryState {
+    final book = activeBook;
+    if (book == null) return null;
+    for (final state in storyStates) {
+      if (state.bookId == book.id) return state;
+    }
+    return null;
+  }
+
+  NarrativeMemory? get activeNarrativeMemory {
+    final book = activeBook;
+    if (book == null) return null;
+    for (final memory in narrativeMemories) {
+      if (memory.bookId == book.id) return memory;
+    }
+    return null;
+  }
+
   NarrativeWorkspace copyWith({
     AppSettings? appSettings,
     List<Book>? books,
@@ -203,6 +226,8 @@ class NarrativeWorkspace {
     List<ModelProfile>? modelProfiles,
     List<InstalledModel>? installedModels,
     List<WorkspaceSnapshot>? snapshots,
+    List<StoryState>? storyStates,
+    List<NarrativeMemory>? narrativeMemories,
     String? selectedDocumentId,
     bool clearSelectedDocumentId = false,
     String? selectedNoteId,
@@ -233,6 +258,8 @@ class NarrativeWorkspace {
       modelProfiles: modelProfiles ?? this.modelProfiles,
       installedModels: installedModels ?? this.installedModels,
       snapshots: snapshots ?? this.snapshots,
+      storyStates: storyStates ?? this.storyStates,
+      narrativeMemories: narrativeMemories ?? this.narrativeMemories,
       selectedDocumentId: clearSelectedDocumentId
           ? null
           : (selectedDocumentId ?? this.selectedDocumentId),
@@ -274,6 +301,9 @@ class NarrativeWorkspace {
         'installedModels':
             installedModels.map((item) => item.toJson()).toList(),
         'snapshots': snapshots.map((item) => item.toJson()).toList(),
+        'storyStates': storyStates.map((item) => item.toJson()).toList(),
+        'narrativeMemories':
+            narrativeMemories.map((item) => item.toJson()).toList(),
         'selectedDocumentId': selectedDocumentId,
         'selectedNoteId': selectedNoteId,
         'selectedCharacterId': selectedCharacterId,
@@ -346,6 +376,13 @@ class NarrativeWorkspace {
         snapshots: (json['snapshots'] as List? ?? const [])
             .map((item) =>
                 WorkspaceSnapshot.fromJson(item as Map<String, dynamic>))
+            .toList(),
+        storyStates: (json['storyStates'] as List? ?? const [])
+            .map((item) => StoryState.fromJson(item as Map<String, dynamic>))
+            .toList(),
+        narrativeMemories: (json['narrativeMemories'] as List? ?? const [])
+            .map((item) =>
+                NarrativeMemory.fromJson(item as Map<String, dynamic>))
             .toList(),
         selectedDocumentId: json['selectedDocumentId'] as String?,
         selectedNoteId: json['selectedNoteId'] as String?,

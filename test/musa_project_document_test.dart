@@ -8,16 +8,27 @@ import 'package:musa/modules/books/models/narrative_workspace.dart';
 import 'package:musa/modules/manuscript/models/document.dart';
 import 'package:musa/shared/storage/local_workspace_storage.dart';
 import 'package:musa/shared/storage/musa_project_document.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   test('encodes the workspace as a single opaque .musa document', () {
     final workspace = _workspace();
     const document = MusaProjectDocument();
 
     final encoded = document.encodeWorkspace(workspace);
     final decoded = document.decodeWorkspace(encoded);
+    final manifest = document.decodeManifest(encoded);
 
     expect(encoded, isNotEmpty);
+    expect(manifest.formatVersion, MusaProjectDocument.formatVersion);
+    expect(manifest.appVersion, MusaProjectDocument.appVersion);
+    expect(manifest.projectName, 'Libro sincronizable');
+    expect(manifest.activeBookId, 'book-1');
+    expect(manifest.bookCount, 1);
     expect(decoded.books.single.title, 'Libro sincronizable');
     expect(decoded.documents.single.content, 'Texto dentro del proyecto.');
     expect(decoded.selectedDocumentId, 'document-1');
@@ -33,9 +44,13 @@ void main() {
     await storage.saveWorkspace(_workspace());
     expect(await projectFile.exists(), isTrue);
 
+    final manifest = await storage.readProjectManifest(projectFile.path);
     final loaded = await storage.loadWorkspace();
+    final recents = await storage.recentProjects();
+    expect(manifest.projectName, 'Libro sincronizable');
     expect(loaded.books.single.title, 'Libro sincronizable');
     expect(loaded.documents.single.title, 'Apertura');
+    expect(recents.single.path, projectFile.path);
   });
 
   test('migrates legacy workspace JSON into a .musa project file', () async {
