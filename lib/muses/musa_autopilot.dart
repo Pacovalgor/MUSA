@@ -14,9 +14,9 @@ class MusaAutopilot {
     if (analysis.clarityScore >= 4 &&
         analysis.rhythmScore >= 3 &&
         analysis.styleScore >= 2) {
-      return EditorialRecommendation(
+      return const EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: const [ClarityMusa(), RhythmMusa(), StyleMusa()],
+        musas: [ClarityMusa(), RhythmMusa(), StyleMusa()],
         reason:
             'El fragmento necesita despeje estructural, mejor respiración y un cierre más expresivo.',
         confidence: 0.86,
@@ -24,9 +24,9 @@ class MusaAutopilot {
     }
 
     if (analysis.clarityScore >= 4 && analysis.styleScore >= 3) {
-      return EditorialRecommendation(
+      return const EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: const [ClarityMusa(), StyleMusa()],
+        musas: [ClarityMusa(), StyleMusa()],
         reason:
             'La base es algo confusa y, una vez limpia, ganará más con un refinamiento de estilo.',
         confidence: 0.81,
@@ -34,9 +34,9 @@ class MusaAutopilot {
     }
 
     if (analysis.clarityScore >= 4 && analysis.rhythmScore >= 3) {
-      return EditorialRecommendation(
+      return const EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: const [ClarityMusa(), RhythmMusa()],
+        musas: [ClarityMusa(), RhythmMusa()],
         reason:
             'La prioridad es aclarar el pasaje y después ajustar su respiración.',
         confidence: 0.79,
@@ -44,9 +44,9 @@ class MusaAutopilot {
     }
 
     if (analysis.rhythmScore >= 4 && analysis.styleScore >= 3) {
-      return EditorialRecommendation(
+      return const EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: const [RhythmMusa(), StyleMusa()],
+        musas: [RhythmMusa(), StyleMusa()],
         reason:
             'El fragmento pide primero un pulso más limpio y después una capa de refinamiento literario.',
         confidence: 0.76,
@@ -54,9 +54,9 @@ class MusaAutopilot {
     }
 
     if (analysis.rhythmScore >= 4 && analysis.tensionScore >= 3) {
-      return EditorialRecommendation(
+      return const EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: const [RhythmMusa(), TensionMusa()],
+        musas: [RhythmMusa(), TensionMusa()],
         reason:
             'La escena necesita más tracción interna antes de cargarla de tensión.',
         confidence: 0.74,
@@ -64,9 +64,9 @@ class MusaAutopilot {
     }
 
     if (analysis.clarityScore >= 4 && analysis.tensionScore >= 3) {
-      return EditorialRecommendation(
+      return const EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: const [ClarityMusa(), TensionMusa()],
+        musas: [ClarityMusa(), TensionMusa()],
         reason:
             'Conviene despejar el pasaje antes de intensificar su amenaza implícita.',
         confidence: 0.73,
@@ -105,19 +105,20 @@ class MusaAutopilot {
         .toList();
 
     final sentenceLengths = sentenceParts
-        .map((sentence) => RegExp(r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü']+")
-            .allMatches(sentence)
-            .length)
+        .map((sentence) =>
+            RegExp(r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü']+").allMatches(sentence).length)
         .where((count) => count > 0)
         .toList();
 
     final averageSentenceLength = sentenceLengths.isEmpty
         ? wordMatches.length.toDouble()
         : sentenceLengths.reduce((a, b) => a + b) / sentenceLengths.length;
-    final maxSentenceLength =
-        sentenceLengths.isEmpty ? wordMatches.length : sentenceLengths.reduce((a, b) => a > b ? a : b);
-    final minSentenceLength =
-        sentenceLengths.isEmpty ? wordMatches.length : sentenceLengths.reduce((a, b) => a < b ? a : b);
+    final maxSentenceLength = sentenceLengths.isEmpty
+        ? wordMatches.length
+        : sentenceLengths.reduce((a, b) => a > b ? a : b);
+    final minSentenceLength = sentenceLengths.isEmpty
+        ? wordMatches.length
+        : sentenceLengths.reduce((a, b) => a < b ? a : b);
     final commaCount = ',;:'.split('').fold<int>(
           0,
           (acc, char) => acc + char.allMatches(normalized).length,
@@ -130,10 +131,10 @@ class MusaAutopilot {
     for (final word in wordMatches) {
       repeatedWords[word] = (repeatedWords[word] ?? 0) + 1;
     }
-    final repeatedPenalty = repeatedWords.values.where((count) => count >= 3).length;
-    final uniqueRatio = wordMatches.isEmpty
-        ? 1.0
-        : repeatedWords.length / wordMatches.length;
+    final repeatedPenalty =
+        repeatedWords.values.where((count) => count >= 3).length;
+    final uniqueRatio =
+        wordMatches.isEmpty ? 1.0 : repeatedWords.length / wordMatches.length;
     final dramaticLexicon = RegExp(
       r'\b(sangre|sombr|oscur|miedo|amenaza|polic|grit|cadáver|arma|ruido|viento|sombra|blood|fear|threat|shadow|weapon|sirens?)\b',
       caseSensitive: false,
@@ -147,13 +148,14 @@ class MusaAutopilot {
     if (repeatedPenalty >= 1) clarityScore += 1;
 
     var rhythmScore = 0;
-    if (sentenceLengths.length >= 2 && (maxSentenceLength - minSentenceLength) <= 3) {
+    if (sentenceLengths.length >= 2 &&
+        (maxSentenceLength - minSentenceLength) <= 3) {
       rhythmScore += 2;
     }
     if (sentenceLengths.length == 1 && averageSentenceLength >= 16) {
       rhythmScore += 2;
     }
-    if (RegExp(r'[,:;]').allMatches(normalized).length == 0 &&
+    if (RegExp(r'[,:;]').allMatches(normalized).isEmpty &&
         wordMatches.length >= 18) {
       rhythmScore += 1;
     }
@@ -164,12 +166,16 @@ class MusaAutopilot {
     var styleScore = 0;
     if (uniqueRatio < 0.68) styleScore += 2;
     if (wordMatches.length >= 6 && dramaticLexicon == 0) styleScore += 1;
-    if (sentenceParts.length <= 2 && averageSentenceLength < 14) styleScore += 1;
+    if (sentenceParts.length <= 2 && averageSentenceLength < 14) {
+      styleScore += 1;
+    }
 
     var tensionScore = 0;
     if (dramaticLexicon >= 1) tensionScore += 2;
     if (context.tensionLevel.toLowerCase() != 'neutral') tensionScore += 1;
-    if (sentenceParts.length <= 2 && wordMatches.length <= 10 && dramaticLexicon >= 1) {
+    if (sentenceParts.length <= 2 &&
+        wordMatches.length <= 10 &&
+        dramaticLexicon >= 1) {
       tensionScore += 1;
     }
     if (normalized.contains('?') || normalized.contains('—')) {

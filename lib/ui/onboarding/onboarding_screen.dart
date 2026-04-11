@@ -102,6 +102,15 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
       title: "Analizando tu Mac",
       subtitle:
           "Hemos detectado un ${_profile!.cpuBrand} con ${_profile!.totalRamGB}GB de RAM.",
+      buttonLabel: "Descargar e Instalar",
+      onPressed: () {
+        final selected =
+            _isAdvancedMode ? ModelCatalog.availableModels.first : recommended;
+        ref.read(modelManagerProvider.notifier).startDownload(selected);
+        _pageController.nextPage(
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut);
+      },
       child: Column(
         children: [
           const SizedBox(height: 32),
@@ -118,15 +127,6 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
           ],
         ],
       ),
-      buttonLabel: "Descargar e Instalar",
-      onPressed: () {
-        final selected =
-            _isAdvancedMode ? ModelCatalog.availableModels.first : recommended;
-        ref.read(modelManagerProvider.notifier).startDownload(selected);
-        _pageController.nextPage(
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut);
-      },
     );
   }
 
@@ -141,6 +141,7 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
       subtitle: isDone
           ? "El modelo está instalado. Puedes empezar a escribir."
           : "Esto solo ocurre una vez. Después, la Musa vive en tu Mac.",
+      showButton: false,
       child: Column(
         children: [
           const SizedBox(height: 48),
@@ -151,7 +152,7 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
               child: LinearProgressIndicator(
                 value: isDone ? 1.0 : progress,
                 minHeight: 1,
-                backgroundColor: Colors.black.withOpacity(0.05),
+                backgroundColor: Colors.black.withValues(alpha: 0.05),
                 color: Colors.black,
               ),
             ),
@@ -195,7 +196,6 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
           ]
         ],
       ),
-      showButton: false,
     );
   }
 
@@ -205,12 +205,13 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isRecommended ? Colors.black.withOpacity(0.02) : Colors.white,
+        color:
+            isRecommended ? Colors.black.withValues(alpha: 0.02) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: isRecommended
-                ? Colors.black.withOpacity(0.1)
-                : Colors.black.withOpacity(0.05)),
+                ? Colors.black.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [

@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:musa/editor/services/chapter_analysis_service.dart';
 import 'package:musa/modules/characters/models/character.dart';
 import 'package:musa/modules/scenarios/models/scenario.dart';
@@ -95,7 +97,7 @@ Pero podía investigar.
 
 Y eso, para mí, era suficiente.''';
 
-  final service = ChapterAnalysisService();
+  const service = ChapterAnalysisService();
   final analysis = service.analyze(
     chapterText: text,
     characters: const <Character>[],
@@ -106,11 +108,14 @@ Y eso, para mí, era suficiente.''';
   print('moment=${analysis.dominantNarrativeMoment.title}');
   print('summary=${analysis.dominantNarrativeMoment.summary}');
   print('function=${analysis.chapterFunction}');
-  print('trajectory=${analysis.trajectory?.startLabel}->${analysis.trajectory?.endLabel}');
-  print('mainScenario=${analysis.mainScenario?.name} existing=${analysis.mainScenario?.existingScenarioId}');
+  print(
+      'trajectory=${analysis.trajectory?.startLabel}->${analysis.trajectory?.endLabel}');
+  print(
+      'mainScenario=${analysis.mainScenario?.name} existing=${analysis.mainScenario?.existingScenarioId}');
   if (analysis.scenarioDevelopments.isNotEmpty) {
     final top = analysis.scenarioDevelopments.first;
     print('topScenarioDev=${top.label} score=${top.score} type=${top.type}');
   }
-  print('nextStep=${analysis.nextStep?.type} label=${analysis.nextStep?.label} action=${analysis.nextStep?.actionLabel}');
+  print(
+      'nextStep=${analysis.nextStep?.type} label=${analysis.nextStep?.label} action=${analysis.nextStep?.actionLabel}');
 }
