@@ -122,3 +122,27 @@ No pasar aún a generación. Antes conviene introducir una señal ligera de tipo
 - `technicalNote`
 
 No necesariamente como modelo público todavía; puede empezar como clasificador heurístico interno del copiloto. El objetivo es evitar que una guía OSINT o un documento de entrevista técnica contamine el estado narrativo del libro.
+
+## Seguimiento V1.3
+
+Implementado el clasificador heurístico interno antes de `StoryStateUpdater`.
+
+Resultado de la nueva pasada de auditoría:
+
+- 14/30 salidas se reclasifican como investigación y ya no actualizan el estado narrativo global.
+- 4/30 salidas se reclasifican como material técnico y tampoco contaminan `StoryState`.
+- Las salidas por exceso de preguntas abiertas ya citan la pregunta concreta cuando existe, en vez de repetir siempre el mismo texto genérico.
+- La diversidad de estrategia evita repetir la ruta de información cuando el movimiento anterior ya iba por preguntas/pistas; en ese caso fuerza una decisión de escena.
+
+Riesgo residual:
+
+- El clasificador sigue siendo heurístico y no persistido. Es intencionado para V1.3, pero conviene revisarlo con más workspaces antes de convertirlo en taxonomía pública del documento.
+
+## Seguimiento V1.4
+
+Se separa memoria narrativa activa de memoria contextual de apoyo dentro de `NarrativeMemory`.
+
+- `scene` alimenta memoria narrativa y puede aportar reglas/hechos persistentes al contexto.
+- `research` y `worldbuilding` no alteran `StoryState`, pero pueden enriquecer contexto si hay señales afirmativas: regla, coste, límite, obligación, prohibición, dependencia causal o hallazgo de investigación.
+- `technical` y `unknown` se tratan de forma conservadora y no enriquecen contexto por defecto.
+- Las salidas no narrativas de `NextBestMove` se mantienen neutras y breves para no fingir que una nota de apoyo es una escena.

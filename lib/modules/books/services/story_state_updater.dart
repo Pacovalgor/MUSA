@@ -57,6 +57,7 @@ class StoryStateUpdater {
         book: book,
         previous: previous,
         now: now,
+        memory: memory,
         classification: latestClassification,
       );
     }
@@ -127,6 +128,7 @@ class StoryStateUpdater {
       hasInvestigationLoop: hasInvestigationLoop,
       memory: memory,
       diagnostics: diagnostics,
+      currentText: recentText,
       previousMove: previous?.nextBestMove,
     );
 
@@ -140,14 +142,18 @@ class StoryStateUpdater {
     required Book book,
     required StoryState? previous,
     required DateTime now,
+    required NarrativeMemory memory,
     required NarrativeDocumentClassification classification,
   }) {
     final base = previous ?? StoryState.empty(book.id, now);
     final move = switch (classification.kind) {
-      NarrativeDocumentKind.research =>
-        'Guarda esto como material de apoyo: no lo usaría para medir progreso narrativo.',
-      NarrativeDocumentKind.worldbuilding =>
-        'Úsalo para coherencia e implicaciones de mundo, no para exigir conflicto inmediato.',
+      NarrativeDocumentKind.research => memory.researchFindings.isEmpty
+          ? 'Documento tratado como investigación; no altera el estado narrativo del libro.'
+          : 'Documento tratado como investigación; suma contexto sin alterar el estado narrativo.',
+      NarrativeDocumentKind.worldbuilding => memory.worldRules.isEmpty &&
+              memory.systemConstraints.isEmpty
+          ? 'Material de worldbuilding válido, pero sin impulso narrativo directo.'
+          : 'Se detecta una regla persistente útil para el contexto del libro.',
       NarrativeDocumentKind.technical =>
         'Esto parece material técnico; no debe contaminar el estado narrativo del libro.',
       NarrativeDocumentKind.unknown =>

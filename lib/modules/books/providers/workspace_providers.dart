@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -90,15 +91,13 @@ class NarrativeWorkspaceNotifier
     }
   }
 
-  Future<void> openProjectFile(String path) async {
+  Future<void> openProjectFile(Uint8List fileBytes) async {
     final repository = _repository;
     if (repository is! LocalWorkspaceStorage) return;
 
     state = const AsyncValue.loading();
     try {
-      final workspace = await repository.loadProjectFile(path);
-      await repository.selectProjectFile(path);
-      await repository.rememberProject(path);
+      final workspace = await repository.importProjectFile(fileBytes);
       state = AsyncValue.data(workspace);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -135,6 +134,19 @@ class NarrativeWorkspaceNotifier
     try {
       await repository.clearSelectedProjectFile();
       final workspace = await repository.loadWorkspace();
+      state = AsyncValue.data(workspace);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+  Future<void> importProjectFile(Uint8List fileBytes) async {
+    final repository = _repository;
+    if (repository is! LocalWorkspaceStorage) return;
+
+    state = const AsyncValue.loading();
+    try {
+      final workspace = await repository.importProjectFile(fileBytes);
       state = AsyncValue.data(workspace);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);

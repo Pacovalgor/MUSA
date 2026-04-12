@@ -1,7 +1,68 @@
 import Cocoa
 import FlutterMacOS
 
+class SecureFilePickerHandler: NSObject {
+    private static let channelName = "musa/secure_file_picker"
+    private var channel: FlutterMethodChannel?
+    private var pendingResult: FlutterResult?
+    private var panel: NSOpenPanel?
+
+    func register(with registrar: FlutterPluginRegistrar) {
+        channel = FlutterMethodChannel(
+            name: Self.channelName,
+            binaryMessenger: registrar.messenger)
+        channel?.setMethodCallHandler { [weak self] call, result in
+            print("[SECURE_PICKER] received method: \(call.method)")
+            switch call.method {
+            case "pickMusaFile":
+                self?.showOpenPanel(result: result)
+            default:
+                result(FlutterMethodNotImplemented)
+            }
+        }
+        print("[SECURE_PICKER] channel registered")
+    }
+
+    private func showOpenPanel(result: @escaping FlutterResult) {
+        pendingResult = result
+        panel = NSOpenPanel()
+        panel!.canChooseFiles = true
+        panel!.canChooseDirectories = false
+        panel!.allowsMultipleSelection = false
+        panel!.allowedFileTypes = ["musa"]
+        panel!.title = "Abrir proyecto MUSA"
+        panel!.prompt = "Abrir"
+
+        panel!.begin { [weak self] response in
+            guard let self = self, let panel = self.panel else { return }
+            if response == .OK, let url = panel.url {
+                let accessGranted = url.startAccessingSecurityScopedResource()
+                print("[OPEN_PROJECT] [NATIVE] startAccessingSecurityScopedResource: \(accessGranted)")
+                print("[OPEN_PROJECT] [NATIVE] URL path: \(url.path)")
+                do {
+                    let fileData = try Data(contentsOf: url, options: .mappedIfSafe)
+                    print("[OPEN_PROJECT] [NATIVE] Read \(fileData.count) bytes")
+                    url.stopAccessingSecurityScopedResource()
+                    self.pendingResult?(FlutterStandardTypedData(bytes: fileData))
+                } catch {
+                    print("[OPEN_PROJECT] [NATIVE] File read error: \(error)")
+                    url.stopAccessingSecurityScopedResource()
+                    self.pendingResult?(FlutterError(
+                        code: "FILE_READ_ERROR",
+                        message: "Cannot read file: \(error.localizedDescription)",
+                        details: error.localizedDescription))
+                }
+            } else {
+                self.pendingResult?(nil)
+            }
+            self.pendingResult = nil
+            self.panel = nil
+        }
+    }
+}
+
 class MainFlutterWindow: NSWindow {
+  private let secureFilePicker = SecureFilePickerHandler()
   private let initialSize = NSSize(width: 1280, height: 820)
   private let minimumSize = NSSize(width: 1100, height: 720)
   private let trafficLightLeftInset: CGFloat = 14
@@ -25,6 +86,8 @@ class MainFlutterWindow: NSWindow {
     }
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+
+    secureFilePicker.register(with: flutterViewController.engine.registrar(forPlugin: "SecureFilePicker"))
 
     super.awakeFromNib()
     positionTrafficLights()

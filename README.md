@@ -45,11 +45,13 @@ El proyecto ya supera la fase de prototipo visual. Hay una base funcional clara 
 - Onboarding con detección de hardware y selección de modelo local.
 - Gestión de workspace narrativa persistida localmente.
 - Proyectos `.musa` abribles, guardables y recordados como recientes.
+- Apertura segura de proyectos `.musa` externos en macOS mediante picker nativo.
+- Importación local de modelos `.gguf` ya descargados.
 - Edición de manuscrito y entidades narrativas.
 - Flujo de sugerencias editoriales con IA embebida en macOS.
 - Análisis heurístico del texto para continuidad y ayudas contextuales.
 - ADN narrativo del libro con género, escala, ritmo objetivo, prioridad y promesa de lectura.
-- Copiloto narrativo con memoria ligera, estado de historia y siguiente mejor movimiento.
+- Copiloto narrativo con memoria narrativa, memoria contextual y siguiente mejor movimiento trazable.
 - Workflows editoriales estructurados para expandir momentos y conectar trama.
 - Notas editoriales con estado, origen de capítulo y dirección reutilizable.
 - Snapshots manuales ligeros del workspace.
@@ -93,6 +95,7 @@ flowchart LR
     State --> Workspace["Narrative Workspace"]
     Workspace --> Storage["Local Workspace Storage"]
     Storage --> Project[".musa Project Document"]
+    Project --> SecurePicker["macOS Secure File Picker"]
     Storage --> Recent["Recent Projects"]
     State --> Editor["Editor Controller"]
     Editor --> Analysis["Fragment / Chapter Analysis"]
@@ -101,6 +104,7 @@ flowchart LR
     Editor --> IA["IA Service"]
     IA --> Embedded["Embedded IA Service (macOS)"]
     Embedded --> Models["Model Manager + GGUF Models"]
+    Models --> Import["Local GGUF Import"]
     State --> Print["Print Service"]
     Workspace --> Snapshots["Manual Snapshots"]
 ```
@@ -155,12 +159,15 @@ flowchart TD
 - Estado de continuidad asociado al libro activo.
 - Señales ligeras de continuidad por capítulo desde el inspector.
 - Memoria narrativa ligera con preguntas abiertas, pistas, amenazas, hechos importantes y cambios recientes de personaje.
+- Memoria contextual separada para reglas de mundo, restricciones, hallazgos de investigación y conceptos persistentes.
 - Estado de historia con acto, función de capítulo, tensión global, ritmo percibido y siguiente mejor movimiento.
 - Snapshots manuales para guardar estados del libro sin introducir versionado complejo.
 
 ### IA editorial
 
 - Modelos locales descargables durante onboarding.
+- Importación de modelos `.gguf` existentes desde archivo local.
+- Reconciliación de modelos ya presentes en `Application Support`.
 - Servicio IA embebido para macOS.
 - Musas con reglas editoriales específicas.
 - Flujo de sugerencias sobre selección o pasaje activo.
@@ -173,6 +180,8 @@ flowchart TD
 - Resolución de momento dominante, función del capítulo y siguiente paso sugerido.
 - Motor de `nextStep` con acciones estructuradas para `expandMoment` y `connectToPlot`.
 - Recomendaciones de copiloto sensibles a género para thriller, ciencia ficción y fantasía.
+- Clasificación heurística de documentos para evitar que investigación, worldbuilding o material técnico contaminen el estado narrativo.
+- Compuertas de calidad para rechazar contexto débil antes de convertirlo en recomendación editorial.
 - Filtro de ruido visible para evitar entidades no defendibles en la UI.
 
 ### Workflows editoriales
@@ -224,6 +233,7 @@ Cada musa incorpora:
 - `lib/shared/storage/local_workspace_storage.dart`
 - `lib/shared/storage/musa_project_document.dart`
 - `lib/shared/storage/project_document_picker.dart`
+- `lib/shared/storage/macos_secure_file_picker.dart`
 
 ### Editor e inferencia
 
@@ -233,6 +243,8 @@ Cada musa incorpora:
 - `lib/editor/widgets/suggestion_review_panel.dart`
 - `lib/editor/widgets/chapter_insight_panel.dart`
 - `lib/modules/books/models/narrative_copilot.dart`
+- `lib/modules/books/services/narrative_document_classifier.dart`
+- `lib/modules/books/services/contextual_memory_updater.dart`
 - `lib/modules/books/services/narrative_memory_updater.dart`
 - `lib/modules/books/services/story_state_updater.dart`
 - `lib/modules/books/services/next_best_move_service.dart`
@@ -259,6 +271,8 @@ Cada musa incorpora:
 - `docs/mobile_ipad_foundation_plan.md`
 - `docs/ipad_compose_phase2_plan.md`
 - `docs/narrative_copilot_audit.md`
+- `docs/narrative_copilot_audit_report.md`
+- `docs/narrative_copilot_audit_v15.md`
 
 ## Persistencia local
 
@@ -272,6 +286,11 @@ proyecto por accidente:
 
 El manifiesto del proyecto guarda metadatos como formato, versión de esquema,
 nombre de proyecto, libro activo y número de libros.
+
+Cuando se abre un `.musa` externo en macOS, el picker nativo lee el archivo con
+acceso seguro y MUSA copia el contenido a la ruta canónica local antes de
+cargarlo. Eso evita depender de permisos temporales del sandbox para autosave y
+recientes.
 
 Las instalaciones con el formato anterior se migran automáticamente desde
 `musa_workspace.json` al abrir la app.
@@ -340,7 +359,7 @@ flutter analyze
 2. Completa el onboarding.
 3. Deja que MUSA detecte el hardware del Mac.
 4. Acepta el modelo recomendado o cambia a modo avanzado.
-5. Descarga e instala el modelo local.
+5. Descarga el modelo recomendado o importa un `.gguf` local compatible.
 6. Entra al estudio de escritura.
 
 ### Flujo básico de escritura
@@ -373,6 +392,14 @@ flutter analyze
 3. Usa `Crear proyecto nuevo...` para empezar un workspace limpio en una ubicación elegida.
 4. Vuelve a proyectos recientes desde el mismo menú.
 5. Usa `Usar proyecto local` para regresar al proyecto guardado en `Application Support/musa/`.
+6. Si macOS bloquea un reciente externo, vuelve a seleccionarlo desde `Abrir proyecto...`.
+
+### Gestión de modelos
+
+1. Completa la detección de hardware en onboarding.
+2. Descarga el modelo recomendado si quieres que MUSA gestione la instalación.
+3. Si ya tienes el archivo `.gguf`, usa la importación local.
+4. MUSA copia el modelo al directorio de soporte, valida el archivo y lo activa si coincide con el catálogo.
 
 ### Workflows editoriales
 
@@ -443,7 +470,9 @@ El autor define que el libro es thriller, ciencia ficción o fantasía, añade u
 - La continuidad, el capítulo y el fragmento tienen herramientas de análisis propias.
 - Los `nextStep` importantes se convierten en acciones estructuradas, no solo consejos.
 - El copiloto narrativo cruza ADN del libro, memoria reciente y señales de género para proponer una decisión breve.
+- La memoria contextual permite usar reglas, restricciones y hallazgos sin contaminar el estado narrativo con documentos de apoyo.
 - Los proyectos `.musa` permiten tratar cada novela como documento portable, no solo como estado interno de aplicación.
+- La importación `.gguf` permite reutilizar modelos locales ya descargados.
 - Las notas funcionan como sistema vivo de trabajo editorial.
 - La salida editorial incluye impresión, no solo edición en pantalla.
 
@@ -454,6 +483,8 @@ El autor define que el libro es thriller, ciencia ficción o fantasía, añade u
 - El análisis narrativo actual es mayoritariamente heurístico; no sustituye lectura editorial humana.
 - La continuidad actual es light: señala actividad y vínculos básicos, no contradicciones globales profundas.
 - El copiloto narrativo es V1 heurístico y requiere auditoría editorial con muestras reales por género.
+- La memoria contextual sigue siendo heurística; las auditorías V1.4/V1.5 muestran que necesita compuertas estrictas para evitar falsos positivos.
+- La importación de modelos depende de que el archivo coincida con nombres y hashes esperados en el catálogo.
 - Faltan más tests de integración y validación de regresiones en flujos complejos.
 - El README documenta el estado observable del código, no una distribución empaquetada para usuarios finales.
 
@@ -474,6 +505,7 @@ El autor define que el libro es thriller, ciencia ficción o fantasía, añade u
 - Memoria editorial persistente por libro y por personaje.
 - Análisis de arco de personaje y evolución de tensión a nivel de libro.
 - Auditoría editorial del copiloto narrativo con 20-30 salidas reales por género.
+- Persistencia pública de la clasificación de documentos si la heurística demuestra estabilidad.
 - Detección de contradicciones entre capítulos.
 
 ### Operación técnica
@@ -542,15 +574,21 @@ Regla práctica:
 - Persistencia local: [`lib/shared/storage/local_workspace_storage.dart`](./lib/shared/storage/local_workspace_storage.dart)
 - Documento `.musa`: [`lib/shared/storage/musa_project_document.dart`](./lib/shared/storage/musa_project_document.dart)
 - Selector de proyectos: [`lib/shared/storage/project_document_picker.dart`](./lib/shared/storage/project_document_picker.dart)
+- Picker seguro macOS: [`lib/shared/storage/macos_secure_file_picker.dart`](./lib/shared/storage/macos_secure_file_picker.dart)
 - Controlador del editor: [`lib/editor/controller/editor_controller.dart`](./lib/editor/controller/editor_controller.dart)
 - Workflows de capítulo: [`lib/editor/widgets/chapter_insight_panel.dart`](./lib/editor/widgets/chapter_insight_panel.dart)
 - Copiloto narrativo: [`lib/modules/books/models/narrative_copilot.dart`](./lib/modules/books/models/narrative_copilot.dart)
+- Clasificador narrativo: [`lib/modules/books/services/narrative_document_classifier.dart`](./lib/modules/books/services/narrative_document_classifier.dart)
+- Memoria contextual: [`lib/modules/books/services/contextual_memory_updater.dart`](./lib/modules/books/services/contextual_memory_updater.dart)
 - Siguiente mejor movimiento: [`lib/modules/books/services/next_best_move_service.dart`](./lib/modules/books/services/next_best_move_service.dart)
 - Snapshots: [`lib/modules/books/models/workspace_snapshot.dart`](./lib/modules/books/models/workspace_snapshot.dart)
 - Modelos locales: [`lib/services/ia/embedded/management/model_manager.dart`](./lib/services/ia/embedded/management/model_manager.dart)
 - Impresión: [`lib/services/print/print_service.dart`](./lib/services/print/print_service.dart)
 - Arquitectura adaptativa: [`docs/mobile_adaptive_architecture.md`](./docs/mobile_adaptive_architecture.md)
 - Auditoría del copiloto: [`docs/narrative_copilot_audit.md`](./docs/narrative_copilot_audit.md)
+- Reporte de auditoría del copiloto: [`docs/narrative_copilot_audit_report.md`](./docs/narrative_copilot_audit_report.md)
+- Auditoría V1.5 del copiloto: [`docs/narrative_copilot_audit_v15.md`](./docs/narrative_copilot_audit_v15.md)
+- Herramienta de auditoría: [`tool/audit_narrative_copilot.dart`](./tool/audit_narrative_copilot.dart)
 
 ## Resumen
 

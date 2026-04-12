@@ -8,6 +8,26 @@ El formato sigue una variante ligera de Keep a Changelog: las entradas nuevas em
 
 - Pendiente de documentar en el próximo cambio relevante.
 
+## 2026-04-12 - Contexto narrativo, importación local y picker seguro
+
+### Added
+
+- Memoria contextual separada para reglas de mundo, restricciones de sistema, hallazgos de investigación y conceptos persistentes.
+- Clasificador interno para distinguir escenas, investigación, worldbuilding, material técnico y documentos ambiguos antes de actualizar `StoryState`.
+- Compuerta de calidad para evitar falsos positivos de contexto por solapamiento léxico superficial.
+- Trazas breves de contexto aceptado o rechazado en `NextBestMoveRecommendation`.
+- Auditoría V1.5 del copiloto narrativo y herramienta local `tool/audit_narrative_copilot.dart` para revisar salidas sobre workspace real.
+- Importación local de modelos `.gguf` desde onboarding, con progreso de copia/validación y reconciliación de modelos ya presentes en disco.
+- Picker nativo macOS para abrir proyectos `.musa` con acceso seguro a archivos fuera del sandbox.
+
+### Changed
+
+- `NextBestMove` pasa a exponer foco, motivo, acción sugerida, riesgo si se ignora y trazabilidad contextual.
+- La memoria narrativa evita que documentos no narrativos contaminen tensión, acto o progreso de historia.
+- La apertura de proyectos `.musa` copia el contenido a la ruta canónica local antes de cargarlo, reduciendo problemas de permisos de macOS.
+- El editor conserva correctamente el listener del `FocusNode` activo.
+- Se ignoran configuraciones locales generadas por asistentes y DevTools.
+
 ## 2026-04-11 - Proyectos `.musa` y copiloto narrativo
 
 ### Added

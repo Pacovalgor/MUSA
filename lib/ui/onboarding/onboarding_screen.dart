@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../shared/storage/macos_secure_file_picker.dart';
 import '../../app/adaptive/adaptive_router.dart';
+import '../../modules/books/providers/workspace_providers.dart';
 import '../../services/ia/embedded/management/model_manager.dart';
 import '../../services/ia/embedded/management/model_catalog.dart';
 import '../../services/ia/embedded/management/hardware_detector.dart';
@@ -20,6 +22,7 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
   final PageController _pageController = PageController();
   MacHardwareProfile? _profile;
   bool _isAdvancedMode = false;
+  String? _selectedModelId;
 
   @override
   void initState() {
@@ -32,7 +35,10 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
   Future<void> _detectHardware() async {
     final profile =
         await ref.read(modelManagerProvider.notifier).detectHardware();
-    setState(() => _profile = profile);
+    setState(() {
+      _profile = profile;
+      _selectedModelId = ModelCatalog.findRecommended(profile).id;
+    });
   }
 
   Future<void> _finishOnboarding() async {
@@ -97,34 +103,168 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
     }
 
     final recommended = ModelCatalog.findRecommended(_profile!);
+    final state = ref.watch(modelManagerProvider);
+    final hasActiveModel = state.activeModelId != null;
+    final isImporting = state.isImportingModel;
 
     return _OnboardingBase(
       title: "Analizando tu Mac",
       subtitle:
           "Hemos detectado un ${_profile!.cpuBrand} con ${_profile!.totalRamGB}GB de RAM.",
-      buttonLabel: "Descargar e Instalar",
-      onPressed: () {
-        final selected =
-            _isAdvancedMode ? ModelCatalog.availableModels.first : recommended;
-        ref.read(modelManagerProvider.notifier).startDownload(selected);
-        _pageController.nextPage(
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut);
-      },
+      buttonLabel: isImporting
+          ? "Importando modelo..."
+          : hasActiveModel
+              ? "Continuar"
+              : "Descargar e Instalar",
+      onPressed: isImporting
+          ? null
+          : () {
+              if (hasActiveModel) {
+                _pageController.nextPage(
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut);
+                return;
+              }
+              final selected = ModelCatalog.availableModels.firstWhere(
+                (m) => m.id == _selectedModelId,
+                orElse: () => recommended,
+              );
+              ref.read(modelManagerProvider.notifier).startDownload(selected);
+              _pageController.nextPage(
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOut);
+            },
       child: Column(
         children: [
           const SizedBox(height: 32),
           if (!_isAdvancedMode) ...[
-            _buildModelCard(recommended, isRecommended: true),
+            _buildModelCard(recommended, isRecommended: true, isSelected: true),
             TextButton(
               onPressed: () => setState(() => _isAdvancedMode = true),
               child: const Text("Ver todas las opciones",
                   style: TextStyle(color: Colors.black38, fontSize: 12)),
             ),
           ] else ...[
-            ...ModelCatalog.availableModels.map((m) =>
-                _buildModelCard(m, isRecommended: m.id == recommended.id)),
+            ...ModelCatalog.availableModels.map((m) => _buildModelCard(
+                  m,
+                  isRecommended: m.id == recommended.id,
+                  isSelected: m.id == _selectedModelId,
+                  onTap: () => setState(() => _selectedModelId = m.id),
+                )),
           ],
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: isImporting
+                ? null
+                : () async {
+                    final start = DateTime.now();
+                    debugPrint('[IMPORT_UI] Tap import button at $start');
+                    try {
+                      final result = await ref
+                          .read(modelManagerProvider.notifier)
+                          .importModelFromFile();
+                      final end = DateTime.now();
+                      debugPrint(
+                          '[IMPORT_UI] Import flow finished at $end (duration: ${end.difference(start).inMilliseconds}ms)');
+                      if (result == ModelImportResult.cancelled) return;
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Modelo importado correctamente.')),
+                      );
+                    } catch (_) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('No se pudo importar el modelo.')),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.upload_file, size: 16),
+            label: const Text(
+              'Importar modelo existente (.gguf)',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+          if (isImporting) ...[
+            const SizedBox(height: 24),
+            if (state.importPhase == 'validating') ...[
+              SizedBox(
+                width: 450,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: state.importProgress,
+                    minHeight: 1,
+                    backgroundColor: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${(state.importProgress * 100).toInt()}%',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black26,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              state.importPhase == 'validating'
+                  ? 'Validando integridad del modelo (SHA-256)'
+                  : 'Preparando motor...',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black38,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: isImporting
+                ? null
+                : () async {
+                    try {
+                      final fileBytes = await pickMusaFileNative();
+                      if (fileBytes == null) return;
+                      debugPrint(
+                          '[OPEN_PROJECT] UI: Got ${fileBytes.length} bytes from native picker');
+                      await ref
+                          .read(narrativeWorkspaceProvider.notifier)
+                          .importProjectFile(fileBytes);
+                      debugPrint(
+                          '[OPEN_PROJECT] UI: Import OK, invalidating providers...');
+                      ref.invalidate(activeProjectPathProvider);
+                      ref.invalidate(recentProjectsProvider);
+                      if (!mounted) return;
+                      _pageController.nextPage(
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeInOut);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                                Text('Proyecto abierto desde archivo externo')),
+                      );
+                    } catch (e) {
+                      debugPrint('[OPEN_PROJECT] UI: Error: $e');
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('No se pudo abrir el proyecto: $e')),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.folder_open, size: 16),
+            label: const Text(
+              'Abrir proyecto (.musa)',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
         ],
       ),
     );
@@ -199,18 +339,22 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
     );
   }
 
-  Widget _buildModelCard(ModelDefinition model, {bool isRecommended = false}) {
-    return Container(
+  Widget _buildModelCard(
+    ModelDefinition model, {
+    bool isRecommended = false,
+    bool isSelected = false,
+    VoidCallback? onTap,
+  }) {
+    final card = Container(
       width: 450,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color:
-            isRecommended ? Colors.black.withValues(alpha: 0.02) : Colors.white,
+        color: isSelected ? Colors.black.withValues(alpha: 0.02) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: isRecommended
-                ? Colors.black.withValues(alpha: 0.1)
+            color: isSelected
+                ? Colors.black.withValues(alpha: 0.15)
                 : Colors.black.withValues(alpha: 0.05)),
       ),
       child: Row(
@@ -255,6 +399,16 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
                   fontWeight: FontWeight.bold,
                   color: Colors.black38)),
         ],
+      ),
+    );
+
+    if (onTap == null) return card;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: card,
       ),
     );
   }

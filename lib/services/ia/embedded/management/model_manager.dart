@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'model_catalog.dart';
@@ -19,25 +21,35 @@ enum ModelInstallState {
   active,
 }
 
+enum ModelImportResult { cancelled, success }
+
 /// The central controller for all AI models in MUSA.
 class ModelManager extends StateNotifier<ModelManagerState> {
   static const List<int> _ggufMagicBytes = <int>[0x47, 0x47, 0x55, 0x46];
   final ModelPersistence _persistence = ModelPersistence();
   final Map<String, HttpClient> _activeClients = {};
   Map<String, int> _persistedExpectedBytes = <String, int>{};
+  late final Future<void> _initFuture;
 
   ModelManager() : super(ModelManagerState()) {
-    _initPersistence();
+    _initFuture = _initPersistence();
   }
 
   Future<void> _initPersistence() async {
+    final tPrefsStart = DateTime.now();
+    debugPrint('[INIT] Loading preferences...');
     final persistedInstalledIds = await _persistence.getInstalledModels();
     final persistedActiveId = await _persistence.getActiveModelId();
     _persistedExpectedBytes = await _persistence.getExpectedBytesByModel();
+    final tPrefsEnd = DateTime.now();
+    debugPrint(
+        '[INIT] Preferences loaded in ${tPrefsEnd.difference(tPrefsStart).inMilliseconds}ms (installedIds: ${persistedInstalledIds.length}, activeId: $persistedActiveId)');
     final installedIds = <String>[];
+    final validatedPaths = <String, String>{};
     String? activePath;
     String? activeId;
 
+    final tValidateStart = DateTime.now();
     for (final id in persistedInstalledIds) {
       final modelDef = _tryFindModelDefinition(id);
       if (modelDef == null) {
@@ -47,6 +59,7 @@ class ModelManager extends StateNotifier<ModelManagerState> {
       final validation = await validateModelFile(modelDef);
       if (validation.isValid) {
         installedIds.add(id);
+        if (validation.path != null) validatedPaths[id] = validation.path!;
         if (id == persistedActiveId) {
           activeId = id;
           activePath = validation.path;
@@ -55,12 +68,26 @@ class ModelManager extends StateNotifier<ModelManagerState> {
         debugPrint('[MUSA] MODEL INVALID ON INIT: $id → ${validation.error}');
       }
     }
+    final tValidateEnd = DateTime.now();
+    debugPrint(
+        '[INIT] Validation loop done in ${tValidateEnd.difference(tValidateStart).inMilliseconds}ms (valid: ${installedIds.length})');
 
+    // ── Reconciliation: discover models present on disk but missing from prefs ──
+    final tReconcileStart = DateTime.now();
+    await _reconcileInstalledModels(installedIds, validatedPaths);
+    final tReconcileEnd = DateTime.now();
+    debugPrint(
+        '[INIT] Reconciliation done in ${tReconcileEnd.difference(tReconcileStart).inMilliseconds}ms (total installed: ${installedIds.length})');
+
+    final tActiveStart = DateTime.now();
     if (activeId == null && installedIds.isNotEmpty) {
       activeId = installedIds.first;
       final activeDef = _tryFindModelDefinition(activeId);
       activePath = activeDef == null ? null : await resolveModelPath(activeDef);
     }
+    final tActiveEnd = DateTime.now();
+    debugPrint(
+        '[INIT] Active model resolution done in ${tActiveEnd.difference(tActiveStart).inMilliseconds}ms (activeId: $activeId)');
 
     final Map<String, ModelInstallState> states = {};
     for (final id in installedIds) {
@@ -69,6 +96,7 @@ class ModelManager extends StateNotifier<ModelManagerState> {
           : ModelInstallState.installed;
     }
 
+    final tPersistStart = DateTime.now();
     state = state.copyWith(
       downloadedModelIds: installedIds,
       activeModelId: activeId,
@@ -82,6 +110,11 @@ class ModelManager extends StateNotifier<ModelManagerState> {
     if (activeId != persistedActiveId) {
       await _persistence.saveActiveModelId(activeId);
     }
+    final tPersistEnd = DateTime.now();
+    debugPrint(
+        '[INIT] State persistence done in ${tPersistEnd.difference(tPersistStart).inMilliseconds}ms');
+    debugPrint('[INIT] Final installedIds: $installedIds');
+    debugPrint('[INIT] ActiveId: $activeId');
   }
 
   Future<MacHardwareProfile> detectHardware() async {
@@ -368,10 +401,196 @@ class ModelManager extends StateNotifier<ModelManagerState> {
     await _persistence.saveExpectedBytesByModel(_persistedExpectedBytes);
   }
 
+  Future<ModelImportResult> importModelFromFile() async {
+    final t0 = DateTime.now();
+    debugPrint('[IMPORT] Start importModelFromFile at $t0');
+    debugPrint('[IMPORT] Opening file picker...');
+    final tPickerStart = DateTime.now();
+    const typeGroup = XTypeGroup(
+      label: 'Modelo GGUF',
+      extensions: ['gguf'],
+      uniformTypeIdentifiers: ['public.data'],
+    );
+    final file = await openFile(
+      acceptedTypeGroups: const [typeGroup],
+      confirmButtonText: 'Importar',
+    );
+    final tPickerEnd = DateTime.now();
+    debugPrint(
+        '[IMPORT] Picker returned in ${tPickerEnd.difference(tPickerStart).inMilliseconds}ms');
+    if (file == null) {
+      debugPrint('[IMPORT] Picker returned null');
+      return ModelImportResult.cancelled;
+    }
+    debugPrint('[IMPORT] Selected file: ${file.path}');
+
+    try {
+      state = state.copyWith(
+          isImportingModel: true,
+          importProgress: 0.0,
+          importPhase: 'preparing');
+
+      debugPrint('[IMPORT] Waiting for init...');
+      final tInitStart = DateTime.now();
+      await _initFuture;
+      final tInitEnd = DateTime.now();
+      debugPrint(
+          '[IMPORT] Init completed in ${tInitEnd.difference(tInitStart).inMilliseconds}ms');
+
+      final basename = p.basename(file.path);
+      final directory = await getApplicationSupportDirectory();
+      final targetPath = '${directory.path}/models/$basename';
+      final targetFile = File(targetPath);
+
+      // ── If destination already exists ──
+      final tDestCheckStart = DateTime.now();
+      if (await targetFile.exists()) {
+        ModelDefinition? matched;
+        for (final candidate in ModelCatalog.availableModels) {
+          if (candidate.localFilename == basename) {
+            matched = candidate;
+            break;
+          }
+        }
+        if (matched != null) {
+          state = state.copyWith(importPhase: 'validating');
+          final tDestValidateStart = DateTime.now();
+          final existingValidation = await validateModelFile(
+            matched,
+            onHashProgress: (progress) {
+              state = state.copyWith(importProgress: progress);
+            },
+          );
+          final tDestValidateEnd = DateTime.now();
+          debugPrint(
+              '[IMPORT] Existing file validation done in ${tDestValidateEnd.difference(tDestValidateStart).inMilliseconds}ms (valid: ${existingValidation.isValid})');
+          if (existingValidation.isValid) {
+            final currentIds = state.downloadedModelIds;
+            final updatedIds = currentIds.contains(matched.id)
+                ? currentIds
+                : [...currentIds, matched.id];
+
+            final updatedStates =
+                Map<String, ModelInstallState>.from(state.installStates);
+            if (state.activeModelId != null) {
+              updatedStates[state.activeModelId!] = ModelInstallState.installed;
+            }
+            updatedStates[matched.id] = ModelInstallState.active;
+
+            final resolvedPath = existingValidation.path ?? targetPath;
+            state = state.copyWith(
+              downloadedModelIds: updatedIds,
+              activeModelId: matched.id,
+              activeModelPath: resolvedPath,
+              installStates: updatedStates,
+            );
+
+            await _persistence.saveInstalledModels(updatedIds);
+            await _persistence.saveActiveModelId(matched.id);
+            return ModelImportResult.success;
+          } else {
+            debugPrint('[IMPORT] Existing file invalid, deleting...');
+            try {
+              await targetFile.delete();
+            } catch (_) {}
+          }
+        } else {
+          throw StateError('Este modelo no está en el catálogo de MUSA.');
+        }
+      }
+      final tDestCheckEnd = DateTime.now();
+      debugPrint(
+          '[IMPORT] Destination check completed in ${tDestCheckEnd.difference(tDestCheckStart).inMilliseconds}ms');
+
+      // ── Copy from selected file ──
+      debugPrint('[IMPORT] Copying file...');
+      final tCopyStart = DateTime.now();
+      await targetFile.parent.create(recursive: true);
+      await File(file.path).copy(targetPath);
+      final tCopyEnd = DateTime.now();
+      debugPrint(
+          '[IMPORT] File copy done in ${tCopyEnd.difference(tCopyStart).inMilliseconds}ms');
+
+      // ── Validate the copied file ──
+      state = state.copyWith(importPhase: 'validating');
+      debugPrint('[IMPORT] Validating copied file...');
+      final tValStart = DateTime.now();
+      ModelDefinition? matched;
+      for (final candidate in ModelCatalog.availableModels) {
+        if (candidate.localFilename == basename) {
+          matched = candidate;
+          break;
+        }
+      }
+      if (matched == null) {
+        try {
+          await targetFile.delete();
+        } catch (_) {}
+        throw StateError('Este modelo no está en el catálogo de MUSA.');
+      }
+
+      final validation = await validateModelFile(
+        matched,
+        onHashProgress: (progress) {
+          state = state.copyWith(importProgress: progress);
+        },
+      );
+      final tValEnd = DateTime.now();
+      debugPrint(
+          '[IMPORT] Validation done in ${tValEnd.difference(tValStart).inMilliseconds}ms (valid: ${validation.isValid})');
+      if (!validation.isValid) {
+        if (await targetFile.exists()) {
+          try {
+            await targetFile.delete();
+          } catch (_) {}
+        }
+        throw StateError(
+            'El archivo no es un modelo válido: ${validation.error}');
+      }
+
+      // ── Update state ──
+      debugPrint('[IMPORT] Persisting registration...');
+      final tPersistStart = DateTime.now();
+      final currentIds = state.downloadedModelIds;
+      final updatedIds = currentIds.contains(matched.id)
+          ? currentIds
+          : [...currentIds, matched.id];
+
+      final updatedStates =
+          Map<String, ModelInstallState>.from(state.installStates);
+      if (state.activeModelId != null) {
+        updatedStates[state.activeModelId!] = ModelInstallState.installed;
+      }
+      updatedStates[matched.id] = ModelInstallState.active;
+
+      final resolvedPath = validation.path ?? targetPath;
+      state = state.copyWith(
+        downloadedModelIds: updatedIds,
+        activeModelId: matched.id,
+        activeModelPath: resolvedPath,
+        installStates: updatedStates,
+      );
+
+      await _persistence.saveInstalledModels(updatedIds);
+      await _persistence.saveActiveModelId(matched.id);
+      final tPersistEnd = DateTime.now();
+      debugPrint(
+          '[IMPORT] Registration persisted in ${tPersistEnd.difference(tPersistStart).inMilliseconds}ms');
+      final tEnd = DateTime.now();
+      debugPrint(
+          '[IMPORT] Total import flow: ${tEnd.difference(t0).inMilliseconds}ms');
+      return ModelImportResult.success;
+    } finally {
+      state = state.copyWith(
+          isImportingModel: false, importProgress: 0.0, importPhase: '');
+    }
+  }
+
   Future<ModelValidationResult> validateModelFile(
     ModelDefinition model, {
     String? pathOverride,
     int? expectedBytesOverride,
+    void Function(double progress)? onHashProgress,
   }) async {
     final path = pathOverride ?? await resolveModelPath(model);
     final file = File(path);
@@ -411,7 +630,7 @@ class ModelManager extends StateNotifier<ModelManagerState> {
     String? computedSha256;
     var hashVerified = false;
     if (model.sha256 != null && model.sha256!.isNotEmpty) {
-      computedSha256 = await _computeSha256(file);
+      computedSha256 = await _computeSha256(file, onProgress: onHashProgress);
       hashVerified =
           computedSha256.toLowerCase() == model.sha256!.toLowerCase();
       if (!hashVerified) {
@@ -464,8 +683,24 @@ class ModelManager extends StateNotifier<ModelManagerState> {
     }
   }
 
-  Future<String> _computeSha256(File file) async {
-    final digest = await sha256.bind(file.openRead()).first;
+  Future<String> _computeSha256(
+    File file, {
+    void Function(double progress)? onProgress,
+  }) async {
+    final totalBytes = await file.length();
+    int bytesProcessed = 0;
+    final transformer = StreamTransformer<List<int>, List<int>>.fromHandlers(
+      handleData: (data, sink) {
+        bytesProcessed += data.length;
+        if (totalBytes > 0) {
+          onProgress?.call(bytesProcessed / totalBytes);
+        }
+        sink.add(data);
+      },
+    );
+    final stream = file.openRead().transform(transformer);
+    final digest = await sha256.bind(stream).first;
+    onProgress?.call(1.0);
     return digest.toString();
   }
 
@@ -489,6 +724,62 @@ class ModelManager extends StateNotifier<ModelManagerState> {
       }
     } catch (error) {
       debugPrint('[MUSA] MODEL QUARANTINE CLEAR SKIPPED: $error');
+    }
+  }
+
+  Future<void> _reconcileInstalledModels(
+    List<String> installedIds,
+    Map<String, String> validatedPaths,
+  ) async {
+    debugPrint('[RECONCILE] Starting model reconciliation');
+    final directory = await getApplicationSupportDirectory();
+    final modelsDir = Directory('${directory.path}/models');
+    debugPrint('[RECONCILE] modelsDir: ${modelsDir.path}');
+    if (!await modelsDir.exists()) {
+      debugPrint('[RECONCILE] modelsDir does not exist');
+      return;
+    }
+
+    final files = await modelsDir
+        .list(followLinks: false)
+        .where((e) => e is File && e.path.endsWith('.gguf'))
+        .cast<File>()
+        .toList();
+    debugPrint('[RECONCILE] Found ${files.length} .gguf files');
+    for (final file in files) {
+      debugPrint('[RECONCILE] File: ${file.path}');
+    }
+
+    for (final file in files) {
+      final basename = file.path.split('/').last;
+      debugPrint('[RECONCILE] basename: $basename');
+
+      ModelDefinition? matchedModel;
+      for (final candidate in ModelCatalog.availableModels) {
+        if (candidate.localFilename == basename) {
+          matchedModel = candidate;
+          break;
+        }
+      }
+      if (matchedModel == null) {
+        debugPrint('[RECONCILE] No match for $basename');
+        continue;
+      }
+      debugPrint('[RECONCILE] Matched model: ${matchedModel.id}');
+      if (installedIds.contains(matchedModel.id)) continue;
+
+      final validation = await validateModelFile(matchedModel);
+      debugPrint(
+          '[RECONCILE] Validation for ${matchedModel.id}: ${validation.isValid}');
+      if (validation.isValid) {
+        debugPrint('[RECONCILE] Adding model: ${matchedModel.id}');
+        installedIds.add(matchedModel.id);
+        if (validation.path != null) {
+          validatedPaths[matchedModel.id] = validation.path!;
+        }
+      } else {
+        debugPrint('[RECONCILE] Validation FAILED for ${matchedModel.id}');
+      }
     }
   }
 
@@ -576,6 +867,9 @@ class ModelManagerState {
   final String? activeModelId;
   final String? activeModelPath; // The real on-disk path
   final String? downloadError;
+  final bool isImportingModel;
+  final double importProgress;
+  final String importPhase;
 
   ModelManagerState({
     this.downloadProgress = const {},
@@ -584,6 +878,9 @@ class ModelManagerState {
     this.activeModelId,
     this.activeModelPath,
     this.downloadError,
+    this.isImportingModel = false,
+    this.importProgress = 0.0,
+    this.importPhase = '',
   });
 
   ModelManagerState copyWith({
@@ -594,6 +891,9 @@ class ModelManagerState {
     Object? activeModelPath = _unset,
     Object? downloadError = _unset,
     bool clearDownloadError = false,
+    bool? isImportingModel,
+    double? importProgress,
+    String? importPhase,
   }) {
     return ModelManagerState(
       downloadProgress: downloadProgress ?? this.downloadProgress,
@@ -610,6 +910,9 @@ class ModelManagerState {
           : (identical(downloadError, _unset)
               ? this.downloadError
               : downloadError as String?),
+      isImportingModel: isImportingModel ?? this.isImportingModel,
+      importProgress: importProgress ?? this.importProgress,
+      importPhase: importPhase ?? this.importPhase,
     );
   }
 }

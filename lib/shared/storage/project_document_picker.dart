@@ -15,11 +15,15 @@ class ProjectDocumentPicker {
 
   const ProjectDocumentPicker();
 
-  Future<String?> openProjectPath() async {
-    final file = await openFile(
+  Future<XFile?> openProjectFile() async {
+    return openFile(
       acceptedTypeGroups: const [_musaTypeGroup],
       confirmButtonText: 'Abrir',
     );
+  }
+
+  Future<String?> openProjectPath() async {
+    final file = await openProjectFile();
     return file?.path;
   }
 

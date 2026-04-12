@@ -1,8 +1,16 @@
 import '../../manuscript/models/document.dart';
 import '../models/narrative_copilot.dart';
+import 'contextual_memory_updater.dart';
+import 'narrative_document_classifier.dart';
 
 class NarrativeMemoryUpdater {
-  const NarrativeMemoryUpdater();
+  const NarrativeMemoryUpdater({
+    this.documentClassifier = const NarrativeDocumentClassifier(),
+    this.contextualMemoryUpdater = const ContextualMemoryUpdater(),
+  });
+
+  final NarrativeDocumentClassifier documentClassifier;
+  final ContextualMemoryUpdater contextualMemoryUpdater;
 
   NarrativeMemory update({
     required String bookId,
@@ -10,7 +18,16 @@ class NarrativeMemoryUpdater {
     required NarrativeMemory? previous,
     required DateTime now,
   }) {
-    final recentText = _recentManuscriptText(documents);
+    final narrativeDocuments = documents
+        .where((document) =>
+            documentClassifier.classify(document).kind ==
+            NarrativeDocumentKind.scene)
+        .toList();
+    final recentText = _recentManuscriptText(narrativeDocuments);
+    final contextualMemory = contextualMemoryUpdater.update(
+      documents: documents,
+      documentClassifier: documentClassifier,
+    );
     return NarrativeMemory(
       bookId: bookId,
       openQuestions: _collectQuestions(recentText),
@@ -37,6 +54,10 @@ class NarrativeMemoryUpdater {
         recentText,
         const ['decide', 'duda', 'cambia', 'renuncia', 'confiesa', 'teme'],
       ),
+      worldRules: contextualMemory.worldRules,
+      systemConstraints: contextualMemory.systemConstraints,
+      researchFindings: contextualMemory.researchFindings,
+      persistentConcepts: contextualMemory.persistentConcepts,
       updatedAt: now,
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -39,10 +40,21 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
     final target = await _projectFileTarget();
     final file = target.file;
     if (await file.exists()) {
-      final workspace = await _projectDocument.readWorkspace(file);
-      await _rememberProjectFingerprint(file);
-      await rememberProject(file.path);
-      return _normalizeWorkspace(workspace);
+      try {
+        final workspace = await _projectDocument.readWorkspace(file);
+        await _rememberProjectFingerprint(file);
+        await rememberProject(file.path);
+        return _normalizeWorkspace(workspace);
+      } on FileSystemException catch (error) {
+        if (!target.userSelected || !_isPermissionDenied(error)) {
+          rethrow;
+        }
+        debugPrint(
+          '[OPEN_PROJECT] Stored project path is not accessible, using local sandbox project instead: ${file.path}',
+        );
+        await clearSelectedProjectFile();
+        return loadWorkspace();
+      }
     }
 
     final legacyFile = await _legacyWorkspaceFile();
@@ -74,6 +86,7 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
   @override
   Future<void> saveWorkspace(NarrativeWorkspace workspace) async {
     final file = await _projectFile();
+    debugPrint('[SAVE_WORKSPACE] Using path: ${file.path}');
     await _assertProjectUnchanged(file);
     await _projectDocument.writeWorkspace(file, workspace);
     await _rememberProjectFingerprint(file);
@@ -85,6 +98,50 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
     final workspace = await _projectDocument.readWorkspace(file);
     await _rememberProjectFingerprint(file);
     return _normalizeWorkspace(workspace);
+  }
+
+  Future<NarrativeWorkspace> importProjectFile(Uint8List fileBytes) async {
+    debugPrint(
+        '[OPEN_PROJECT] Received ${fileBytes.length} bytes from native picker');
+    final activePathBefore = await activeProjectPath();
+    debugPrint('[OPEN_PROJECT] Active path BEFORE import: $activePathBefore');
+
+    // STEP 0: Force canonical path into SharedPreferences IMMEDIATELY.
+    // Must happen BEFORE any file operations so that if any write is triggered
+    // (e.g. autosave, editor _persist) it uses the sandbox path, not Downloads.
+    final canonicalPath = await _canonicalProjectPath();
+    debugPrint('[OPEN_PROJECT] Canonical target path: $canonicalPath');
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(activeProjectPathKey, canonicalPath);
+    debugPrint('[OPEN_PROJECT] Active path set to canonical BEFORE write');
+
+    // STEP 1: Write bytes to sandbox (no external path access needed).
+    final target = File(canonicalPath);
+    await target.parent.create(recursive: true);
+    debugPrint(
+        '[OPEN_PROJECT] Write START: ${fileBytes.length} bytes -> $canonicalPath');
+    await target.writeAsBytes(fileBytes);
+    debugPrint('[OPEN_PROJECT] Write END: ${fileBytes.length} bytes written');
+
+    // STEP 2: Validate the copied file (all reads within sandbox)
+    debugPrint('[OPEN_PROJECT] Validating from: $canonicalPath');
+    await _projectDocument.readManifest(target);
+    await _projectDocument.readWorkspace(target);
+
+    // STEP 3: Persist fingerprint and remember in recent projects
+    await _rememberProjectFingerprint(target);
+    await rememberProject(target.path);
+
+    // STEP 4: Load and return workspace
+    debugPrint('[OPEN_PROJECT] Loading workspace from: $canonicalPath');
+    final workspace = await _projectDocument.readWorkspace(target);
+    final normalized = _normalizeWorkspace(workspace);
+    debugPrint(
+        '[OPEN_PROJECT] Workspace loaded OK, books: ${normalized.books.length}');
+    debugPrint(
+        '[OPEN_PROJECT] Active path AFTER import: ${await activeProjectPath()}');
+    return normalized;
   }
 
   Future<MusaProjectManifest> readProjectManifest(String path) {
@@ -229,6 +286,15 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
     return _ProjectFileTarget(
       File(p.join(musaDirectory.path, _projectFileName)),
     );
+  }
+
+  Future<String> _canonicalProjectPath() async {
+    final directory = await getApplicationSupportDirectory();
+    return p.join(directory.path, 'musa', _projectFileName);
+  }
+
+  bool _isPermissionDenied(FileSystemException error) {
+    return error.osError?.errorCode == 1 || error is PathAccessException;
   }
 
   Future<File> _legacyWorkspaceFile() async {

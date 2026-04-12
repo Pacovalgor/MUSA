@@ -133,6 +133,10 @@ class NarrativeMemory {
   final List<String> activeThreats;
   final List<String> importantFacts;
   final List<String> recentCharacterShifts;
+  final List<String> worldRules;
+  final List<String> systemConstraints;
+  final List<String> researchFindings;
+  final List<String> persistentConcepts;
   final DateTime updatedAt;
 
   const NarrativeMemory({
@@ -142,6 +146,10 @@ class NarrativeMemory {
     this.activeThreats = const [],
     this.importantFacts = const [],
     this.recentCharacterShifts = const [],
+    this.worldRules = const [],
+    this.systemConstraints = const [],
+    this.researchFindings = const [],
+    this.persistentConcepts = const [],
     required this.updatedAt,
   });
 
@@ -156,6 +164,10 @@ class NarrativeMemory {
         'activeThreats': activeThreats,
         'importantFacts': importantFacts,
         'recentCharacterShifts': recentCharacterShifts,
+        'worldRules': worldRules,
+        'systemConstraints': systemConstraints,
+        'researchFindings': researchFindings,
+        'persistentConcepts': persistentConcepts,
         'updatedAt': updatedAt.toIso8601String(),
       };
 
@@ -172,6 +184,13 @@ class NarrativeMemory {
           List<String>.from(json['importantFacts'] as List? ?? const []),
       recentCharacterShifts:
           List<String>.from(json['recentCharacterShifts'] as List? ?? const []),
+      worldRules: List<String>.from(json['worldRules'] as List? ?? const []),
+      systemConstraints:
+          List<String>.from(json['systemConstraints'] as List? ?? const []),
+      researchFindings:
+          List<String>.from(json['researchFindings'] as List? ?? const []),
+      persistentConcepts:
+          List<String>.from(json['persistentConcepts'] as List? ?? const []),
       updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );

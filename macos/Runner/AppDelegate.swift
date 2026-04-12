@@ -7,7 +7,6 @@ class AppDelegate: FlutterAppDelegate {
     guard let flutterViewController = mainFlutterWindow?.contentViewController as? FlutterViewController else {
       return nil
     }
-
     return FlutterMethodChannel(
       name: "musa/app_menu",
       binaryMessenger: flutterViewController.engine.binaryMessenger)

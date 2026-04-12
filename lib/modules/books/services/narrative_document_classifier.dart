@@ -89,11 +89,12 @@ class NarrativeDocumentClassifier {
       );
     }
 
-    if (_hasSceneSignals(sample)) {
+    if (_hasSceneSignals(sample) ||
+        (_isManuscriptDocument(document) && document.content.length > 40)) {
       return const NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.scene,
         reason:
-            'Contiene señales de escena narrativa: tiempo, lugar, acción o voz en curso.',
+            'Contiene señales de escena narrativa o un capítulo manuscrito sustancial.',
       );
     }
 
@@ -101,6 +102,11 @@ class NarrativeDocumentClassifier {
       kind: NarrativeDocumentKind.unknown,
       reason: 'No hay suficientes señales para tratarlo como escena narrativa.',
     );
+  }
+
+  bool _isManuscriptDocument(Document document) {
+    return document.kind == DocumentKind.chapter ||
+        document.kind == DocumentKind.scene;
   }
 
   bool _hasSceneSignals(String sample) {

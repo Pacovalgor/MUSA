@@ -26,13 +26,14 @@ class MusaEditor extends ConsumerStatefulWidget {
 class _MusaEditorState extends ConsumerState<MusaEditor> {
   final ScrollController _scrollController = ScrollController();
   TextEditingController? _activeController;
+  FocusNode? _editorFocusNode;
   List<String> _lastSyncedNoteSignature = const [];
   List<String> _lastResolvedAnchorSignature = const [];
 
   void _handleEditorFocusChanged() {
     if (!mounted) return;
     ref.read(editorFocusProvider.notifier).state =
-        ref.read(editorProvider).focusNode.hasFocus;
+        (_editorFocusNode ?? ref.read(editorProvider).focusNode).hasFocus;
   }
 
   void _handleTypewriterScroll() {
@@ -242,13 +243,14 @@ class _MusaEditorState extends ConsumerState<MusaEditor> {
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
-    ref.read(editorProvider).focusNode.addListener(_handleEditorFocusChanged);
+    _editorFocusNode = ref.read(editorProvider).focusNode
+      ..addListener(_handleEditorFocusChanged);
   }
 
   @override
   void dispose() {
     _activeController?.removeListener(_handleTypewriterScroll);
-    ref.read(editorProvider).focusNode.removeListener(_handleEditorFocusChanged);
+    _editorFocusNode?.removeListener(_handleEditorFocusChanged);
     _scrollController
       ..removeListener(_handleScroll)
       ..dispose();

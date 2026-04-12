@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import '../../shared/storage/macos_secure_file_picker.dart';
 
 import '../../modules/books/models/narrative_workspace.dart' as workspace;
 import '../../modules/books/providers/workspace_providers.dart';
@@ -698,14 +701,16 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
 
       switch (selection.action) {
         case _ProjectMenuAction.open:
-          final path = await picker.openProjectPath();
-          if (path == null) return;
-          await notifier.openProjectFile(path);
+          final fileBytes = await pickMusaFileNative();
+          if (fileBytes == null) return;
+          debugPrint(
+              '[OPEN_PROJECT] main_screen: Got ${fileBytes.length} bytes from native picker');
+          await notifier.openProjectFile(fileBytes);
           _throwIfWorkspaceError(ref);
           ref.invalidate(activeProjectPathProvider);
           ref.invalidate(recentProjectsProvider);
           if (!mounted) return;
-          _showProjectMessage('Proyecto abierto: ${p.basename(path)}');
+          _showProjectMessage('Proyecto abierto');
           break;
         case _ProjectMenuAction.saveAs:
           final path = await picker.chooseSaveProjectPath(
@@ -734,7 +739,25 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
         case _ProjectMenuAction.recent:
           final path = selection.path;
           if (path == null) return;
-          await notifier.openProjectFile(path);
+          final file = File(path);
+          if (!await file.exists()) {
+            if (!mounted) return;
+            _showProjectMessage('El proyecto ya no existe');
+            return;
+          }
+          final Uint8List fileBytes;
+          try {
+            fileBytes = await file.readAsBytes();
+          } on FileSystemException {
+            if (!mounted) return;
+            _showProjectMessage(
+              'macOS requiere volver a seleccionar este proyecto desde Abrir.',
+            );
+            return;
+          }
+          debugPrint(
+              '[OPEN_PROJECT] main_screen: Recent project ${fileBytes.length} bytes from $path');
+          await notifier.openProjectFile(fileBytes);
           _throwIfWorkspaceError(ref);
           ref.invalidate(activeProjectPathProvider);
           ref.invalidate(recentProjectsProvider);
