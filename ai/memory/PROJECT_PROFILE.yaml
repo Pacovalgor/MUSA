@@ -1,36 +1,164 @@
+cat > ai/memory/PROJECT_PROFILE.yaml <<'EOF'
 global:
-  nombre: por_perfilar
-  tipo: unknown
-  resumen: "Perfil pendiente de generar con la skill perfilar."
+  nombre: MUSA
+  tipo: flutter_desktop_local_first_ai_writing_studio
+  resumen: >-
+    Aplicación Flutter (foco macOS, soporte iOS en repo) para escritura narrativa
+    asistida por IA local, con workspace persistido en disco y flujo editorial por
+    musas, análisis heurístico y copiloto narrativo.
   prioridades:
     - cambio_minimo_correcto
     - scope_estricto
-    - verificacion_real
+    - local_first_y_privacidad
+    - coherencia_narrativa_en_workspace
+    - verificaciones_reales_antes_de_cerrar
   riesgos:
-    - refactor_oportunista
-    - salida_sin_evidencia
+    - refactor_oportunista_en_capas_grandes
+    - romper_flujo_editor_controller_o_providers
+    - degradar_persistencia_del_workspace_local
+    - acoplar_funcionalidad_a_nube_en_flujo_principal
   restricciones:
     - no_salir_del_scope
-    - no_inventar_contexto
+    - no_inventar_contexto_no_anclado
+    - no_afirmar_verificacion_no_ejecutada
+    - mantener_arquitectura_riverpod_y_modelos_inmutables
 
-capas: {}
-modulos: {}
+capas:
+  app_shell_ui:
+    rutas:
+      - lib/main.dart
+      - lib/app/
+      - lib/ui/
+    stack:
+      - flutter_material
+      - riverpod
+    notas:
+      - shell_adaptativo_por_dispositivo
+      - componentes_editoriales_de_escritorio
+  dominio_editorial:
+    rutas:
+      - lib/modules/
+      - lib/editor/
+      - lib/muses/
+    stack:
+      - modelos_inmutables
+      - providers_por_modulo
+    notas:
+      - workspace_narrativo_con_libros_documentos_personajes_escenarios_notas
+      - controlador_editor_orquesta_seleccion_analisis_y_sugerencias
+  ia_local:
+    rutas:
+      - lib/services/ia/
+      - lib/services/ia_providers.dart
+      - lib/modules/models_runtime/
+    stack:
+      - llama_cpp_via_ffi
+      - servicios_fallback
+    notas:
+      - inferencia_embebida_en_macos
+      - gestion_importacion_y_catalogo_de_modelos_gguf
+  persistencia_local:
+    rutas:
+      - lib/shared/storage/
+      - lib/modules/books/services/
+    stack:
+      - json_local
+      - project_document_musa
+    notas:
+      - workspace_local_first
+      - picker_seguro_para_apertura_externa_en_macos
+  tooling_y_calidad:
+    rutas:
+      - test/
+      - tool/
+      - docs/
+    stack:
+      - flutter_test
+      - scripts_dart
+    notas:
+      - heuristicas_y_workflows_con_tests_dedicados
+
+modulos:
+  editor:
+    rutas:
+      - lib/editor/controller/editor_controller.dart
+      - lib/editor/services/
+      - lib/editor/widgets/
+    patrones:
+      - orquestacion_centralizada_del_flujo_de_edicion
+      - paneles_de_analisis_y_revision_por_fragmento_capitulo
+    riesgos:
+      - efectos_secundarios_al_tocar_estado_seleccion_o_sugerencias
+  workspace_books:
+    rutas:
+      - lib/modules/books/models/
+      - lib/modules/books/providers/
+      - lib/modules/books/services/
+    patrones:
+      - agregado_narrative_workspace
+      - proveedores_slice_en_vez_de_estado_bruto
+    riesgos:
+      - inconsistencias_de_serializacion_y_migracion_de_datos
+  manuscript_y_entidades:
+    rutas:
+      - lib/modules/manuscript/
+      - lib/modules/characters/
+      - lib/modules/scenarios/
+      - lib/modules/notes/
+      - lib/modules/continuity/
+    patrones:
+      - modelos_json_y_copywith
+      - relacion_con_documentos_y_contexto_narrativo
+    riesgos:
+      - romper_contratos_entre_modelos_y_providers
+  ia_y_musas:
+    rutas:
+      - lib/muses/
+      - lib/modules/musa/
+      - lib/services/ia/
+      - lib/services/scenarios/
+      - lib/services/characters/
+    patrones:
+      - servicios_por_capacidad_con_fallback_unavailable
+      - sesiones_chunks_sugerencias_para_auditoria
+    riesgos:
+      - bloqueo_por_disponibilidad_de_modelo_o_plataforma
+      - latencia_si_se_sobrecarga_contexto
 
 tareas:
+  perfilar:
+    enfasis:
+      - mapear_capas_reales_desde_readme_docs_y_arbol_lib
+      - registrar_restricciones_estables_en_memoria
   explorar:
     enfasis:
-      - localizar_archivos
-      - entender_flujo_real
+      - ubicar_provider_controlador_servicio_antes_de_editar
+      - seguir_flujo_main_workspace_editor_ia_storage
+  acotar:
+    enfasis:
+      - definir_modulo_minimo_y_archivos_estrictamente_necesarios
+      - evitar_refactors_cruzados
   corregir:
     enfasis:
-      - causa_raiz
-      - fix_minimo
+      - causa_raiz_en_provider_controlador_servicio
+      - parche_minimo_sin_romper_serializacion
+  anadir:
+    enfasis:
+      - respetar_local_first_y_contratos_json
+      - extender_estado_via_provider_compatible
   verificar:
     enfasis:
-      - evidencia_ejecutable
+      - flutter_test_selectivo
+      - evidencia_de_comando_real
+      - declarar_brechas_de_verificacion
+  guardar:
+    enfasis:
+      - persistir_solo_decisiones_estables
+      - evitar_ruido_temporal
 
 estado:
-  perfilado_por_ultima_vez: ""
-  confianza: baja
+  perfilado_por_ultima_vez: "2026-04-20"
+  confianza: media
   notas:
-    - ejecutar skill perfilar antes de trabajo serio
+    - perfil_generado_desde_readme_docs_codebase_overview_pubspec_y_estructura_lib
+EOF
