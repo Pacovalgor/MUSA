@@ -58,15 +58,32 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // For non-macOS platforms (iPad/iPhone), show a simple entry screen
     if (!Platform.isMacOS) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: _OnboardingBase(
           title: "MUSA Compose",
           subtitle:
               "En iPad, MUSA se abre como herramienta de composición y revisión local-first. La IA local completa sigue reservada para macOS por ahora; puedes escribir, revisar contexto y usar análisis editorial ligero.",
           buttonLabel: "Entrar a Compose",
-          onPressed: _finishOnboarding,
+          onPressed: () {
+            try {
+              _finishOnboarding();
+            } catch (e) {
+              debugPrint('Error finishing onboarding: $e');
+              // Try direct navigation as fallback
+              Navigator.of(context).pushReplacement(
+                PageRouteBuilder(
+                  pageBuilder: (context, anim1, anim2) => const MusaAdaptiveRouter(),
+                  transitionsBuilder: (context, anim1, anim2, child) {
+                    return FadeTransition(opacity: anim1, child: child);
+                  },
+                  transitionDuration: const Duration(milliseconds: 600),
+                ),
+              );
+            }
+          },
         ),
       );
     }
@@ -230,10 +247,15 @@ class _ModelOnboardingScreenState extends ConsumerState<ModelOnboardingScreen> {
                 ? null
                 : () async {
                     try {
-                      final fileBytes = await pickMusaFileNative();
+                      final fileBytes = Platform.isMacOS
+                          ? await pickMusaFileNative()
+                          : await (await ref
+                                  .read(projectDocumentPickerProvider)
+                                  .openProjectFile())
+                              ?.readAsBytes();
                       if (fileBytes == null) return;
                       debugPrint(
-                          '[OPEN_PROJECT] UI: Got ${fileBytes.length} bytes from native picker');
+                          '[OPEN_PROJECT] UI: Got ${fileBytes.length} bytes from picker');
                       await ref
                           .read(narrativeWorkspaceProvider.notifier)
                           .importProjectFile(fileBytes);

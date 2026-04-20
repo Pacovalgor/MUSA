@@ -1,0 +1,67 @@
+global:
+  nombre: ""
+  tipo: unknown
+  resumen: ""
+  prioridades: []
+  riesgos: []
+  restricciones: []
+
+capas:
+  backend:
+    detectada: false
+    rutas: []
+    prioridades: []
+    riesgos: []
+  frontend:
+    detectada: false
+    rutas: []
+    prioridades: []
+    riesgos: []
+  data_engine:
+    detectada: false
+    rutas: []
+    prioridades: []
+    riesgos: []
+  infra:
+    detectada: false
+    rutas: []
+    prioridades: []
+    riesgos: []
+  docs_memory:
+    detectada: true
+    rutas:
+      - ai/
+    prioridades:
+      - decisiones_estables
+      - contexto_comprimido
+    riesgos:
+      - desactualizacion
+
+modulos: {}
+
+tareas:
+  explorar:
+    enfasis: []
+  acotar:
+    enfasis: []
+  corregir:
+    enfasis: []
+  añadir:
+    enfasis: []
+  ajustar:
+    enfasis: []
+  verificar:
+    enfasis: []
+  auditar:
+    enfasis: []
+  documentar:
+    enfasis: []
+  resumir:
+    enfasis: []
+  guardar:
+    enfasis: []
+
+estado:
+  perfilado_por_ultima_vez: ""
+  confianza: media
+  notas: []

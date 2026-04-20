@@ -701,10 +701,16 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
 
       switch (selection.action) {
         case _ProjectMenuAction.open:
-          final fileBytes = await pickMusaFileNative();
+          final Uint8List? fileBytes;
+          if (Platform.isMacOS) {
+            fileBytes = await pickMusaFileNative();
+          } else {
+            final file = await picker.openProjectFile();
+            fileBytes = await file?.readAsBytes();
+          }
           if (fileBytes == null) return;
           debugPrint(
-              '[OPEN_PROJECT] main_screen: Got ${fileBytes.length} bytes from native picker');
+              '[OPEN_PROJECT] main_screen: Got ${fileBytes.length} bytes from picker');
           await notifier.openProjectFile(fileBytes);
           _throwIfWorkspaceError(ref);
           ref.invalidate(activeProjectPathProvider);
@@ -713,16 +719,36 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
           _showProjectMessage('Proyecto abierto');
           break;
         case _ProjectMenuAction.saveAs:
-          final path = await picker.chooseSaveProjectPath(
-            suggestedName: _projectSuggestedName(activeBookTitle),
-          );
+          final workspace = ref.read(narrativeWorkspaceProvider).value;
+          if (workspace == null) return;
+          final suggestedName = _projectSuggestedName(activeBookTitle);
+          final String? path;
+          if (Platform.isMacOS) {
+            final bytes = const MusaProjectDocument().encodeWorkspace(
+              workspace,
+              preserveProjectIdentity: false,
+            );
+            path = await saveMusaFileNative(
+              Uint8List.fromList(bytes),
+              suggestedName: suggestedName,
+            );
+          } else {
+            path = await picker.chooseSaveProjectPath(
+              suggestedName: suggestedName,
+            );
+            if (path == null) return;
+            await notifier.saveProjectFileAs(path);
+            _throwIfWorkspaceError(ref);
+            ref.invalidate(activeProjectPathProvider);
+            ref.invalidate(recentProjectsProvider);
+          }
           if (path == null) return;
-          await notifier.saveProjectFileAs(path);
-          _throwIfWorkspaceError(ref);
-          ref.invalidate(activeProjectPathProvider);
-          ref.invalidate(recentProjectsProvider);
           if (!mounted) return;
-          _showProjectMessage('Proyecto guardado: ${p.basename(path)}');
+          _showProjectMessage(
+            Platform.isMacOS
+                ? 'Proyecto exportado: ${p.basename(path)}'
+                : 'Proyecto guardado: ${p.basename(path)}',
+          );
           break;
         case _ProjectMenuAction.create:
           final path = await picker.chooseSaveProjectPath(

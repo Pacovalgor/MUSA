@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -247,16 +249,12 @@ class MusaThemeTokens extends ThemeExtension<MusaThemeTokens> {
 
     return MusaThemeTokens(
       appBackground: Color.lerp(appBackground, other.appBackground, t)!,
-      subtleBackground:
-          Color.lerp(subtleBackground, other.subtleBackground, t)!,
-      sidebarBackground:
-          Color.lerp(sidebarBackground, other.sidebarBackground, t)!,
+      subtleBackground: Color.lerp(subtleBackground, other.subtleBackground, t)!,
+      sidebarBackground: Color.lerp(sidebarBackground, other.sidebarBackground, t)!,
       panelBackground: Color.lerp(panelBackground, other.panelBackground, t)!,
-      canvasBackground:
-          Color.lerp(canvasBackground, other.canvasBackground, t)!,
+      canvasBackground: Color.lerp(canvasBackground, other.canvasBackground, t)!,
       hoverBackground: Color.lerp(hoverBackground, other.hoverBackground, t)!,
-      activeBackground:
-          Color.lerp(activeBackground, other.activeBackground, t)!,
+      activeBackground: Color.lerp(activeBackground, other.activeBackground, t)!,
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
       borderSoft: Color.lerp(borderSoft, other.borderSoft, t)!,
       borderStrong: Color.lerp(borderStrong, other.borderStrong, t)!,
@@ -264,15 +262,12 @@ class MusaThemeTokens extends ThemeExtension<MusaThemeTokens> {
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       textMuted: Color.lerp(textMuted, other.textMuted, t)!,
       textDisabled: Color.lerp(textDisabled, other.textDisabled, t)!,
-      editorSelection:
-          Color.lerp(editorSelection, other.editorSelection, t)!,
+      editorSelection: Color.lerp(editorSelection, other.editorSelection, t)!,
       editorCaret: Color.lerp(editorCaret, other.editorCaret, t)!,
       infoBackground: Color.lerp(infoBackground, other.infoBackground, t)!,
-      warningBackground:
-          Color.lerp(warningBackground, other.warningBackground, t)!,
+      warningBackground: Color.lerp(warningBackground, other.warningBackground, t)!,
       warningText: Color.lerp(warningText, other.warningText, t)!,
-      successBackground:
-          Color.lerp(successBackground, other.successBackground, t)!,
+      successBackground: Color.lerp(successBackground, other.successBackground, t)!,
       successBorder: Color.lerp(successBorder, other.successBorder, t)!,
       successText: Color.lerp(successText, other.successText, t)!,
       radiusSm: lerpDouble(radiusSm, other.radiusSm, t)!,
@@ -293,8 +288,19 @@ class MusaThemeTokens extends ThemeExtension<MusaThemeTokens> {
   }
 }
 
-double? lerpDouble(num? a, num? b, double t) =>
-    a == null || b == null ? null : a + (b - a) * t;
+double? lerpDouble(num? a, num? b, double t) => a == null || b == null ? null : a + (b - a) * t;
+
+TextTheme _safeInterTextTheme(TextTheme fallback) {
+  if (Platform.isIOS) {
+    return fallback;
+  }
+
+  try {
+    return GoogleFonts.interTextTheme(fallback);
+  } catch (_) {
+    return fallback;
+  }
+}
 
 class MusaTheme {
   static ThemeData get light {
@@ -328,7 +334,8 @@ class MusaTheme {
       extensions: const [tokens],
     );
 
-    final ui = GoogleFonts.interTextTheme(base.textTheme);
+    // Use Google Fonts with immediate system font fallback for iOS
+    final ui = _safeInterTextTheme(base.textTheme);
     final textTheme = ui.copyWith(
       bodySmall: ui.bodySmall?.copyWith(
         fontSize: 12,
@@ -359,7 +366,8 @@ class MusaTheme {
         fontWeight: FontWeight.w600,
         color: tokens.textPrimary,
       ),
-      displayLarge: GoogleFonts.sourceSerif4(
+      displayLarge: TextStyle(
+        fontFamily: 'Georgia',
         fontSize: 21,
         height: 1.68,
         color: tokens.textPrimary,
@@ -417,10 +425,7 @@ class MusaTheme {
             ),
           ),
           overlayColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.hovered) ||
-                    states.contains(WidgetState.focused)
-                ? tokens.hoverBackground
-                : null,
+            (states) => states.contains(WidgetState.hovered) || states.contains(WidgetState.focused) ? tokens.hoverBackground : null,
           ),
         ),
       ),
@@ -486,9 +491,7 @@ class MusaTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.disabled)
-                ? tokens.textDisabled
-                : tokens.textPrimary,
+            (states) => states.contains(WidgetState.disabled) ? tokens.textDisabled : tokens.textPrimary,
           ),
           foregroundColor: const WidgetStatePropertyAll(Colors.white),
           elevation: const WidgetStatePropertyAll(0),
@@ -547,8 +550,7 @@ class MusaTheme {
           borderRadius: BorderRadius.circular(999),
         ),
         labelStyle: textTheme.bodySmall?.copyWith(color: tokens.textPrimary),
-        secondaryLabelStyle:
-            textTheme.bodySmall?.copyWith(color: tokens.textPrimary),
+        secondaryLabelStyle: textTheme.bodySmall?.copyWith(color: tokens.textPrimary),
         deleteIconColor: tokens.textSecondary,
       ),
       sliderTheme: base.sliderTheme.copyWith(
@@ -595,7 +597,8 @@ class MusaTheme {
       extensions: const [tokens],
     );
 
-    final ui = GoogleFonts.interTextTheme(base.textTheme);
+    // Use Google Fonts with immediate system font fallback for iOS
+    final ui = _safeInterTextTheme(base.textTheme);
     final textTheme = ui.copyWith(
       bodySmall: ui.bodySmall?.copyWith(
         fontSize: 12,
@@ -626,7 +629,8 @@ class MusaTheme {
         fontWeight: FontWeight.w600,
         color: tokens.textPrimary,
       ),
-      displayLarge: GoogleFonts.sourceSerif4(
+      displayLarge: TextStyle(
+        fontFamily: 'Georgia',
         fontSize: 21,
         height: 1.68,
         color: tokens.textPrimary,
@@ -684,10 +688,7 @@ class MusaTheme {
             ),
           ),
           overlayColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.hovered) ||
-                    states.contains(WidgetState.focused)
-                ? tokens.hoverBackground
-                : null,
+            (states) => states.contains(WidgetState.hovered) || states.contains(WidgetState.focused) ? tokens.hoverBackground : null,
           ),
         ),
       ),
@@ -702,8 +703,7 @@ class MusaTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: tokens.textPrimary,
-        contentTextStyle:
-            textTheme.bodyMedium?.copyWith(color: tokens.canvasBackground),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(color: tokens.canvasBackground),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(tokens.radiusMd),
@@ -754,12 +754,9 @@ class MusaTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.disabled)
-                ? tokens.textDisabled
-                : tokens.textPrimary,
+            (states) => states.contains(WidgetState.disabled) ? tokens.textDisabled : tokens.textPrimary,
           ),
-          foregroundColor:
-              WidgetStatePropertyAll(tokens.canvasBackground),
+          foregroundColor: WidgetStatePropertyAll(tokens.canvasBackground),
           elevation: const WidgetStatePropertyAll(0),
           padding: WidgetStatePropertyAll(
             EdgeInsets.symmetric(
@@ -794,8 +791,7 @@ class MusaTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
           backgroundColor: WidgetStatePropertyAll(tokens.textPrimary),
-          foregroundColor:
-              WidgetStatePropertyAll(tokens.canvasBackground),
+          foregroundColor: WidgetStatePropertyAll(tokens.canvasBackground),
           elevation: const WidgetStatePropertyAll(0),
           padding: WidgetStatePropertyAll(
             EdgeInsets.symmetric(
@@ -817,8 +813,7 @@ class MusaTheme {
           borderRadius: BorderRadius.circular(999),
         ),
         labelStyle: textTheme.bodySmall?.copyWith(color: tokens.textPrimary),
-        secondaryLabelStyle:
-            textTheme.bodySmall?.copyWith(color: tokens.textPrimary),
+        secondaryLabelStyle: textTheme.bodySmall?.copyWith(color: tokens.textPrimary),
         deleteIconColor: tokens.textSecondary,
       ),
       sliderTheme: base.sliderTheme.copyWith(
@@ -833,18 +828,38 @@ class MusaTheme {
     );
   }
 
-  static MusaThemeTokens tokensOf(BuildContext context) =>
-      Theme.of(context).extension<MusaThemeTokens>()!;
+  static MusaThemeTokens tokensOf(BuildContext context) => Theme.of(context).extension<MusaThemeTokens>()!;
 
   static TextStyle wordmarkStyle(BuildContext context, {double? size}) {
     final tokens = tokensOf(context);
-    return GoogleFonts.playfairDisplay(
-      fontSize: size ?? 28,
-      fontWeight: FontWeight.w400,
-      letterSpacing: 0.14 * (size ?? 28) / 28,
-      color: tokens.textPrimary,
-      height: 1,
-    );
+    if (Platform.isIOS) {
+      return TextStyle(
+        fontSize: size ?? 28,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.14 * (size ?? 28) / 28,
+        color: tokens.textPrimary,
+        height: 1,
+        fontFamily: 'Georgia',
+      );
+    }
+    try {
+      return GoogleFonts.playfairDisplay(
+        fontSize: size ?? 28,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.14 * (size ?? 28) / 28,
+        color: tokens.textPrimary,
+        height: 1,
+      );
+    } catch (e) {
+      return TextStyle(
+        fontSize: size ?? 28,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.14 * (size ?? 28) / 28,
+        color: tokens.textPrimary,
+        height: 1,
+        fontFamily: 'Georgia',
+      );
+    }
   }
 
   static BoxDecoration panelDecoration(
@@ -856,8 +871,7 @@ class MusaTheme {
   }) {
     final tokens = tokensOf(context);
     return BoxDecoration(
-      color: backgroundColor ??
-          (accent ? tokens.infoBackground : tokens.panelBackground),
+      color: backgroundColor ?? (accent ? tokens.infoBackground : tokens.panelBackground),
       borderRadius: BorderRadius.circular(radius ?? tokens.radiusLg),
       border: Border.all(
         color: accent ? tokens.borderStrong : tokens.borderSoft,
@@ -896,9 +910,7 @@ class MusaTheme {
         );
   }
 
-  static String get brandFontFamily =>
-      GoogleFonts.playfairDisplay().fontFamily ?? 'serif';
+  static String get brandFontFamily => 'Georgia';
 
-  static String get editorFontFamily =>
-      GoogleFonts.sourceSerif4().fontFamily ?? 'serif';
+  static String get editorFontFamily => 'Georgia';
 }

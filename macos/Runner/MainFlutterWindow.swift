@@ -5,7 +5,8 @@ class SecureFilePickerHandler: NSObject {
     private static let channelName = "musa/secure_file_picker"
     private var channel: FlutterMethodChannel?
     private var pendingResult: FlutterResult?
-    private var panel: NSOpenPanel?
+    private var openPanel: NSOpenPanel?
+    private var savePanel: NSSavePanel?
 
     func register(with registrar: FlutterPluginRegistrar) {
         channel = FlutterMethodChannel(
@@ -16,6 +17,8 @@ class SecureFilePickerHandler: NSObject {
             switch call.method {
             case "pickMusaFile":
                 self?.showOpenPanel(result: result)
+            case "saveMusaFile":
+                self?.showSavePanel(call: call, result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -25,16 +28,16 @@ class SecureFilePickerHandler: NSObject {
 
     private func showOpenPanel(result: @escaping FlutterResult) {
         pendingResult = result
-        panel = NSOpenPanel()
-        panel!.canChooseFiles = true
-        panel!.canChooseDirectories = false
-        panel!.allowsMultipleSelection = false
-        panel!.allowedFileTypes = ["musa"]
-        panel!.title = "Abrir proyecto MUSA"
-        panel!.prompt = "Abrir"
+        openPanel = NSOpenPanel()
+        openPanel!.canChooseFiles = true
+        openPanel!.canChooseDirectories = false
+        openPanel!.allowsMultipleSelection = false
+        openPanel!.allowedFileTypes = ["musa"]
+        openPanel!.title = "Abrir proyecto MUSA"
+        openPanel!.prompt = "Abrir"
 
-        panel!.begin { [weak self] response in
-            guard let self = self, let panel = self.panel else { return }
+        openPanel!.begin { [weak self] response in
+            guard let self = self, let panel = self.openPanel else { return }
             if response == .OK, let url = panel.url {
                 let accessGranted = url.startAccessingSecurityScopedResource()
                 print("[OPEN_PROJECT] [NATIVE] startAccessingSecurityScopedResource: \(accessGranted)")
@@ -56,7 +59,53 @@ class SecureFilePickerHandler: NSObject {
                 self.pendingResult?(nil)
             }
             self.pendingResult = nil
-            self.panel = nil
+            self.openPanel = nil
+        }
+    }
+
+    private func showSavePanel(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any],
+              let fileName = arguments["fileName"] as? String,
+              let typedData = arguments["bytes"] as? FlutterStandardTypedData else {
+            result(FlutterError(
+                code: "INVALID_ARGUMENTS",
+                message: "Missing fileName or bytes for saveMusaFile",
+                details: nil))
+            return
+        }
+
+        pendingResult = result
+        savePanel = NSSavePanel()
+        savePanel!.allowedFileTypes = ["musa"]
+        savePanel!.canCreateDirectories = true
+        savePanel!.nameFieldStringValue = fileName
+        savePanel!.title = "Guardar proyecto MUSA"
+        savePanel!.prompt = "Guardar"
+
+        savePanel!.begin { [weak self] response in
+            guard let self = self, let panel = self.savePanel else { return }
+            if response == .OK, let url = panel.url {
+                let accessGranted = url.startAccessingSecurityScopedResource()
+                print("[SAVE_PROJECT] [NATIVE] startAccessingSecurityScopedResource: \(accessGranted)")
+                print("[SAVE_PROJECT] [NATIVE] URL path: \(url.path)")
+                do {
+                    try typedData.data.write(to: url, options: .atomic)
+                    print("[SAVE_PROJECT] [NATIVE] Wrote \(typedData.data.count) bytes")
+                    url.stopAccessingSecurityScopedResource()
+                    self.pendingResult?(url.path)
+                } catch {
+                    print("[SAVE_PROJECT] [NATIVE] File write error: \(error)")
+                    url.stopAccessingSecurityScopedResource()
+                    self.pendingResult?(FlutterError(
+                        code: "FILE_WRITE_ERROR",
+                        message: "Cannot write file: \(error.localizedDescription)",
+                        details: error.localizedDescription))
+                }
+            } else {
+                self.pendingResult?(nil)
+            }
+            self.pendingResult = nil
+            self.savePanel = nil
         }
     }
 }

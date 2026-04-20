@@ -21,3 +21,20 @@ Future<Uint8List?> pickMusaFileNative() async {
     throw Exception('Secure file picker failed: $e');
   }
 }
+
+/// Presents an NSSavePanel for .musa files and writes [fileBytes] natively.
+///
+/// Returns the saved path, or null if the user cancels.
+Future<String?> saveMusaFileNative(
+  Uint8List fileBytes, {
+  String suggestedName = 'Musa.musa',
+}) async {
+  try {
+    return _channel.invokeMethod<String>('saveMusaFile', {
+      'fileName': suggestedName,
+      'bytes': fileBytes,
+    });
+  } catch (e) {
+    throw Exception('Secure file save failed: $e');
+  }
+}

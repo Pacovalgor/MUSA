@@ -1,0 +1,36 @@
+global:
+  nombre: por_perfilar
+  tipo: unknown
+  resumen: "Perfil pendiente de generar con la skill perfilar."
+  prioridades:
+    - cambio_minimo_correcto
+    - scope_estricto
+    - verificacion_real
+  riesgos:
+    - refactor_oportunista
+    - salida_sin_evidencia
+  restricciones:
+    - no_salir_del_scope
+    - no_inventar_contexto
+
+capas: {}
+modulos: {}
+
+tareas:
+  explorar:
+    enfasis:
+      - localizar_archivos
+      - entender_flujo_real
+  corregir:
+    enfasis:
+      - causa_raiz
+      - fix_minimo
+  verificar:
+    enfasis:
+      - evidencia_ejecutable
+
+estado:
+  perfilado_por_ultima_vez: ""
+  confianza: baja
+  notas:
+    - ejecutar skill perfilar antes de trabajo serio
