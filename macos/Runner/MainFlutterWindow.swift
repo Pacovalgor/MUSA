@@ -115,7 +115,7 @@ class MainFlutterWindow: NSWindow {
   private let initialSize = NSSize(width: 1280, height: 820)
   private let minimumSize = NSSize(width: 1100, height: 720)
   private let trafficLightLeftInset: CGFloat = 14
-  private let trafficLightTopInset: CGFloat = 16
+  private let trafficLightTopInset: CGFloat = 20
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
@@ -139,12 +139,12 @@ class MainFlutterWindow: NSWindow {
     secureFilePicker.register(with: flutterViewController.engine.registrar(forPlugin: "SecureFilePicker"))
 
     super.awakeFromNib()
-    positionTrafficLights()
+    // positionTrafficLights()
   }
 
   override func layoutIfNeeded() {
     super.layoutIfNeeded()
-    positionTrafficLights()
+    // positionTrafficLights()
   }
 
   private func positionTrafficLights() {

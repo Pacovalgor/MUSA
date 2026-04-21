@@ -1,0 +1,10 @@
+Documento de investigación sobre técnicas de OSINT aplicadas a la apofenia en entornos digitales. El objetivo de este documento es analizar cómo el exceso de información puede generar patrones inexistentes en la mente del investigador.
+
+Resumen ejecutivo:
+Se basa en el análisis de 400 casos reportados durante 2024. Las características de este fenómeno incluyen la correlación ilusoria de datos y la búsqueda obsesiva de confirmación en redes sociales (Twitter/X, Reddit).
+
+Metodología:
+Este documento explica el uso de herramientas de código abierto (OSINT) para rastrear el origen de la desinformación. Se han consultado las siguientes fuentes de información: bibliografía técnica sobre redes neuronales, reportes de ciberseguridad y el manual completo de inteligencia de fuentes abiertas.
+
+Análisis de datos:
+Se ha detectado un patrón recurrente en la recopilación de datos de geolocalización. El informe de ciberseguridad adjunto detalla los riesgos de la exposición de metadatos en fotografías digitales. Es vital que el investigador mantenga la objetividad para no caer en la apofenia narrativa, donde los datos aislados comienzan a formar una historia falsa en su cabeza.

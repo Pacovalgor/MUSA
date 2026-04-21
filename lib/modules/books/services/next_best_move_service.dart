@@ -1,5 +1,6 @@
 import '../models/book.dart';
 import '../models/narrative_copilot.dart';
+import 'narrative_document_classifier.dart';
 
 class NextBestMoveRecommendation {
   final String focus;
@@ -21,15 +22,20 @@ class NextBestMoveRecommendation {
   String get move => suggestedAction;
 
   NextBestMoveRecommendation copyWith({
+    String? focus,
+    String? reason,
+    String? suggestedAction,
+    String? riskIfIgnored,
     String? contextTrace,
+    NextBestMoveStrategy? strategy,
   }) {
     return NextBestMoveRecommendation(
-      focus: focus,
-      reason: reason,
-      suggestedAction: suggestedAction,
-      riskIfIgnored: riskIfIgnored,
+      focus: focus ?? this.focus,
+      reason: reason ?? this.reason,
+      suggestedAction: suggestedAction ?? this.suggestedAction,
+      riskIfIgnored: riskIfIgnored ?? this.riskIfIgnored,
       contextTrace: contextTrace ?? this.contextTrace,
-      strategy: strategy,
+      strategy: strategy ?? this.strategy,
     );
   }
 }
@@ -55,6 +61,7 @@ class NextBestMoveService {
     required bool hasInvestigationLoop,
     required NarrativeMemory memory,
     required List<String> diagnostics,
+    NarrativeDocumentKind? documentKind,
     String? currentText,
     String? previousMove,
   }) {
@@ -66,6 +73,7 @@ class NextBestMoveService {
       hasInvestigationLoop: hasInvestigationLoop,
       memory: memory,
       diagnostics: diagnostics,
+      documentKind: documentKind,
       currentText: currentText,
       previousMove: previousMove,
     ).move;
@@ -79,9 +87,17 @@ class NextBestMoveService {
     required bool hasInvestigationLoop,
     required NarrativeMemory memory,
     required List<String> diagnostics,
+    NarrativeDocumentKind? documentKind,
     String? currentText,
     String? previousMove,
   }) {
+    // 1. Structural Gating: If not a scene, provide support-focused recommendation
+    if (documentKind != null &&
+        documentKind != NarrativeDocumentKind.scene &&
+        documentKind != NarrativeDocumentKind.unknown) {
+      return _supportRecommendation(documentKind);
+    }
+
     final genre = book.narrativeProfile.primaryGenre;
     final previousStrategy = _inferStrategy(previousMove);
 
@@ -104,15 +120,20 @@ class NextBestMoveService {
       memory,
     );
     if (contextualResolution.recommendation != null) {
-      return contextualResolution.recommendation!;
+      return _refineWithLocalContext(
+        contextualResolution.recommendation!,
+        currentText,
+      );
     }
     if (contextualResolution.rejectionTrace != null) {
       contextTrace = contextualResolution.rejectionTrace!;
     }
 
+    NextBestMoveRecommendation recommendation;
+
     if (hasInvestigationLoop) {
       if (previousStrategy == NextBestMoveStrategy.information) {
-        return _withContextTrace(
+        recommendation = _withContextTrace(
           const NextBestMoveRecommendation(
             focus: 'consecuencia',
             reason:
@@ -125,26 +146,25 @@ class NextBestMoveService {
           ),
           contextTrace,
         );
+      } else {
+        recommendation = _withContextTrace(
+          const NextBestMoveRecommendation(
+            focus: 'información con coste',
+            reason:
+                'Detecto varias búsquedas y pistas seguidas sin una consecuencia proporcional.',
+            suggestedAction:
+                'Rompe la cadena de investigación: la próxima pista debe obligar a elegir, perder algo o exponerse.',
+            riskIfIgnored:
+                'La escena repetirá búsqueda sin cambio y el hallazgo perderá valor dramático.',
+            strategy: NextBestMoveStrategy.information,
+          ),
+          contextTrace,
+        );
       }
-      return _withContextTrace(
-        const NextBestMoveRecommendation(
-          focus: 'información con coste',
-          reason:
-              'Detecto varias búsquedas y pistas seguidas sin una consecuencia proporcional.',
-          suggestedAction:
-              'Rompe la cadena de investigación: la próxima pista debe obligar a elegir, perder algo o exponerse.',
-          riskIfIgnored:
-              'La escena repetirá búsqueda sin cambio y el hallazgo perderá valor dramático.',
-          strategy: NextBestMoveStrategy.information,
-        ),
-        contextTrace,
-      );
-    }
-
-    if (previousStrategy == NextBestMoveStrategy.information &&
+    } else if (previousStrategy == NextBestMoveStrategy.information &&
         memory.openQuestions.length > 4) {
       final question = _specificOpenQuestion(memory);
-      return _withContextTrace(
+      recommendation = _withContextTrace(
         NextBestMoveRecommendation(
           focus: 'decisión',
           reason: question == null
@@ -158,10 +178,8 @@ class NextBestMoveService {
         ),
         contextTrace,
       );
-    }
-
-    if (!realProgress) {
-      return _withContextTrace(
+    } else if (!realProgress) {
+      recommendation = _withContextTrace(
         switch (genre) {
           BookPrimaryGenre.thriller => const NextBestMoveRecommendation(
               focus: 'presión directa',
@@ -206,12 +224,10 @@ class NextBestMoveService {
         },
         contextTrace,
       );
-    }
-
-    if (memory.openQuestions.length > 4) {
+    } else if (memory.openQuestions.length > 4) {
       final question = _specificOpenQuestion(memory);
       if (previousStrategy == NextBestMoveStrategy.information) {
-        return _withContextTrace(
+        recommendation = _withContextTrace(
           NextBestMoveRecommendation(
             focus: 'decisión',
             reason: question == null
@@ -225,26 +241,25 @@ class NextBestMoveService {
           ),
           contextTrace,
         );
+      } else {
+        recommendation = _withContextTrace(
+          NextBestMoveRecommendation(
+            focus: 'incertidumbre',
+            reason: question == null
+                ? 'Hay demasiadas preguntas abiertas compitiendo por la atención.'
+                : 'Esa pregunta ya concentra la incertidumbre; añadir más puede dispersar la escena.',
+            suggestedAction: question == null
+                ? 'Cierra o transforma una pregunta abierta antes de plantar otra.'
+                : 'Cierra o transforma esta pregunta antes de plantar otra: “$question”.',
+            riskIfIgnored:
+                'La escena se llenará de preguntas sin jerarquía ni avance.',
+            strategy: NextBestMoveStrategy.information,
+          ),
+          contextTrace,
+        );
       }
-      return _withContextTrace(
-        NextBestMoveRecommendation(
-          focus: 'incertidumbre',
-          reason: question == null
-              ? 'Hay demasiadas preguntas abiertas compitiendo por la atención.'
-              : 'Esa pregunta ya concentra la incertidumbre; añadir más puede dispersar la escena.',
-          suggestedAction: question == null
-              ? 'Cierra o transforma una pregunta abierta antes de plantar otra.'
-              : 'Cierra o transforma esta pregunta antes de plantar otra: “$question”.',
-          riskIfIgnored:
-              'La escena se llenará de preguntas sin jerarquía ni avance.',
-          strategy: NextBestMoveStrategy.information,
-        ),
-        contextTrace,
-      );
-    }
-
-    if (globalTension < 30 && genre == BookPrimaryGenre.thriller) {
-      return _withContextTrace(
+    } else if (globalTension < 30 && genre == BookPrimaryGenre.thriller) {
+      recommendation = _withContextTrace(
         const NextBestMoveRecommendation(
           focus: 'urgencia',
           reason:
@@ -257,42 +272,44 @@ class NextBestMoveService {
         ),
         contextTrace,
       );
+    } else {
+      recommendation = _withContextTrace(
+        switch (act) {
+          StoryAct.actI => const NextBestMoveRecommendation(
+              focus: 'promesa inicial',
+              reason:
+                  'El Acto I debe introducir el libro y dejar clara su primera tensión.',
+              suggestedAction:
+                  'Afila la promesa inicial: presenta una fractura que obligue a seguir leyendo.',
+              riskIfIgnored:
+                  'La apertura puede quedar sin dirección ni incentivo de lectura.',
+              strategy: NextBestMoveStrategy.pressure,
+            ),
+          StoryAct.actII => const NextBestMoveRecommendation(
+              focus: 'coste narrativo',
+              reason:
+                  'El Acto II debe convertir lo abierto en presión y consecuencia.',
+              suggestedAction:
+                  'Complica la línea principal con una elección que tenga coste narrativo.',
+              riskIfIgnored:
+                  'La trama se puede quedar en desarrollo sin fricción suficiente.',
+              strategy: NextBestMoveStrategy.decision,
+            ),
+          StoryAct.actIII => const NextBestMoveRecommendation(
+              focus: 'confrontación',
+              reason: 'El Acto III debe llevar lo acumulado a confrontación.',
+              suggestedAction:
+                  'Confronta la amenaza central y paga una pista o herida plantada antes.',
+              riskIfIgnored:
+                  'El cierre puede llegar sin resolver el peso acumulado.',
+              strategy: NextBestMoveStrategy.consequence,
+            ),
+        },
+        contextTrace,
+      );
     }
 
-    return _withContextTrace(
-      switch (act) {
-        StoryAct.actI => const NextBestMoveRecommendation(
-            focus: 'promesa inicial',
-            reason:
-                'El Acto I debe introducir el libro y dejar clara su primera tensión.',
-            suggestedAction:
-                'Afila la promesa inicial: presenta una fractura que obligue a seguir leyendo.',
-            riskIfIgnored:
-                'La apertura puede quedar sin dirección ni incentivo de lectura.',
-            strategy: NextBestMoveStrategy.pressure,
-          ),
-        StoryAct.actII => const NextBestMoveRecommendation(
-            focus: 'coste narrativo',
-            reason:
-                'El Acto II debe convertir lo abierto en presión y consecuencia.',
-            suggestedAction:
-                'Complica la línea principal con una elección que tenga coste narrativo.',
-            riskIfIgnored:
-                'La trama se puede quedar en desarrollo sin fricción suficiente.',
-            strategy: NextBestMoveStrategy.decision,
-          ),
-        StoryAct.actIII => const NextBestMoveRecommendation(
-            focus: 'confrontación',
-            reason: 'El Acto III debe llevar lo acumulado a confrontación.',
-            suggestedAction:
-                'Confronta la amenaza central y paga una pista o herida plantada antes.',
-            riskIfIgnored:
-                'El cierre puede llegar sin resolver el peso acumulado.',
-            strategy: NextBestMoveStrategy.consequence,
-          ),
-      },
-      contextTrace,
-    );
+    return _refineWithLocalContext(recommendation, currentText);
   }
 
   _ContextResolution _contextualSceneRecommendation(
@@ -485,6 +502,49 @@ class NextBestMoveService {
     return false;
   }
 
+  NextBestMoveRecommendation _supportRecommendation(
+    NarrativeDocumentKind kind,
+  ) {
+    return switch (kind) {
+      NarrativeDocumentKind.technical => const NextBestMoveRecommendation(
+          focus: 'precisión técnica',
+          reason:
+              'Este documento es material técnico. El Copiloto evitará sugerencias dramáticas para centrarse en la coherencia de la información.',
+          suggestedAction:
+              'Asegura que los términos técnicos sean consistentes con el glosario del proyecto.',
+          riskIfIgnored:
+              'La información técnica podría volverse contradictoria o confusa.',
+          strategy: NextBestMoveStrategy.support,
+        ),
+      NarrativeDocumentKind.research => const NextBestMoveRecommendation(
+          focus: 'claridad de hallazgos',
+          reason:
+              'Documento de investigación detectado. La prioridad es la recopilación y orden de datos.',
+          suggestedAction:
+              'Resume los hallazgos clave antes de seguir acumulando datos aislados.',
+          riskIfIgnored: 'La investigación puede volverse difícil de consultar.',
+          strategy: NextBestMoveStrategy.support,
+        ),
+      NarrativeDocumentKind.worldbuilding => const NextBestMoveRecommendation(
+          focus: 'coherencia del lore',
+          reason:
+              'Material de construcción de mundo. El foco es la solidez de las reglas y el entorno.',
+          suggestedAction:
+              'Define una consecuencia práctica para cada nueva regla de mundo que añadas.',
+          riskIfIgnored:
+              'El mundo puede ganar complejidad pero perder verosimilitud operativa.',
+          strategy: NextBestMoveStrategy.support,
+        ),
+      _ => const NextBestMoveRecommendation(
+          focus: 'material de apoyo',
+          reason: 'Documento no narrativo detectado.',
+          suggestedAction: 'Mantén el foco en la claridad de la información.',
+          riskIfIgnored: 'No aplica.',
+          strategy: NextBestMoveStrategy.support,
+        ),
+    };
+  }
+
   NextBestMoveRecommendation _withContextTrace(
     NextBestMoveRecommendation recommendation,
     String contextTrace,
@@ -629,6 +689,67 @@ class NextBestMoveService {
     'quizas',
     'quien lo mire',
   ];
+
+  NextBestMoveRecommendation _refineWithLocalContext(
+    NextBestMoveRecommendation base,
+    String? text,
+  ) {
+    if (text == null || text.trim().isEmpty) return base;
+
+    final lowered = text.toLowerCase();
+    final questionCount = '?'.allMatches(text).length;
+    final hasDialogue = _containsAny(text, const ['—', '-', '"', '“']);
+    final hasActionVerbs = _containsAny(lowered, const [
+      'corrió',
+      'golpeó',
+      'abrió',
+      'saltó',
+      'empujó',
+      'sacó',
+      'lanzó',
+      'miró',
+      'caminó',
+      'entró',
+      'salió',
+      'levantó',
+      'subió',
+      'bajó'
+    ]);
+
+    // 1. High question count -> prioritize closing/consequence
+    if (questionCount >= 2 && base.strategy != NextBestMoveStrategy.decision) {
+      return base.copyWith(
+        reason:
+            '${base.reason} Además, el fragmento acumula interrogantes que necesitan una respuesta o consecuencia física.',
+        suggestedAction:
+            'En lugar de otra pregunta, haz que el entorno o un personaje respondan con una acción o una decisión irreversible.',
+      );
+    }
+
+    // 2. Exposition only -> suggest conflict or interaction
+    if (!hasActionVerbs &&
+        !hasDialogue &&
+        base.strategy == NextBestMoveStrategy.consequence) {
+      return base.copyWith(
+        reason: '${base.reason} El pasaje actual es puramente expositivo.',
+        suggestedAction:
+            'Introduce un movimiento físico o un cambio de plano inmediato para que la consecuencia no sea solo teórica.',
+      );
+    }
+
+    // 3. Dialogue without action -> suggest physical break
+    if (hasDialogue &&
+        !hasActionVerbs &&
+        base.strategy == NextBestMoveStrategy.pressure) {
+      return base.copyWith(
+        reason: '${base.reason} El diálogo parece estancado en lo verbal.',
+        suggestedAction:
+            'Sube la presión rompiendo el diálogo con un gesto físico, una interrupción externa o una amenaza que obligue a callar.',
+      );
+    }
+
+    return base;
+  }
 }
 
 class _ContextBucket {

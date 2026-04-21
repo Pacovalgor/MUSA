@@ -99,7 +99,7 @@ class _MusaSidebarState extends ConsumerState<MusaSidebar> {
     final topInset = MediaQuery.paddingOf(context).top;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(24, 24 + topInset, 24, 24),
+      padding: EdgeInsets.fromLTRB(24, 32 + topInset, 24, 24),
       alignment: Alignment.centerLeft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

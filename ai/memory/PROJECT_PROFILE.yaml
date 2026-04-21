@@ -1,4 +1,3 @@
-cat > ai/memory/PROJECT_PROFILE.yaml <<'EOF'
 global:
   nombre: MUSA
   tipo: flutter_desktop_local_first_ai_writing_studio
@@ -158,7 +157,11 @@ tareas:
 
 estado:
   perfilado_por_ultima_vez: "2026-04-20"
-  confianza: media
+  estado:
+  confianza: alta
+  validado_en:
+    - correccion_bug_editor
+    - documentacion_flujo_ia
+    - ajuste_persistencia_local
   notas:
     - perfil_generado_desde_readme_docs_codebase_overview_pubspec_y_estructura_lib
-EOF

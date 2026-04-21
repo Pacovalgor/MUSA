@@ -2,6 +2,7 @@ import 'dart:isolate';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../modules/books/services/narrative_document_classifier.dart';
 import '../../modules/characters/models/character.dart';
 import '../../modules/scenarios/models/scenario.dart';
 import '../models/chapter_analysis.dart';
@@ -16,9 +17,11 @@ final chapterAnalysisServiceProvider = Provider<ChapterAnalysisService>((ref) {
 class ChapterAnalysisService {
   const ChapterAnalysisService({
     this.fragmentAnalysisService = const FragmentAnalysisService(),
+    this.documentClassifier = const NarrativeDocumentClassifier(),
   });
 
   final FragmentAnalysisService fragmentAnalysisService;
+  final NarrativeDocumentClassifier documentClassifier;
 
   Future<ChapterAnalysis> analyzeAsync({
     required String chapterText,
@@ -27,6 +30,13 @@ class ChapterAnalysisService {
     required List<String> linkedCharacterIds,
     required List<String> linkedScenarioIds,
   }) async {
+    final classification = documentClassifier.classifyRaw(chapterText);
+
+    if (classification.kind != NarrativeDocumentKind.scene &&
+        classification.kind != NarrativeDocumentKind.unknown) {
+      return _buildNonNarrativeAnalysis(classification);
+    }
+
     final payload = <String, dynamic>{
       'chapterText': chapterText,
       'characters': characters.map((item) => item.toJson()).toList(),
@@ -40,6 +50,30 @@ class ChapterAnalysisService {
     );
 
     return _chapterAnalysisFromJson(result);
+  }
+
+  ChapterAnalysis _buildNonNarrativeAnalysis(
+      NarrativeDocumentClassification classification) {
+    final message = switch (classification.kind) {
+      NarrativeDocumentKind.research =>
+        'Este documento se identifica como material de investigación. El Copiloto ignorará la estructura dramática para centrarse en la claridad de los datos.',
+      NarrativeDocumentKind.technical =>
+        'Documento técnico detectado. No se aplicarán métricas de tensión o ritmo narrativo.',
+      NarrativeDocumentKind.worldbuilding =>
+        'Material de construcción de mundo. Se prioriza la coherencia de hechos sobre la trayectoria emocional.',
+      _ => 'Material de apoyo detectado.',
+    };
+
+    return ChapterAnalysis(
+      dominantNarrativeMoment: const NarrativeMoment(
+        title: 'Informativo',
+        summary: 'El contenido es de naturaleza documental o técnica.',
+      ),
+      chapterFunction: ChapterFunction.setup,
+      recommendation: ChapterRecommendation(
+        message: message,
+      ),
+    );
   }
 
   ChapterAnalysis analyze({

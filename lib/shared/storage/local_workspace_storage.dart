@@ -88,9 +88,36 @@ class LocalWorkspaceStorage implements NarrativeWorkspaceRepository {
     final file = await _projectFile();
     debugPrint('[SAVE_WORKSPACE] Using path: ${file.path}');
     await _assertProjectUnchanged(file);
+
+    // 1. Create simple backup before overwriting
+    await _createBackup(file);
+
+    // 2. Perform write
     await _projectDocument.writeWorkspace(file, workspace);
+
+    // 3. Post-write validation: reload and verify it's readable
+    try {
+      await _projectDocument.readWorkspace(file);
+    } catch (e) {
+      debugPrint('[SAVE_WORKSPACE_CRITICAL_FAILURE] Validation failed: $e');
+      throw FileSystemException(
+          'Error crítico de validación tras escritura. El archivo podría estar corrupto.',
+          file.path);
+    }
+
     await _rememberProjectFingerprint(file);
     await rememberProject(file.path);
+  }
+
+  Future<void> _createBackup(File file) async {
+    if (!await file.exists()) return;
+    try {
+      final backupPath = '${file.path}.bak';
+      await file.copy(backupPath);
+    } catch (e) {
+      debugPrint('[SAVE_WORKSPACE_BACKUP_WARNING] Could not create backup: $e');
+      // We continue even if backup fails, prioritizing the save attempt
+    }
   }
 
   Future<NarrativeWorkspace> loadProjectFile(String path) async {

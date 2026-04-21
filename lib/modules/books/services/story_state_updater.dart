@@ -128,6 +128,7 @@ class StoryStateUpdater {
       hasInvestigationLoop: hasInvestigationLoop,
       memory: memory,
       diagnostics: diagnostics,
+      documentKind: latestClassification?.kind,
       currentText: recentText,
       previousMove: previous?.nextBestMove,
     );

@@ -111,7 +111,7 @@ Context is for tone and coherence only.
 Output length must remain close to input length, with a maximum expansion ratio of ${expansionRatio.toStringAsFixed(1)}x.
 
 # EDITORIAL CONTRACT:
-${musa.promptContract}
+${musa.refinedContract(selection)}
 
 # MUSA-SPECIFIC SCOPE:
 ${musa.scopeReminder}

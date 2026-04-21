@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:musa/modules/books/models/app_settings.dart';
 import 'package:musa/modules/books/models/book.dart';
@@ -52,7 +53,13 @@ void main() {
       ),
     );
 
-    final notifier = NarrativeWorkspaceNotifier(repository);
+    final container = ProviderContainer(
+      overrides: [
+        narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+
+    final notifier = container.read(narrativeWorkspaceProvider.notifier);
     await notifier.bootstrap();
 
     final created = await notifier.createWorkflowNote(

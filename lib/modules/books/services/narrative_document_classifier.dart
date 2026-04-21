@@ -24,10 +24,18 @@ class NarrativeDocumentClassifier {
   const NarrativeDocumentClassifier();
 
   NarrativeDocumentClassification classify(Document document) {
-    final title = document.title.toLowerCase();
-    final text = document.content.toLowerCase();
+    return _classify(document.title, document.content, _isManuscriptDocument(document));
+  }
+
+  NarrativeDocumentClassification classifyRaw(String content, {String title = ''}) {
+    return _classify(title, content, false);
+  }
+
+  NarrativeDocumentClassification _classify(String title, String content, bool isManuscript) {
+    final lowerTitle = title.toLowerCase();
+    final lowerText = content.toLowerCase();
     final sample =
-        '$title\n${text.length > 2400 ? text.substring(0, 2400) : text}';
+        '$lowerTitle\n${lowerText.length > 2400 ? lowerText.substring(0, 2400) : lowerText}';
 
     if (_hasAny(sample, const [
       'entrevista full stack',
@@ -89,8 +97,7 @@ class NarrativeDocumentClassifier {
       );
     }
 
-    if (_hasSceneSignals(sample) ||
-        (_isManuscriptDocument(document) && document.content.length > 40)) {
+    if (_hasSceneSignals(sample) || (isManuscript && content.length > 40)) {
       return const NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.scene,
         reason:
