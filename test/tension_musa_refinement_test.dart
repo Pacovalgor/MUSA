@@ -44,6 +44,14 @@ void main() {
       final contract = musa.refinedContract(text);
 
       expect(contract, isNot(contains('[LOCAL CONTEXT]')));
+      expect(contract, equals(musa.promptContract));
+    });
+    
+    test('does not add question-based rule when questions include action', () {
+      const text = '¿Quién está ahí? ¿Qué haces? Él abrió la puerta y corrió hacia la escalera.';
+      final contract = musa.refinedContract(text);
+
+      expect(contract, isNot(contains('múltiples interrogantes')));
     });
 
     // ===== HEURÍSTICAS ANTIGUAS (SE MANTIENEN) =====

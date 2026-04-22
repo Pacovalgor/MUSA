@@ -35,7 +35,7 @@ void main() {
       final recommendation = autopilot.recommend(selection: text, context: context);
       
       expect(recommendation.primaryMusa.id, equals('rhythm'));
-      expect(recommendation.reason, contains('He elegido Ritmo porque hay frases cortas repetidas'));
+      expect(recommendation.reason, contains('He elegido Ritmo porque el flujo rítmico presenta frases cortas repetidas'));
     });
 
     test('recommends Style with specific reason for repetition', () {

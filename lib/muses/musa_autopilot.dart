@@ -11,17 +11,40 @@ class MusaAutopilot {
   }) {
     final analysis = _analyze(selection, context);
 
+    // Calculate secondary candidates for all paths
+    final allMusas = [
+      const TensionMusa(),
+      const RhythmMusa(),
+      const StyleMusa(),
+      const ClarityMusa(),
+    ];
+
+    List<Musa> getSecondaryMusas(List<Musa> primaryMusas) {
+      final scores = <Musa, double>{
+        const ClarityMusa(): analysis.clarityScore / 6,
+        const RhythmMusa(): analysis.rhythmScore / 5,
+        const StyleMusa(): analysis.styleScore / 4,
+        const TensionMusa(): analysis.tensionScore / 5,
+      };
+
+      return allMusas
+          .where((musa) => !primaryMusas.any((p) => p.id == musa.id))
+          .where((musa) => (scores[musa] ?? 0) >= 0.2) // Significant enough
+          .toList()
+        ..sort((a, b) => (scores[b] ?? 0).compareTo(scores[a] ?? 0));
+    }
+
     // PRIORITY: Dominance check
-    // If one Musa is clearly superior, we favor it directly.
-    // For Tension, we allow a lower threshold (>= 2) and ignore Clarity score.
-    // We also allow tie-breaking over Rhythm (>=).
     if (analysis.tensionScore >= 2 &&
         analysis.tensionScore >= analysis.rhythmScore &&
         analysis.tensionScore > analysis.styleScore) {
+      const primary = TensionMusa();
+      final triggers = analysis.triggers[primary.id] ?? [];
       return EditorialRecommendation(
         type: EditorialRecommendationType.singleMusa,
-        musas: const [TensionMusa()],
-        reason: 'La tensión narrativa es el factor claramente dominante en este fragmento.',
+        musas: const [primary],
+        secondaryMusas: getSecondaryMusas(const [primary]).take(2).toList(),
+        reason: _buildReason(primary, triggers),
         confidence: analysis.tensionScore / 5,
       );
     }
@@ -30,10 +53,13 @@ class MusaAutopilot {
         analysis.rhythmScore > analysis.tensionScore &&
         analysis.rhythmScore > analysis.styleScore &&
         analysis.rhythmScore > analysis.clarityScore) {
+      const primary = RhythmMusa();
+      final triggers = analysis.triggers[primary.id] ?? [];
       return EditorialRecommendation(
         type: EditorialRecommendationType.singleMusa,
-        musas: const [RhythmMusa()],
-        reason: 'El pulso y el flujo rítmico son los factores claramente dominantes en este fragmento.',
+        musas: const [primary],
+        secondaryMusas: getSecondaryMusas(const [primary]).take(2).toList(),
+        reason: _buildReason(primary, triggers),
         confidence: analysis.rhythmScore / 5,
       );
     }
@@ -42,10 +68,13 @@ class MusaAutopilot {
         analysis.styleScore > analysis.tensionScore &&
         analysis.styleScore > analysis.rhythmScore &&
         analysis.styleScore > analysis.clarityScore) {
+      const primary = StyleMusa();
+      final triggers = analysis.triggers[primary.id] ?? [];
       return EditorialRecommendation(
         type: EditorialRecommendationType.singleMusa,
-        musas: const [StyleMusa()],
-        reason: 'El refinamiento de estilo es el factor claramente dominante en este fragmento.',
+        musas: const [primary],
+        secondaryMusas: getSecondaryMusas(const [primary]).take(2).toList(),
+        reason: _buildReason(primary, triggers),
         confidence: analysis.styleScore / 4,
       );
     }
@@ -53,9 +82,11 @@ class MusaAutopilot {
     if (analysis.clarityScore >= 4 &&
         analysis.rhythmScore >= 3 &&
         analysis.styleScore >= 2) {
-      return const EditorialRecommendation(
+      const primaryMusas = [ClarityMusa(), RhythmMusa(), StyleMusa()];
+      return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: [ClarityMusa(), RhythmMusa(), StyleMusa()],
+        musas: primaryMusas,
+        secondaryMusas: getSecondaryMusas(primaryMusas).take(1).toList(),
         reason:
             'El fragmento necesita despeje estructural, mejor respiración y un cierre más expresivo.',
         confidence: 0.86,
@@ -63,9 +94,11 @@ class MusaAutopilot {
     }
 
     if (analysis.clarityScore >= 4 && analysis.styleScore >= 3) {
-      return const EditorialRecommendation(
+      const primaryMusas = [ClarityMusa(), StyleMusa()];
+      return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: [ClarityMusa(), StyleMusa()],
+        musas: primaryMusas,
+        secondaryMusas: getSecondaryMusas(primaryMusas).take(2).toList(),
         reason:
             'La base es algo confusa y, una vez limpia, ganará más con un refinamiento de estilo.',
         confidence: 0.81,
@@ -73,9 +106,11 @@ class MusaAutopilot {
     }
 
     if (analysis.clarityScore >= 4 && analysis.rhythmScore >= 3) {
-      return const EditorialRecommendation(
+      const primaryMusas = [ClarityMusa(), RhythmMusa()];
+      return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: [ClarityMusa(), RhythmMusa()],
+        musas: primaryMusas,
+        secondaryMusas: getSecondaryMusas(primaryMusas).take(2).toList(),
         reason:
             'La prioridad es aclarar el pasaje y después ajustar su respiración.',
         confidence: 0.79,
@@ -83,9 +118,11 @@ class MusaAutopilot {
     }
 
     if (analysis.rhythmScore >= 4 && analysis.styleScore >= 3) {
-      return const EditorialRecommendation(
+      const primaryMusas = [RhythmMusa(), StyleMusa()];
+      return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: [RhythmMusa(), StyleMusa()],
+        musas: primaryMusas,
+        secondaryMusas: getSecondaryMusas(primaryMusas).take(2).toList(),
         reason:
             'El fragmento pide primero un pulso más limpio y después una capa de refinamiento literario.',
         confidence: 0.76,
@@ -93,9 +130,11 @@ class MusaAutopilot {
     }
 
     if (analysis.rhythmScore >= 4 && analysis.tensionScore >= 3) {
-      return const EditorialRecommendation(
+      const primaryMusas = [RhythmMusa(), TensionMusa()];
+      return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: [RhythmMusa(), TensionMusa()],
+        musas: primaryMusas,
+        secondaryMusas: getSecondaryMusas(primaryMusas).take(2).toList(),
         reason:
             'La escena necesita más tracción interna antes de cargarla de tensión.',
         confidence: 0.74,
@@ -103,9 +142,11 @@ class MusaAutopilot {
     }
 
     if (analysis.clarityScore >= 4 && analysis.tensionScore >= 3) {
-      return const EditorialRecommendation(
+      const primaryMusas = [ClarityMusa(), TensionMusa()];
+      return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
-        musas: [ClarityMusa(), TensionMusa()],
+        musas: primaryMusas,
+        secondaryMusas: getSecondaryMusas(primaryMusas).take(2).toList(),
         reason:
             'Conviene despejar el pasaje antes de intensificar su amenaza implícita.',
         confidence: 0.73,
@@ -114,12 +155,12 @@ class MusaAutopilot {
 
     final best = analysis.bestMusa;
     final bestTriggers = analysis.triggers[best.id] ?? [];
-    
     final reason = _buildReason(best, bestTriggers);
 
     return EditorialRecommendation(
       type: EditorialRecommendationType.singleMusa,
       musas: <Musa>[best],
+      secondaryMusas: getSecondaryMusas([best]).take(2).toList(),
       reason: reason,
       confidence: analysis.bestScore,
     );
@@ -138,7 +179,7 @@ class MusaAutopilot {
     final triggerText = triggers.join(' y ');
     return switch (musa.id) {
       'tension' => 'He elegido Tensión porque detecto $triggerText.',
-      'rhythm' => 'He elegido Ritmo porque hay $triggerText.',
+      'rhythm' => 'He elegido Ritmo porque el flujo rítmico presenta $triggerText.',
       'style' => 'He elegido Estilo por $triggerText.',
       'clarity' => 'He elegido Claridad porque el pasaje presenta $triggerText.',
       _ => 'He elegido ${musa.name} por $triggerText.',

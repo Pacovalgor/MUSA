@@ -8,12 +8,14 @@ enum EditorialRecommendationType {
 class EditorialRecommendation {
   final EditorialRecommendationType type;
   final List<Musa> musas;
+  final List<Musa> secondaryMusas;
   final String reason;
   final double confidence;
 
   const EditorialRecommendation({
     required this.type,
     required this.musas,
+    this.secondaryMusas = const [],
     required this.reason,
     required this.confidence,
   });

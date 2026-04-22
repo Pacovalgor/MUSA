@@ -161,18 +161,40 @@ class MusaEditorOverlay extends ConsumerWidget {
                   const SizedBox(height: 1),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 240),
-                    child: Text(
-                      recommendation.reason,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                        color: isEmphasized
-                            ? Colors.black54
-                            : Colors.white.withValues(alpha: 0.7),
-                        height: 1.1,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          recommendation.reason,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
+                            color: isEmphasized
+                                ? Colors.black54
+                                : Colors.white.withValues(alpha: 0.7),
+                            height: 1.1,
+                          ),
+                        ),
+                        if (recommendation.secondaryMusas.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            'También podrían ayudar: ${recommendation.secondaryMusas.map((m) => m.name).join(', ')}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w400,
+                              color: isEmphasized
+                                  ? Colors.black45
+                                  : Colors.white.withValues(alpha: 0.45),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],
