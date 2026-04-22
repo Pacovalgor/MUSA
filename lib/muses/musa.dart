@@ -148,6 +148,44 @@ class TensionMusa extends Musa {
             'Reescribiendo con nervio…',
           ],
         );
+
+  @override
+  List<String> _detectLocalRules(String selection) {
+    final rules = <String>[];
+    final lowered = selection.toLowerCase();
+
+    // 1. Detect multiple questions
+    final questionsCount = '?'.allMatches(selection).length;
+
+    // 2. Detect action signals using common stems (thin slice)
+    // Covers: abrir/abrió, correr/corrió, gritar/gritando, etc.
+    final actionStems = [
+      'abr', 'corr', 'grit', 'golp', 'salt', 'empuj', 'cae', 'cay',
+      'hui', 'luch', 'atac', 'romp', 'disp', 'agar', 'solt',
+      'subi', 'baja', 'entr', 'sali', 'esca', 'muri', 'mata', 'heri'
+    ];
+
+    int actionCount = 0;
+    for (final stem in actionStems) {
+      if (lowered.contains(stem)) {
+        actionCount++;
+      }
+    }
+
+    // Rule A: Many questions without immediate action
+    if (questionsCount >= 3 && actionCount < 1) {
+      rules.add(
+          'He detectado múltiples interrogantes sin señales de acción; prioriza las consecuencias y la fricción dramática frente a la duda pura.');
+    }
+
+    // Rule B: Static passage with low action density
+    if (selection.length > 60 && actionCount == 0) {
+      rules.add(
+          'El pasaje parece estático; inyecta verbos de acción física o fricción concreta para elevar la tensión.');
+    }
+
+    return rules;
+  }
 }
 
 class RhythmMusa extends Musa {

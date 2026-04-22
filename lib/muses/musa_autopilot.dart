@@ -11,6 +11,45 @@ class MusaAutopilot {
   }) {
     final analysis = _analyze(selection, context);
 
+    // PRIORITY: Dominance check
+    // If one Musa is clearly superior, we favor it directly.
+    // For Tension, we allow a lower threshold (>= 2) and ignore Clarity score.
+    // We also allow tie-breaking over Rhythm (>=).
+    if (analysis.tensionScore >= 2 &&
+        analysis.tensionScore >= analysis.rhythmScore &&
+        analysis.tensionScore > analysis.styleScore) {
+      return EditorialRecommendation(
+        type: EditorialRecommendationType.singleMusa,
+        musas: const [TensionMusa()],
+        reason: 'La tensión narrativa es el factor claramente dominante en este fragmento.',
+        confidence: analysis.tensionScore / 5,
+      );
+    }
+
+    if (analysis.rhythmScore >= 3 &&
+        analysis.rhythmScore > analysis.tensionScore &&
+        analysis.rhythmScore > analysis.styleScore &&
+        analysis.rhythmScore > analysis.clarityScore) {
+      return EditorialRecommendation(
+        type: EditorialRecommendationType.singleMusa,
+        musas: const [RhythmMusa()],
+        reason: 'El pulso y el flujo rítmico son los factores claramente dominantes en este fragmento.',
+        confidence: analysis.rhythmScore / 5,
+      );
+    }
+
+    if (analysis.styleScore >= 3 &&
+        analysis.styleScore > analysis.tensionScore &&
+        analysis.styleScore > analysis.rhythmScore &&
+        analysis.styleScore > analysis.clarityScore) {
+      return EditorialRecommendation(
+        type: EditorialRecommendationType.singleMusa,
+        musas: const [StyleMusa()],
+        reason: 'El refinamiento de estilo es el factor claramente dominante en este fragmento.',
+        confidence: analysis.styleScore / 4,
+      );
+    }
+
     if (analysis.clarityScore >= 4 &&
         analysis.rhythmScore >= 3 &&
         analysis.styleScore >= 2) {
