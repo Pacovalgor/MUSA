@@ -137,25 +137,59 @@ class MusaEditorOverlay extends ConsumerWidget {
               isActive
                   ? _getIconForMusa(
                       editorState.activeMusa ?? const ClarityMusa())
-                  : Icons.auto_stories_outlined,
+                  : recommendation != null
+                      ? _getIconForMusa(recommendation.primaryMusa)
+                      : Icons.auto_stories_outlined,
               size: 14,
               color: isEmphasized && !isActive ? Colors.black87 : Colors.white,
             ),
             const SizedBox(width: 8),
-            Text(
-              isActive
-                  ? (editorState.activeMusa?.shortName ?? 'Entender')
-                  : recommendation != null
-                      ? 'Entender de nuevo'
-                      : 'Entender fragmento',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color:
-                    isEmphasized && !isActive ? Colors.black87 : Colors.white,
-                letterSpacing: 0.2,
+            if (!isActive && recommendation != null)
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    recommendation.primaryMusa.name,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: isEmphasized ? Colors.black87 : Colors.white,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 240),
+                    child: Text(
+                      recommendation.reason,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        color: isEmphasized
+                            ? Colors.black54
+                            : Colors.white.withValues(alpha: 0.7),
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                isActive
+                    ? (editorState.activeMusa?.shortName ?? 'Entender')
+                    : 'Entender fragmento',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color:
+                      isEmphasized && !isActive ? Colors.black87 : Colors.white,
+                  letterSpacing: 0.2,
+                ),
               ),
-            ),
           ],
         ),
       ),

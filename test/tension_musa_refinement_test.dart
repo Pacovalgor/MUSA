@@ -5,6 +5,49 @@ void main() {
   group('TensionMusa: Local Context Refinement', () {
     const musa = TensionMusa();
 
+    // ===== NUEVA HEURÍSTICA: DIÁLOGO SIN ACCIÓN =====
+
+    test('adds local rule when stagnant dialogue is detected (no action)', () {
+      const text = '—¿Qué haces aquí?\n—Nada que te importe.';
+      final contract = musa.refinedContract(text);
+
+      expect(contract, contains('[LOCAL CONTEXT]'));
+      expect(contract, contains('intercambio de diálogo sin acción ni consecuencias'));
+    });
+
+    test('adds local rule when stagnant dialogue is detected (quotes, no action)', () {
+      const text = '"No deberías haber venido", dijo ella. "Lo sé", respondió él.';
+      final contract = musa.refinedContract(text);
+
+      expect(contract, contains('[LOCAL CONTEXT]'));
+      expect(contract, contains('intercambio de diálogo sin acción ni consecuencias'));
+    });
+
+    test('does not add local rule when dialogue includes action verbs', () {
+      const text = '—¿Qué haces aquí? —preguntó ella mientras abrió la puerta.';
+      final contract = musa.refinedContract(text);
+
+      expect(contract, isNot(contains('[LOCAL CONTEXT]')));
+      expect(contract, equals(musa.promptContract));
+    });
+
+    test('does not add local rule when dialogue includes operational verbs', () {
+      const text = '—Esto nos obliga a elegir —murmuró él.';
+      final contract = musa.refinedContract(text);
+
+      expect(contract, isNot(contains('[LOCAL CONTEXT]')));
+      expect(contract, equals(musa.promptContract));
+    });
+
+    test('does not add local rule for single line dialogue', () {
+      const text = '—Hola.';
+      final contract = musa.refinedContract(text);
+
+      expect(contract, isNot(contains('[LOCAL CONTEXT]')));
+    });
+
+    // ===== HEURÍSTICAS ANTIGUAS (SE MANTIENEN) =====
+
     test('adds rule for many questions without action', () {
       const text = '¿Quién está ahí? ¿Por qué no responde? ¿Qué es esa sombra?';
       final contract = musa.refinedContract(text);
@@ -31,8 +74,8 @@ void main() {
       expect(contract, equals(musa.promptContract));
     });
 
-    test('does not add local context for short neutral text', () {
-      const text = 'Había una vez un pequeño pueblo.';
+    test('does not add local context for descriptive text without dialogue', () {
+      const text = 'La habitación estaba oscura y el aire era pesado.';
       final contract = musa.refinedContract(text);
 
       expect(contract, isNot(contains('[LOCAL CONTEXT]')));

@@ -154,37 +154,31 @@ class TensionMusa extends Musa {
     final rules = <String>[];
     final lowered = selection.toLowerCase();
 
-    // 1. Detect multiple questions
-    final questionsCount = '?'.allMatches(selection).length;
+    // 1. Detect stagnant dialogue (>= 2 dialogue marks and no action signals)
+    final dialogueMarksCount = RegExp(r'[—"“”]').allMatches(selection).length;
 
-    // 2. Detect action signals using common stems (thin slice)
-    // Covers: abrir/abrió, correr/corrió, gritar/gritando, etc.
-    final actionStems = [
-      'abr', 'corr', 'grit', 'golp', 'salt', 'empuj', 'cae', 'cay',
-      'hui', 'luch', 'atac', 'romp', 'disp', 'agar', 'solt',
-      'subi', 'baja', 'entr', 'sali', 'esca', 'muri', 'mata', 'heri'
-    ];
+    final hasActionSignals = _containsAny(lowered, const [
+      // Physical action verbs (heuristics)
+      'corrió', 'golpeó', 'abrió', 'saltó', 'empujó', 'sacó', 'lanzó',
+      'miró', 'caminó', 'entró', 'salió', 'levantó', 'subió', 'bajó',
+      'reaccionó', 'decidió', 'detuvo', 'tomó', 'agarró', 'asintió', 'negó',
+      // Operational verbs from NextBestMoveService
+      'obliga', 'requiere', 'impide', 'limita', 'prohíbe', 'cuesta', 'depende',
+    ]);
 
-    int actionCount = 0;
-    for (final stem in actionStems) {
-      if (lowered.contains(stem)) {
-        actionCount++;
-      }
-    }
-
-    // Rule A: Many questions without immediate action
-    if (questionsCount >= 3 && actionCount < 1) {
+    if (dialogueMarksCount >= 2 && !hasActionSignals) {
       rules.add(
-          'He detectado múltiples interrogantes sin señales de acción; prioriza las consecuencias y la fricción dramática frente a la duda pura.');
-    }
-
-    // Rule B: Static passage with low action density
-    if (selection.length > 60 && actionCount == 0) {
-      rules.add(
-          'El pasaje parece estático; inyecta verbos de acción física o fricción concreta para elevar la tensión.');
+          'He detectado un intercambio de diálogo sin acción ni consecuencias; introduce gestos, movimientos o decisiones que hagan avanzar la escena y aumenten la tensión real.');
     }
 
     return rules;
+  }
+
+  bool _containsAny(String value, List<String> tokens) {
+    for (final token in tokens) {
+      if (value.contains(token)) return true;
+    }
+    return false;
   }
 }
 

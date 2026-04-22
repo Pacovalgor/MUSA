@@ -5,7 +5,7 @@
 - El flujo crítico del producto sigue la cadena: `main` → providers de workspace/libro → `editor_controller` → servicios IA/análisis → persistencia local.
 - La persistencia del workspace y del documento `.musa` es un contrato central: cualquier cambio debe preservar compatibilidad de serialización y restauración.
 - El dominio está segmentado en módulos (`books`, `manuscript`, `characters`, `scenarios`, `notes`, `continuity`, `musa`) con modelos inmutables y providers específicos por slice.
-- **V1.3 (2026-04-20)**: Implementado gating estructural en `ChapterAnalysisService` y `NextBestMoveService`. Se ha añadido refinamiento por contexto local en `NextBestMoveService` y en Musas individuales (`ClarityMusa`, `StyleMusa`, `RhythmMusa`) para ofrecer instrucciones quirúrgicas basadas en el fragmento seleccionado.
+- **V1.3 (2026-04-20)**: Implementado gating estructural en `ChapterAnalysisService` y `NextBestMoveService`. Se ha añadido refinamiento por contexto local en `NextBestMoveService` y en Musas individuales (`ClarityMusa`, `StyleMusa`, `RhythmMusa`, `TensionMusa`) para ofrecer instrucciones quirúrgicas basadas en el fragmento seleccionado. Se ha introducido la detección de **diálogo estancado** en `TensionMusa` y un sistema de **explicabilidad basada en señales** en `MusaAutopilot` para dotar de trazabilidad a las recomendaciones editoriales.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.

@@ -113,16 +113,9 @@ class MusaAutopilot {
     }
 
     final best = analysis.bestMusa;
-    final reason = switch (best.id) {
-      'clarity' =>
-        'El fragmento necesita una intervención de nitidez antes que cualquier otra mejora.',
-      'rhythm' =>
-        'El problema dominante es de flujo: la prosa respira mal o avanza con rigidez.',
-      'tension' =>
-        'La escena tiene potencial dramático, pero le falta fricción narrativa perceptible.',
-      _ =>
-        'El pasaje ya es legible; lo que más ganará ahora es una mejora de estilo controlada.',
-    };
+    final bestTriggers = analysis.triggers[best.id] ?? [];
+    
+    final reason = _buildReason(best, bestTriggers);
 
     return EditorialRecommendation(
       type: EditorialRecommendationType.singleMusa,
@@ -130,6 +123,26 @@ class MusaAutopilot {
       reason: reason,
       confidence: analysis.bestScore,
     );
+  }
+
+  String _buildReason(Musa musa, List<String> triggers) {
+    if (triggers.isEmpty) {
+      return switch (musa.id) {
+        'clarity' => 'El fragmento necesita una intervención de nitidez antes que cualquier otra mejora.',
+        'rhythm' => 'El problema dominante es de flujo: la prosa respira mal o avanza con rigidez.',
+        'tension' => 'La escena tiene potencial dramático, pero le falta fricción narrativa perceptible.',
+        _ => 'El pasaje ya es legible; lo que más ganará ahora es una mejora de estilo controlada.',
+      };
+    }
+
+    final triggerText = triggers.join(' y ');
+    return switch (musa.id) {
+      'tension' => 'He elegido Tensión porque detecto $triggerText.',
+      'rhythm' => 'He elegido Ritmo porque hay $triggerText.',
+      'style' => 'He elegido Estilo por $triggerText.',
+      'clarity' => 'He elegido Claridad porque el pasaje presenta $triggerText.',
+      _ => 'He elegido ${musa.name} por $triggerText.',
+    };
   }
 
   _AutopilotAnalysis _analyze(String selection, NarrativeContext context) {
@@ -179,17 +192,53 @@ class MusaAutopilot {
       caseSensitive: false,
     ).allMatches('${context.tensionLevel} $normalized').length;
 
+    final triggers = <String, List<String>>{
+      'clarity': [],
+      'rhythm': [],
+      'style': [],
+      'tension': [],
+    };
+
     var clarityScore = 0;
-    if (averageSentenceLength >= 22) clarityScore += 2;
-    if (maxSentenceLength >= 30) clarityScore += 2;
-    if (commaCount >= 3) clarityScore += 1;
-    if (subordinateMatches >= 2) clarityScore += 1;
-    if (repeatedPenalty >= 1) clarityScore += 1;
+    if (averageSentenceLength >= 22) {
+      clarityScore += 2;
+      triggers['clarity']!.add('frases largas');
+    }
+    if (maxSentenceLength >= 30) {
+      clarityScore += 2;
+      triggers['clarity']!.add('complejidad estructural');
+    }
+    if (commaCount >= 3 || subordinateMatches >= 2) {
+      clarityScore += 1;
+      triggers['clarity']!.add('estructura confusa');
+    }
+    if (repeatedPenalty >= 1) {
+      clarityScore += 1;
+    }
 
     var rhythmScore = 0;
+    int maxConsecutiveShorts = 0;
+    int currentConsecutiveShorts = 0;
+    for (final length in sentenceLengths) {
+      if (length < 6) {
+        currentConsecutiveShorts++;
+        if (currentConsecutiveShorts > maxConsecutiveShorts) {
+          maxConsecutiveShorts = currentConsecutiveShorts;
+        }
+      } else {
+        currentConsecutiveShorts = 0;
+      }
+    }
+
+    if (maxConsecutiveShorts >= 3) {
+      rhythmScore += 2;
+      triggers['rhythm']!.add('frases cortas repetidas');
+    }
+
     if (sentenceLengths.length >= 2 &&
         (maxSentenceLength - minSentenceLength) <= 3) {
       rhythmScore += 2;
+      triggers['rhythm']!.add('fragmentación alta');
     }
     if (sentenceLengths.length == 1 && averageSentenceLength >= 16) {
       rhythmScore += 2;
@@ -198,24 +247,40 @@ class MusaAutopilot {
         wordMatches.length >= 18) {
       rhythmScore += 1;
     }
-    if (sentenceLengths.length >= 3) {
-      rhythmScore += 1;
-    }
 
     var styleScore = 0;
-    if (uniqueRatio < 0.68) styleScore += 2;
-    if (wordMatches.length >= 6 && dramaticLexicon == 0) styleScore += 1;
-    if (sentenceParts.length <= 2 && averageSentenceLength < 14) {
-      styleScore += 1;
+    if (uniqueRatio < 0.68) {
+      styleScore += 2;
+      triggers['style']!.add('repetición de términos');
     }
+    if (repeatedPenalty >= 1) {
+      styleScore += 1;
+      triggers['style']!.add('baja variación léxica');
+    }
+    if (wordMatches.length >= 6 && dramaticLexicon == 0) styleScore += 1;
 
     var tensionScore = 0;
-    if (dramaticLexicon >= 1) tensionScore += 2;
-    if (context.tensionLevel.toLowerCase() != 'neutral') tensionScore += 1;
-    if (sentenceParts.length <= 2 &&
-        wordMatches.length <= 10 &&
-        dramaticLexicon >= 1) {
+
+    // Detect stagnant dialogue
+    final dialogueMarksCount = RegExp(r'[—"“”]').allMatches(normalized).length;
+    final hasActionSignals = _containsAny(normalized.toLowerCase(), const [
+      'corrió', 'golpeó', 'abrió', 'saltó', 'empujó', 'sacó', 'lanzó',
+      'miró', 'caminó', 'entró', 'salió', 'levantó', 'subió', 'bajó',
+      'reaccionó', 'decidió', 'detuvo', 'tomó', 'agarró', 'asintió', 'negó',
+      'obliga', 'requiere', 'impide', 'limita', 'prohíbe', 'cuesta', 'depende',
+    ]);
+    if (dialogueMarksCount >= 2 && !hasActionSignals) {
+      tensionScore += 2;
+      triggers['tension']!.add('diálogo sin acción y ausencia de avance físico');
+    }
+
+    if (dramaticLexicon >= 1) {
+      tensionScore += 2;
+      triggers['tension']!.add('léxico dramático');
+    }
+    if (context.tensionLevel.toLowerCase() != 'neutral') {
       tensionScore += 1;
+      triggers['tension']!.add('contexto de tensión');
     }
     if (normalized.contains('?') || normalized.contains('—')) {
       tensionScore += 1;
@@ -239,7 +304,15 @@ class MusaAutopilot {
       tensionScore: tensionScore,
       bestMusa: bestEntry.key,
       bestScore: bestEntry.value.clamp(0, 1).toDouble(),
+      triggers: triggers,
     );
+  }
+
+  bool _containsAny(String value, List<String> tokens) {
+    for (final token in tokens) {
+      if (value.contains(token)) return true;
+    }
+    return false;
   }
 }
 
@@ -250,6 +323,7 @@ class _AutopilotAnalysis {
   final int tensionScore;
   final Musa bestMusa;
   final double bestScore;
+  final Map<String, List<String>> triggers;
 
   const _AutopilotAnalysis({
     required this.clarityScore,
@@ -258,5 +332,6 @@ class _AutopilotAnalysis {
     required this.tensionScore,
     required this.bestMusa,
     required this.bestScore,
+    required this.triggers,
   });
 }

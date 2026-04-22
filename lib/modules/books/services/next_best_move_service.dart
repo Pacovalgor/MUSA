@@ -120,10 +120,7 @@ class NextBestMoveService {
       memory,
     );
     if (contextualResolution.recommendation != null) {
-      return _refineWithLocalContext(
-        contextualResolution.recommendation!,
-        currentText,
-      );
+      return contextualResolution.recommendation!;
     }
     if (contextualResolution.rejectionTrace != null) {
       contextTrace = contextualResolution.rejectionTrace!;
