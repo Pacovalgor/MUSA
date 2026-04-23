@@ -1,5 +1,6 @@
 import '../domain/musa/musa_objects.dart';
 import 'editorial_recommendation.dart';
+import 'editorial_signals.dart';
 import 'musa.dart';
 
 class MusaAutopilot {
@@ -188,6 +189,8 @@ class MusaAutopilot {
 
   _AutopilotAnalysis _analyze(String selection, NarrativeContext context) {
     final normalized = selection.trim();
+    final signals = buildEditorialSignals(normalized);
+
     final sentenceParts = normalized
         .split(RegExp(r'(?<=[\.\!\?\…])\s+'))
         .where((part) => part.trim().isNotEmpty)
@@ -203,15 +206,13 @@ class MusaAutopilot {
         .where((count) => count > 0)
         .toList();
 
-    final averageSentenceLength = sentenceLengths.isEmpty
-        ? wordMatches.length.toDouble()
-        : sentenceLengths.reduce((a, b) => a + b) / sentenceLengths.length;
     final maxSentenceLength = sentenceLengths.isEmpty
         ? wordMatches.length
         : sentenceLengths.reduce((a, b) => a > b ? a : b);
     final minSentenceLength = sentenceLengths.isEmpty
         ? wordMatches.length
         : sentenceLengths.reduce((a, b) => a < b ? a : b);
+
     final commaCount = ',;:'.split('').fold<int>(
           0,
           (acc, char) => acc + char.allMatches(normalized).length,
@@ -220,14 +221,14 @@ class MusaAutopilot {
       r'\b(que|porque|aunque|mientras|cuando|donde|which|that|because|although|while)\b',
       caseSensitive: false,
     ).allMatches(normalized).length;
+
     final repeatedWords = <String, int>{};
     for (final word in wordMatches) {
       repeatedWords[word] = (repeatedWords[word] ?? 0) + 1;
     }
     final repeatedPenalty =
         repeatedWords.values.where((count) => count >= 3).length;
-    final uniqueRatio =
-        wordMatches.isEmpty ? 1.0 : repeatedWords.length / wordMatches.length;
+
     final dramaticLexicon = RegExp(
       r'\b(sangre|sombr|oscur|miedo|amenaza|polic|grit|cadáver|arma|ruido|viento|sombra|blood|fear|threat|shadow|weapon|sirens?)\b',
       caseSensitive: false,
@@ -241,7 +242,7 @@ class MusaAutopilot {
     };
 
     var clarityScore = 0;
-    if (averageSentenceLength >= 22) {
+    if (signals.avgSentenceLength >= 22) {
       clarityScore += 2;
       triggers['clarity']!.add('frases largas');
     }
@@ -258,20 +259,7 @@ class MusaAutopilot {
     }
 
     var rhythmScore = 0;
-    int maxConsecutiveShorts = 0;
-    int currentConsecutiveShorts = 0;
-    for (final length in sentenceLengths) {
-      if (length < 6) {
-        currentConsecutiveShorts++;
-        if (currentConsecutiveShorts > maxConsecutiveShorts) {
-          maxConsecutiveShorts = currentConsecutiveShorts;
-        }
-      } else {
-        currentConsecutiveShorts = 0;
-      }
-    }
-
-    if (maxConsecutiveShorts >= 3) {
+    if (signals.shortSentenceStreak >= 3) {
       rhythmScore += 2;
       triggers['rhythm']!.add('frases cortas repetidas');
     }
@@ -281,7 +269,7 @@ class MusaAutopilot {
       rhythmScore += 2;
       triggers['rhythm']!.add('fragmentación alta');
     }
-    if (sentenceLengths.length == 1 && averageSentenceLength >= 16) {
+    if (sentenceLengths.length == 1 && signals.avgSentenceLength >= 16) {
       rhythmScore += 2;
     }
     if (RegExp(r'[,:;]').allMatches(normalized).isEmpty &&
@@ -290,7 +278,7 @@ class MusaAutopilot {
     }
 
     var styleScore = 0;
-    if (uniqueRatio < 0.68) {
+    if (signals.lexicalDiversity < 0.68) {
       styleScore += 2;
       triggers['style']!.add('repetición de términos');
     }
@@ -303,14 +291,7 @@ class MusaAutopilot {
     var tensionScore = 0;
 
     // Detect stagnant dialogue
-    final dialogueMarksCount = RegExp(r'[—"“”]').allMatches(normalized).length;
-    final hasActionSignals = _containsAny(normalized.toLowerCase(), const [
-      'corrió', 'golpeó', 'abrió', 'saltó', 'empujó', 'sacó', 'lanzó',
-      'miró', 'caminó', 'entró', 'salió', 'levantó', 'subió', 'bajó',
-      'reaccionó', 'decidió', 'detuvo', 'tomó', 'agarró', 'asintió', 'negó',
-      'obliga', 'requiere', 'impide', 'limita', 'prohíbe', 'cuesta', 'depende',
-    ]);
-    if (dialogueMarksCount >= 2 && !hasActionSignals) {
+    if (signals.dialogueMarksCount >= 2 && !signals.hasAction) {
       tensionScore += 2;
       triggers['tension']!.add('diálogo sin acción y ausencia de avance físico');
     }
@@ -349,12 +330,6 @@ class MusaAutopilot {
     );
   }
 
-  bool _containsAny(String value, List<String> tokens) {
-    for (final token in tokens) {
-      if (value.contains(token)) return true;
-    }
-    return false;
-  }
 }
 
 class _AutopilotAnalysis {

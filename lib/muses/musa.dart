@@ -1,3 +1,5 @@
+import 'editorial_signals.dart';
+
 abstract class Musa {
   final String id;
   final String name;
@@ -152,63 +154,30 @@ class TensionMusa extends Musa {
   @override
   List<String> _detectLocalRules(String selection) {
     final rules = <String>[];
-    final lowered = selection.toLowerCase();
-
-    final hasActionSignals = _containsAny(lowered, const [
-      // raíces / verbos físicos
-      'abr', 'corri', 'corr', 'grit', 'golp', 'salt', 'empuj', 'sac',
-      'lanz', 'mir', 'camin', 'entr', 'sal', 'levant', 'sub', 'baj',
-      'reaccion', 'decid', 'detuv', 'tom', 'agarr', 'asinti', 'neg',
-      // verbos operativos / de consecuencia
-      'obliga', 'requiere', 'impide', 'limita', 'prohíbe', 'cuesta', 'depende',
-    ]);
-
-    final actionCount = _countAny(lowered, const [
-      'abr', 'corri', 'corr', 'grit', 'golp', 'salt', 'empuj', 'sac',
-      'lanz', 'mir', 'camin', 'entr', 'sal', 'levant', 'sub', 'baj',
-      'reaccion', 'decid', 'detuv', 'tom', 'agarr', 'asinti', 'neg',
-      'obliga', 'requiere', 'impide', 'limita', 'prohíbe', 'cuesta', 'depende',
-    ]);
+    final signals = buildEditorialSignals(selection);
 
     // 1. Diálogo estancado
-    final dialogueMarksCount = RegExp(r'[—"“”]').allMatches(selection).length;
-    if (dialogueMarksCount >= 2 && !hasActionSignals) {
+    if (signals.dialogueMarksCount >= 2 && !signals.hasAction) {
       rules.add(
         'He detectado un intercambio de diálogo sin acción ni consecuencias; introduce gestos, movimientos o decisiones que hagan avanzar la escena y aumenten la tensión real.',
       );
     }
 
     // 2. Muchas preguntas sin acción
-    final questionsCount = '?'.allMatches(selection).length;
-    if (questionsCount >= 3 && actionCount == 0) {
+    if (signals.questionCount >= 3 && !signals.hasAction) {
       rules.add(
         'He detectado múltiples interrogantes sin señales de acción; prioriza las consecuencias y la fricción dramática frente a la duda pura.',
       );
     }
 
     // 3. Pasaje estático sin acción
-    if (selection.length > 60 && actionCount == 0) {
+    if (selection.length > 60 && !signals.hasAction) {
       rules.add(
         'El pasaje parece estático; inyecta verbos de acción física o fricción concreta para elevar la tensión.',
       );
     }
 
     return rules;
-  }
-
-  bool _containsAny(String value, List<String> tokens) {
-    for (final token in tokens) {
-      if (value.contains(token)) return true;
-    }
-    return false;
-  }
-
-  int _countAny(String value, List<String> tokens) {
-    var count = 0;
-    for (final token in tokens) {
-      if (value.contains(token)) count++;
-    }
-    return count;
   }
 }
 
