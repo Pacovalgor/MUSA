@@ -6,11 +6,38 @@ import 'musa.dart';
 class MusaAutopilot {
   const MusaAutopilot();
 
+  /// Applies effectiveness multipliers to analysis scores.
+  /// Used for adaptive thresholds based on user acceptance patterns.
+  _AutopilotAnalysis _applyMultipliers(
+    _AutopilotAnalysis analysis,
+    Map<String, double> multipliers,
+  ) {
+    return _AutopilotAnalysis(
+      clarityScore: (analysis.clarityScore * (multipliers['clarity'] ?? 1.0))
+          .round(),
+      rhythmScore: (analysis.rhythmScore * (multipliers['rhythm'] ?? 1.0))
+          .round(),
+      styleScore:
+          (analysis.styleScore * (multipliers['style'] ?? 1.0)).round(),
+      tensionScore:
+          (analysis.tensionScore * (multipliers['tension'] ?? 1.0)).round(),
+      bestMusa: analysis.bestMusa,
+      bestScore: analysis.bestScore,
+      triggers: analysis.triggers,
+    );
+  }
+
   EditorialRecommendation recommend({
     required String selection,
     required NarrativeContext context,
+    Map<String, double> musaMultipliers = const {},
   }) {
-    final analysis = _analyze(selection, context);
+    var analysis = _analyze(selection, context);
+
+    // Apply effectiveness multipliers if provided
+    if (musaMultipliers.isNotEmpty) {
+      analysis = _applyMultipliers(analysis, musaMultipliers);
+    }
 
     // Calculate secondary candidates for all paths
     final allMusas = [
