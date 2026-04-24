@@ -48,6 +48,11 @@ class _SuggestionReviewPanelState extends ConsumerState<SuggestionReviewPanel> {
     final isChapterFlow = editorState.isChapterAnalysisPending ||
         editorState.currentChapterAnalysis != null;
 
+    // Pipeline tracking data
+    final activePipeline = editorState.activePipeline;
+    final pipelineStepIndex = editorState.pipelineStepIndex;
+    final musaExecutionHistory = editorState.musaExecutionHistory;
+
     if (isChapterFlow) {
       return const SizedBox.shrink();
     }
@@ -154,6 +159,14 @@ class _SuggestionReviewPanelState extends ConsumerState<SuggestionReviewPanel> {
                                       visualPresence:
                                           musaSettings.visualPresence,
                                     ),
+                                    if (activePipeline.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      _PipelineProgress(
+                                        pipeline: activePipeline,
+                                        currentIndex: pipelineStepIndex,
+                                        executionHistory: musaExecutionHistory,
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -624,6 +637,118 @@ class _WaitingSurface extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _PipelineProgress extends StatelessWidget {
+  final List<Musa> pipeline;
+  final int currentIndex;
+  final List<Musa> executionHistory;
+
+  const _PipelineProgress({
+    required this.pipeline,
+    required this.currentIndex,
+    required this.executionHistory,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (pipeline.isEmpty) return const SizedBox.shrink();
+
+    final tokens = MusaTheme.tokensOf(context);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < pipeline.length; i++) ...[
+            if (i > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 10,
+                  color: tokens.textMuted.withValues(alpha: 0.5),
+                ),
+              ),
+            _PipelineStep(
+              musa: pipeline[i],
+              isActive: i == currentIndex,
+              isCompleted: i < currentIndex || executionHistory.contains(pipeline[i]),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PipelineStep extends StatelessWidget {
+  final Musa musa;
+  final bool isActive;
+  final bool isCompleted;
+
+  const _PipelineStep({
+    required this.musa,
+    required this.isActive,
+    required this.isCompleted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = MusaTheme.tokensOf(context);
+
+    final backgroundColor = isActive
+        ? tokens.hoverBackground
+        : isCompleted
+            ? tokens.panelBackground
+            : tokens.canvasBackground;
+
+    final textColor = isActive
+        ? tokens.textPrimary
+        : isCompleted
+            ? tokens.textSecondary
+            : tokens.textMuted;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border.all(
+          color: isActive ? tokens.textPrimary : tokens.borderSoft,
+          width: isActive ? 1.5 : 1.0,
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isCompleted && !isActive) ...[
+            Icon(
+              Icons.check_circle,
+              size: 12,
+              color: tokens.textSecondary,
+            ),
+            const SizedBox(width: 4),
+          ] else if (isActive) ...[
+            Icon(
+              Icons.radio_button_checked,
+              size: 12,
+              color: tokens.textPrimary,
+            ),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            musa.shortName.toLowerCase(),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: textColor,
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

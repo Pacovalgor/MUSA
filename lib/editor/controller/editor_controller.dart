@@ -33,6 +33,7 @@ import '../models/fragment_analysis.dart';
 import '../services/chapter_analysis_service.dart';
 import '../services/fragment_analysis_service.dart';
 import '../services/fragment_inference_utils.dart';
+import '../../muses/editorial_signals.dart';
 import 'musa_text_editing_controller.dart';
 import '../../modules/books/models/writing_settings.dart';
 import '../../modules/books/services/story_state_updater.dart';
@@ -1484,6 +1485,18 @@ class EditorController extends StateNotifier<EditorState> {
       }
 
       final musa = musas[index];
+
+      // Feedback loop: check if next musa is still needed
+      // If current input no longer has the signal this musa targets, skip it
+      if (index > 0 && _shouldSkipMusaByFeedback(musa, currentInput)) {
+        final updatedHistory = <Musa>[
+          ...state.musaExecutionHistory,
+          musa, // still record it, but mark as "skipped by feedback"
+        ];
+        state = state.copyWith(musaExecutionHistory: updatedHistory);
+        continue; // Skip execution
+      }
+
       state = state.copyWith(
         activeMusa: musa,
         generationPhase: MusaGenerationPhase.invoking,
@@ -3085,6 +3098,54 @@ class EditorController extends StateNotifier<EditorState> {
     state.controller.dispose();
     state.focusNode.dispose();
     super.dispose();
+  }
+
+  /// Feedback loop: determine if next musa should be skipped based on current input analysis
+  /// If a previous musa already solved the problem this one targets, skip it (conservative approach)
+  bool _shouldSkipMusaByFeedback(Musa musa, String currentInput) {
+    final signals = buildEditorialSignals(currentInput);
+    final dialogueMarks = signals.dialogueMarksCount;
+    final isDialogueHeavy = dialogueMarks >= 4;
+
+    // RhythmMusa: skip if rhythm issues already resolved by previous steps
+    if (musa.slug == 'rhythm') {
+      // Rhythm was needed if there were long sentences OR short streaks
+      // If both are now mild, skip it
+      final hasLongSentences = signals.longSentenceCount >= 2;
+      final hasShortStreaks = signals.shortSentenceStreak >= 3;
+      if (!hasLongSentences && !hasShortStreaks) {
+        return true; // Previous musa fixed it, no need for Rhythm
+      }
+    }
+
+    // ClarityMusa: skip if clarity issues were already present before (can't help more)
+    if (musa.slug == 'clarity') {
+      // Clarity targets: multiple questions + short dialogue
+      final hasQuestions = signals.questionCount >= 2;
+      final hasDialogue = isDialogueHeavy;
+      if (!hasQuestions && !hasDialogue) {
+        return true; // No clarity issues left to fix
+      }
+    }
+
+    // StyleMusa: skip if no lexical issues remain
+    if (musa.slug == 'style') {
+      // Style targets low lexical diversity + adverbs
+      // Conservative: only skip if diversity is strong
+      if (signals.lexicalDiversity > 0.75) {
+        return true; // Already has good vocabulary variety
+      }
+    }
+
+    // TensionMusa: skip if no action signals exist
+    if (musa.slug == 'tension') {
+      final actionStrength = signals.contextualActionStrength(isDialogueHeavy);
+      if (actionStrength > 0.6) {
+        return true; // Already has strong action/drama
+      }
+    }
+
+    return false; // Default: execute this musa
   }
 }
 

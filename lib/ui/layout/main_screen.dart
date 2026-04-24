@@ -28,6 +28,7 @@ import '../../services/print/print_service.dart';
 import '../../shared/storage/local_workspace_storage.dart';
 import '../../shared/storage/macos_secure_file_picker.dart';
 import '../../shared/storage/musa_project_document.dart';
+import '../lofi/lofi_player_widget.dart';
 import '../providers/ui_providers.dart';
 import '../widgets/inspector.dart';
 import '../widgets/musa_settings_dialog.dart';
@@ -497,6 +498,24 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                 const SizedBox(width: 6),
               ],
               _buildDownloadIndicator(ref),
+              IconButton(
+                icon: Icon(
+                  Icons.music_note_outlined,
+                  size: 20,
+                  color: tokens.textMuted,
+                ),
+                tooltip: 'Música Lofi',
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => Dialog(
+                    child: SizedBox(
+                      width: 360,
+                      height: 600,
+                      child: const LofiPlayerWidget(),
+                    ),
+                  ),
+                ),
+              ),
               IconButton(
                 icon: Icon(
                   Icons.tune,
