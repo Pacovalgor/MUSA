@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../services/audio/lofi_audio_providers.dart';
-import '../../services/audio/lofi_audio_service.dart';
 import '../../services/audio/lofi_track.dart';
 
 class LofiPlayerWidget extends ConsumerStatefulWidget {
-  const LofiPlayerWidget({Key? key}) : super(key: key);
+  const LofiPlayerWidget({super.key});
 
   @override
   ConsumerState<LofiPlayerWidget> createState() => _LofiPlayerWidgetState();
@@ -23,15 +23,9 @@ class _LofiPlayerWidgetState extends ConsumerState<LofiPlayerWidget> {
 
     return catalogAsync.when(
       data: (catalog) {
-        _selectedCategory ??= catalog.categories.isNotEmpty
-            ? catalog.categories[0].slug
-            : null;
+        _selectedCategory ??= catalog.categories.isNotEmpty ? catalog.categories[0].slug : null;
 
-        final filteredTracks = _selectedCategory != null
-            ? catalog.tracks
-                .where((t) => t.category == _selectedCategory)
-                .toList()
-            : [];
+        final filteredTracks = _selectedCategory != null ? catalog.tracks.where((t) => t.category == _selectedCategory).toList() : [];
 
         return SingleChildScrollView(
           child: Column(
@@ -91,8 +85,7 @@ class _LofiPlayerWidgetState extends ConsumerState<LofiPlayerWidget> {
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: FilterChip(
-                        label: Text(category.label,
-                            style: const TextStyle(fontSize: 11)),
+                        label: Text(category.label, style: const TextStyle(fontSize: 11)),
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() {
@@ -196,8 +189,7 @@ class _PlaybackControls extends ConsumerWidget {
           children: [
             IconButton(
               icon: isPlaying.when(
-                data: (playing) =>
-                    Icon(playing ? Icons.pause : Icons.play_arrow),
+                data: (playing) => Icon(playing ? Icons.pause : Icons.play_arrow),
                 loading: () => const Icon(Icons.hourglass_empty),
                 error: (_, __) => const Icon(Icons.error),
               ),
