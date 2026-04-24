@@ -3108,7 +3108,7 @@ class EditorController extends StateNotifier<EditorState> {
     final isDialogueHeavy = dialogueMarks >= 4;
 
     // RhythmMusa: skip if rhythm issues already resolved by previous steps
-    if (musa.slug == 'rhythm') {
+    if (musa.id == 'rhythm') {
       // Rhythm was needed if there were long sentences OR short streaks
       // If both are now mild, skip it
       final hasLongSentences = signals.longSentenceCount >= 2;
@@ -3119,7 +3119,7 @@ class EditorController extends StateNotifier<EditorState> {
     }
 
     // ClarityMusa: skip if clarity issues were already present before (can't help more)
-    if (musa.slug == 'clarity') {
+    if (musa.id == 'clarity') {
       // Clarity targets: multiple questions + short dialogue
       final hasQuestions = signals.questionCount >= 2;
       final hasDialogue = isDialogueHeavy;
@@ -3129,7 +3129,7 @@ class EditorController extends StateNotifier<EditorState> {
     }
 
     // StyleMusa: skip if no lexical issues remain
-    if (musa.slug == 'style') {
+    if (musa.id == 'style') {
       // Style targets low lexical diversity + adverbs
       // Conservative: only skip if diversity is strong
       if (signals.lexicalDiversity > 0.75) {
@@ -3138,7 +3138,7 @@ class EditorController extends StateNotifier<EditorState> {
     }
 
     // TensionMusa: skip if no action signals exist
-    if (musa.slug == 'tension') {
+    if (musa.id == 'tension') {
       final actionStrength = signals.contextualActionStrength(isDialogueHeavy);
       if (actionStrength > 0.6) {
         return true; // Already has strong action/drama
