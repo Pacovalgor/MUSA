@@ -6,6 +6,13 @@
 - La persistencia del workspace y del documento `.musa` es un contrato central: cualquier cambio debe preservar compatibilidad de serialización y restauración.
 - El dominio está segmentado en módulos (`books`, `manuscript`, `characters`, `scenarios`, `notes`, `continuity`, `musa`) con modelos inmutables y providers específicos por slice.
 - **V1.3 (2026-04-20)**: Implementado gating estructural en `ChapterAnalysisService` y `NextBestMoveService`. Se ha añadido refinamiento por contexto local en `NextBestMoveService` y en Musas individuales (`ClarityMusa`, `StyleMusa`, `RhythmMusa`, `TensionMusa`) para ofrecer instrucciones quirúrgicas basadas en el fragmento seleccionado. Se ha introducido la detección de **diálogo estancado** en `TensionMusa` y un sistema de **explicabilidad basada en señales** en `MusaAutopilot` para dotar de trazabilidad a las recomendaciones editoriales.
+- **V1.4 (2026-04-24)**: 
+  - ✅ Agregada música lofi embebida (30 pistas Open-Lofi, ~88 MB) con widget de selección por categoría y persistencia de preferencias
+  - ✅ **Confidence scoring** en `NarrativeDocumentClassifier`: clasificaciones retornan probabilidad (0.0-1.0) permitiendo descartar sugerencias en textos ambiguos
+  - ✅ **Ponderación de verbos** en `EditorialSignals`: verbos de acción divididos en 3 categorías (físicos, operacionales, dicendi) con blending contextual, evita penalizar escenas de diálogo puro
+  - ✅ **Feedback loops** en pipelines: `_shouldSkipMusaByFeedback()` analiza salida de Musa N antes de ejecutar N+1, evita procesamiento redundante (ej: ClarityMusa + RhythmMusa no corren ambas si Clarity ya solucionó ritmo)
+  - 🔄 **Pipeline transparency** (parcial): `musaExecutionHistory` rastrea musas ejecutadas/saltadas; falta exposición UI mejorada
+  - ⏳ **Adaptive thresholds**: pendiente para future iteration
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
