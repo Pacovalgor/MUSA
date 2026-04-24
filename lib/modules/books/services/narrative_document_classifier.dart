@@ -115,9 +115,13 @@ class NarrativeDocumentClassifier {
       );
     }
 
-    final sceneSignals = _countSceneSignals(sample);
+    final (sceneSignals, actionPresent, contextPresent) = _countSceneSignals(sample);
     final manuscriptBonus = isManuscript && content.length > 40 ? 0.3 : 0.0;
-    if (sceneSignals > 0 || manuscriptBonus > 0) {
+
+    // Require action/context signals alongside introspection to avoid false positives
+    final hasSceneContext = actionPresent || contextPresent;
+
+    if (sceneSignals > 0 && hasSceneContext || manuscriptBonus > 0) {
       final baseConfidence = (sceneSignals * 0.25).clamp(0.0, 1.0) + manuscriptBonus;
       return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.scene,
@@ -147,8 +151,10 @@ class NarrativeDocumentClassifier {
         document.kind == DocumentKind.scene;
   }
 
-  int _countSceneSignals(String sample) {
+  (int, bool, bool) _countSceneSignals(String sample) {
     int signals = 0;
+    bool actionPresent = false;
+    bool contextPresent = false;
 
     final firstPersonTokens = const [
       ' me ',
@@ -175,9 +181,15 @@ class NarrativeDocumentClassifier {
       'seguía',
       'estaba',
     ];
-    if (_hasAny(sample, actionTokens)) signals++;
+    if (_hasAny(sample, actionTokens)) {
+      signals++;
+      actionPresent = true;
+    }
 
-    final timeMatch = RegExp(r'\b\d{1,2}:\s?\d{2}\b').hasMatch(sample);
+    final timeMatchClock = RegExp(r'\b\d{1,2}:\s?\d{2}\b').hasMatch(sample);
+    final timeMatchAMPM = RegExp(r'\b\d{1,2}\s*(?:am|pm)\b').hasMatch(sample);
+    final timeMatch = timeMatchClock || timeMatchAMPM;
+
     final placeTokens = const [
       'san francisco',
       'apartamento',
@@ -189,9 +201,12 @@ class NarrativeDocumentClassifier {
     ];
     final hasPlace = _hasAny(sample, placeTokens);
 
-    if (timeMatch || hasPlace) signals++;
+    if (timeMatch || hasPlace) {
+      signals++;
+      contextPresent = true;
+    }
 
-    return signals;
+    return (signals, actionPresent, contextPresent);
   }
 
   bool _hasAny(String value, List<String> tokens) {
