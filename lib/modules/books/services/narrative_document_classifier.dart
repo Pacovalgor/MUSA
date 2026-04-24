@@ -41,19 +41,22 @@ class NarrativeDocumentClassifier {
     final sample =
         '$lowerTitle\n${lowerText.length > 2400 ? lowerText.substring(0, 2400) : lowerText}';
 
+    // Chapters/scenes are assumed narrative — skip technical/research detection
+    // unless there are very strong signals (≥2 matches) to avoid false positives
+    // from short tokens like 'api' matching as substrings in Spanish words.
     final technicalTokens = const [
       'entrevista full stack',
       'manual completo',
       'objetivo transmitir',
-      'regla base',
       'frontend',
       'backend',
-      'api',
+      ' api ',
       'pull request',
       'currículum',
     ];
+    final technicalThreshold = isManuscript ? 2 : 1;
     final technicalMatches = _countMatches(sample, technicalTokens);
-    if (technicalMatches > 0) {
+    if (technicalMatches >= technicalThreshold) {
       final confidence = (technicalMatches / technicalTokens.length).clamp(0.5, 1.0);
       return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.technical,
@@ -77,8 +80,9 @@ class NarrativeDocumentClassifier {
       'osint',
       'apofenia',
     ];
+    final researchThreshold = isManuscript ? 2 : 1;
     final researchMatches = _countMatches(sample, researchTokens);
-    if (researchMatches > 0) {
+    if (researchMatches >= researchThreshold) {
       final confidence = (researchMatches / researchTokens.length).clamp(0.5, 1.0);
       return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.research,

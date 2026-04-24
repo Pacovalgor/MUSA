@@ -347,6 +347,7 @@ class _MusaSidebarState extends ConsumerState<MusaSidebar> {
                     .read(narrativeWorkspaceProvider.notifier)
                     .selectDocument(document.id);
               },
+              onDelete: () => _handleDeleteDocument(context, ref, document),
             );
           },
         ),
@@ -650,6 +651,8 @@ class _MusaSidebarState extends ConsumerState<MusaSidebar> {
     VoidCallback? onTap,
     VoidCallback? onRename,
     String renameTooltip = 'Renombrar',
+    VoidCallback? onDelete,
+    String deleteTooltip = 'Eliminar',
     bool isLoading = false,
     bool showReadyPulse = false,
     bool underlineTitle = false,
@@ -751,6 +754,14 @@ class _MusaSidebarState extends ConsumerState<MusaSidebar> {
                     onPressed: onRename,
                     tooltip: renameTooltip,
                     icon: const Icon(Icons.edit_outlined, size: 16),
+                    color: isSelected ? tokens.textSecondary : tokens.textMuted,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                if (onDelete != null)
+                  IconButton(
+                    onPressed: onDelete,
+                    tooltip: deleteTooltip,
+                    icon: const Icon(Icons.delete_outline_rounded, size: 16),
                     color: isSelected ? tokens.textSecondary : tokens.textMuted,
                     visualDensity: VisualDensity.compact,
                   ),
@@ -1081,6 +1092,21 @@ class _MusaSidebarState extends ConsumerState<MusaSidebar> {
           title: title,
           kind: DocumentKind.chapter,
         );
+  }
+
+  Future<void> _handleDeleteDocument(
+    BuildContext context,
+    WidgetRef ref,
+    Document document,
+  ) async {
+    final confirmed = await EditorialDialogs.confirmDestructive(
+      context,
+      title: 'Eliminar capítulo',
+      message:
+          'Se eliminará "${document.title}". Esta acción no se puede deshacer.',
+    );
+    if (!confirmed || !context.mounted) return;
+    await ref.read(narrativeWorkspaceProvider.notifier).deleteDocument(document.id);
   }
 
   Future<void> _handleCreateNote(BuildContext context, WidgetRef ref) async {

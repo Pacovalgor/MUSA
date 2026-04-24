@@ -1164,6 +1164,40 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
     );
   }
 
+  Future<void> deleteDocument(String documentId) async {
+    final workspace = state.value;
+    final activeBookId = workspace?.activeBook?.id;
+    if (workspace == null || activeBookId == null) return;
+
+    final now = DateTime.now();
+    final remaining = workspace.documents.where((doc) => doc.id != documentId).toList();
+
+    // Reindex documents for the active book to keep orderIndex contiguous
+    final bookDocs = remaining.where((doc) => doc.bookId == activeBookId).toList()
+      ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+    final reindexed = <Document>[];
+    for (var i = 0; i < bookDocs.length; i++) {
+      final doc = bookDocs[i];
+      reindexed.add(doc.orderIndex != i ? doc.copyWith(orderIndex: i, updatedAt: now) : doc);
+    }
+    final updatedDocuments = [
+      ...remaining.where((doc) => doc.bookId != activeBookId),
+      ...reindexed,
+    ];
+
+    final wasSelected = workspace.selectedDocumentId == documentId;
+    final nextDocumentId = wasSelected && reindexed.isNotEmpty ? reindexed.first.id : null;
+
+    await _persist(
+      workspace.copyWith(
+        documents: updatedDocuments,
+        books: _touchActiveBook(workspace.books, activeBookId, now),
+        selectedDocumentId: wasSelected ? nextDocumentId : workspace.selectedDocumentId,
+        clearSelectedDocumentId: wasSelected && nextDocumentId == null,
+      ),
+    );
+  }
+
   Future<void> linkCharacterToDocument({
     required String documentId,
     required String characterId,
