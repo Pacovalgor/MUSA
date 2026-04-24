@@ -1,0 +1,211 @@
+{
+  "name": "OpenLo-Fi",
+  "version": "1.0.0",
+  "license": "CC0-1.0",
+  "description": "A free, public-domain collection of lo-fi music tracks.",
+  "trackCount": 30,
+  "categories": [
+    {
+      "slug": "chillhop",
+      "label": "Chillhop & Cozy Beats",
+      "trackCount": 8
+    },
+    {
+      "slug": "jazzhop",
+      "label": "Jazz Lounge & Bookstore Grooves",
+      "trackCount": 12
+    },
+    {
+      "slug": "ambient-lofi",
+      "label": "Ambient Drift & Dreamscapes",
+      "trackCount": 21
+    },
+    {
+      "slug": "soul-rnb",
+      "label": "Soul, Slow Jams & Warm Rooms",
+      "trackCount": 21
+    },
+    {
+      "slug": "asian-lofi",
+      "label": "Asian & Zen Lo-Fi",
+      "trackCount": 8
+    },
+    {
+      "slug": "funk-soul",
+      "label": "Funk, Soul & Retro Bounce",
+      "trackCount": 14
+    },
+    {
+      "slug": "seasonal-weather",
+      "label": "Seasons, Rain & Weather",
+      "trackCount": 27
+    },
+    {
+      "slug": "late-night",
+      "label": "Late Night, Neon & After Hours",
+      "trackCount": 18
+    },
+    {
+      "slug": "activities",
+      "label": "Focus, Rituals & Daily Routines",
+      "trackCount": 29
+    },
+    {
+      "slug": "hybrid",
+      "label": "Hybrid, World & Cinematic",
+      "trackCount": 8
+    }
+  ],
+  "tracks": [
+    {
+      "title": "2 AM Debug Loop",
+      "filename": "2-am-debug-loop.mp3",
+      "category": "activities"
+    },
+    {
+      "title": "Brushstrokes and Rain",
+      "filename": "brushstrokes-and-rain.mp3",
+      "category": "activities"
+    },
+    {
+      "title": "Butter and Windowlight",
+      "filename": "butter-and-windowlight.mp3",
+      "category": "activities"
+    },
+    {
+      "title": "Almost Floating",
+      "filename": "almost-floating.mp3",
+      "category": "ambient-lofi"
+    },
+    {
+      "title": "Aurora on Mute",
+      "filename": "aurora-on-mute.mp3",
+      "category": "ambient-lofi"
+    },
+    {
+      "title": "Blue Below the Surface",
+      "filename": "blue-below-the-surface.mp3",
+      "category": "ambient-lofi"
+    },
+    {
+      "title": "Bamboo Shadow Waltz",
+      "filename": "bamboo-shadow-waltz.mp3",
+      "category": "asian-lofi"
+    },
+    {
+      "title": "Bells Before Sunrise",
+      "filename": "bells-before-sunrise.mp3",
+      "category": "asian-lofi"
+    },
+    {
+      "title": "Lanterns in Slow Motion",
+      "filename": "lanterns-in-slow-motion.mp3",
+      "category": "asian-lofi"
+    },
+    {
+      "title": "Dusk Between Stoops",
+      "filename": "dusk-between-stoops.mp3",
+      "category": "chillhop"
+    },
+    {
+      "title": "Dust on the Morning Keys",
+      "filename": "dust-on-the-morning-keys.mp3",
+      "category": "chillhop"
+    },
+    {
+      "title": "Glow on the Overpass",
+      "filename": "glow-on-the-overpass.mp3",
+      "category": "chillhop"
+    },
+    {
+      "title": "Basement Groove 86",
+      "filename": "basement-groove-86.mp3",
+      "category": "funk-soul"
+    },
+    {
+      "title": "Block Party Slow Jam",
+      "filename": "block-party-slow-jam.mp3",
+      "category": "funk-soul"
+    },
+    {
+      "title": "Burnt Sunset Groove",
+      "filename": "burnt-sunset-groove.mp3",
+      "category": "funk-soul"
+    },
+    {
+      "title": "Cafe Da Tarde",
+      "filename": "cafe-da-tarde.mp3",
+      "category": "hybrid"
+    },
+    {
+      "title": "Cassette Pastel Nights",
+      "filename": "cassette-pastel-nights.mp3",
+      "category": "hybrid"
+    },
+    {
+      "title": "Dusk on Red Earth",
+      "filename": "dusk-on-red-earth.mp3",
+      "category": "hybrid"
+    },
+    {
+      "title": "Ashes in the Coffee Cup",
+      "filename": "ashes-in-the-coffee-cup.mp3",
+      "category": "jazzhop"
+    },
+    {
+      "title": "Breezy Afternoon Terrace",
+      "filename": "breezy-afternoon-terrace.mp3",
+      "category": "jazzhop"
+    },
+    {
+      "title": "Candlelit at 70 BPM",
+      "filename": "candlelit-at-70-bpm.mp3",
+      "category": "jazzhop"
+    },
+    {
+      "title": "3 AM Echoes",
+      "filename": "3-am-echoes.mp3",
+      "category": "late-night"
+    },
+    {
+      "title": "Antenna After Midnight",
+      "filename": "antenna-after-midnight.mp3",
+      "category": "late-night"
+    },
+    {
+      "title": "Blinds and Headlights",
+      "filename": "blinds-and-headlights.mp3",
+      "category": "late-night"
+    },
+    {
+      "title": "A Taste of Spring",
+      "filename": "a-taste-of-spring.mp3",
+      "category": "seasonal-weather"
+    },
+    {
+      "title": "After School Rain",
+      "filename": "after-school-rain.mp3",
+      "category": "seasonal-weather"
+    },
+    {
+      "title": "Amber Sidewalks",
+      "filename": "amber-sidewalks.mp3",
+      "category": "seasonal-weather"
+    },
+    {
+      "title": "3AM Sink Light",
+      "filename": "3am-sink-light.mp3",
+      "category": "soul-rnb"
+    },
+    {
+      "title": "Barefoot in the Kitchen",
+      "filename": "barefoot-in-the-kitchen.mp3",
+      "category": "soul-rnb"
+    },
+    {
+      "title": "Candle Wax Heart",
+      "filename": "candle-wax-heart.mp3",
+      "category": "soul-rnb"
+    }
+  ]
+}
