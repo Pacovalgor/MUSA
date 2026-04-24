@@ -11,13 +11,17 @@ enum NarrativeDocumentKind {
 class NarrativeDocumentClassification {
   final NarrativeDocumentKind kind;
   final String reason;
+  final double confidence;
 
   const NarrativeDocumentClassification({
     required this.kind,
     required this.reason,
+    this.confidence = 1.0,
   });
 
   bool get updatesStoryState => kind == NarrativeDocumentKind.scene;
+  bool get isAmbiguous => confidence < 0.6;
+  bool get isConfident => confidence >= 0.85;
 }
 
 class NarrativeDocumentClassifier {
@@ -37,7 +41,7 @@ class NarrativeDocumentClassifier {
     final sample =
         '$lowerTitle\n${lowerText.length > 2400 ? lowerText.substring(0, 2400) : lowerText}';
 
-    if (_hasAny(sample, const [
+    final technicalTokens = const [
       'entrevista full stack',
       'manual completo',
       'objetivo transmitir',
@@ -47,15 +51,19 @@ class NarrativeDocumentClassifier {
       'api',
       'pull request',
       'currículum',
-    ])) {
-      return const NarrativeDocumentClassification(
+    ];
+    final technicalMatches = _countMatches(sample, technicalTokens);
+    if (technicalMatches > 0) {
+      final confidence = (technicalMatches / technicalTokens.length).clamp(0.5, 1.0);
+      return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.technical,
         reason:
             'Parece material técnico o de preparación, no una escena narrativa.',
+        confidence: confidence,
       );
     }
 
-    if (_hasAny(sample, const [
+    final researchTokens = const [
       'resumen ejecutivo',
       'documento de investigación',
       'objetivo de este documento',
@@ -68,47 +76,70 @@ class NarrativeDocumentClassifier {
       'este documento explica',
       'osint',
       'apofenia',
-    ])) {
-      return const NarrativeDocumentClassification(
+    ];
+    final researchMatches = _countMatches(sample, researchTokens);
+    if (researchMatches > 0) {
+      final confidence = (researchMatches / researchTokens.length).clamp(0.5, 1.0);
+      return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.research,
         reason: 'Parece material de investigación o apoyo documental.',
+        confidence: confidence,
       );
     }
 
-    if (_hasAny(sample, const [
-          'reino',
-          'magia',
-          'culto',
-          'ritual',
-          'símbolos',
-          'mitología',
-          'reglas del mundo',
-        ]) &&
-        _hasAny(sample, const [
-          'diseñar',
-          'construir',
-          'uso narrativo',
-          'worldbuilding',
-          'origen cultural',
-        ])) {
-      return const NarrativeDocumentClassification(
+    final worldbuildingMagicTokens = const [
+      'reino',
+      'magia',
+      'culto',
+      'ritual',
+      'símbolos',
+      'mitología',
+      'reglas del mundo',
+    ];
+    final worldbuildingBuildTokens = const [
+      'diseñar',
+      'construir',
+      'uso narrativo',
+      'worldbuilding',
+      'origen cultural',
+    ];
+    final magicMatches = _countMatches(sample, worldbuildingMagicTokens);
+    final buildMatches = _countMatches(sample, worldbuildingBuildTokens);
+    if (magicMatches > 0 && buildMatches > 0) {
+      final confidence = ((magicMatches + buildMatches) /
+          (worldbuildingMagicTokens.length + worldbuildingBuildTokens.length)).clamp(0.5, 1.0);
+      return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.worldbuilding,
         reason: 'Parece construcción de mundo o material de diseño narrativo.',
+        confidence: confidence,
       );
     }
 
-    if (_hasSceneSignals(sample) || (isManuscript && content.length > 40)) {
-      return const NarrativeDocumentClassification(
+    final sceneSignals = _countSceneSignals(sample);
+    final manuscriptBonus = isManuscript && content.length > 40 ? 0.3 : 0.0;
+    if (sceneSignals > 0 || manuscriptBonus > 0) {
+      final baseConfidence = (sceneSignals * 0.25).clamp(0.0, 1.0) + manuscriptBonus;
+      return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.scene,
         reason:
             'Contiene señales de escena narrativa o un capítulo manuscrito sustancial.',
+        confidence: baseConfidence.clamp(0.4, 1.0),
       );
     }
 
     return const NarrativeDocumentClassification(
       kind: NarrativeDocumentKind.unknown,
       reason: 'No hay suficientes señales para tratarlo como escena narrativa.',
+      confidence: 0.0,
     );
+  }
+
+  int _countMatches(String value, List<String> tokens) {
+    int count = 0;
+    for (final token in tokens) {
+      if (value.contains(token)) count++;
+    }
+    return count;
   }
 
   bool _isManuscriptDocument(Document document) {
@@ -116,8 +147,10 @@ class NarrativeDocumentClassifier {
         document.kind == DocumentKind.scene;
   }
 
-  bool _hasSceneSignals(String sample) {
-    final hasFirstPerson = _hasAny(sample, const [
+  int _countSceneSignals(String sample) {
+    int signals = 0;
+
+    final firstPersonTokens = const [
       ' me ',
       ' mi ',
       ' mis ',
@@ -127,8 +160,10 @@ class NarrativeDocumentClassifier {
       ' caminé',
       ' pensé',
       ' sentí',
-    ]);
-    final hasSceneAction = _hasAny(sample, const [
+    ];
+    if (_hasAny(sample, firstPersonTokens)) signals++;
+
+    final actionTokens = const [
       'dije',
       'respondió',
       'preguntó',
@@ -139,19 +174,24 @@ class NarrativeDocumentClassifier {
       'encendí',
       'seguía',
       'estaba',
-    ]);
-    final hasTimeOrPlace = RegExp(r'\b\d{1,2}:\s?\d{2}\b').hasMatch(sample) ||
-        _hasAny(sample, const [
-          'san francisco',
-          'apartamento',
-          'callejón',
-          'redacción',
-          'cafetería',
-          'mission',
-          'tenderloin',
-        ]);
-    return (hasFirstPerson && hasSceneAction) ||
-        (hasTimeOrPlace && hasSceneAction);
+    ];
+    if (_hasAny(sample, actionTokens)) signals++;
+
+    final timeMatch = RegExp(r'\b\d{1,2}:\s?\d{2}\b').hasMatch(sample);
+    final placeTokens = const [
+      'san francisco',
+      'apartamento',
+      'callejón',
+      'redacción',
+      'cafetería',
+      'mission',
+      'tenderloin',
+    ];
+    final hasPlace = _hasAny(sample, placeTokens);
+
+    if (timeMatch || hasPlace) signals++;
+
+    return signals;
   }
 
   bool _hasAny(String value, List<String> tokens) {
