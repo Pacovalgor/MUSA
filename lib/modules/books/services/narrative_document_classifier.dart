@@ -1,3 +1,4 @@
+import '../../../editor/services/text_analysis_lexicons.dart';
 import '../../manuscript/models/document.dart';
 
 enum NarrativeDocumentKind {
@@ -44,20 +45,13 @@ class NarrativeDocumentClassifier {
     // Chapters/scenes are assumed narrative — skip technical/research detection
     // unless there are very strong signals (≥2 matches) to avoid false positives
     // from short tokens like 'api' matching as substrings in Spanish words.
-    final technicalTokens = const [
-      'entrevista full stack',
-      'manual completo',
-      'objetivo transmitir',
-      'frontend',
-      'backend',
-      ' api ',
-      'pull request',
-      'currículum',
-    ];
     final technicalThreshold = isManuscript ? 2 : 1;
-    final technicalMatches = _countMatches(sample, technicalTokens);
+    final technicalMatches =
+        _countMatches(sample, TextAnalysisLexicons.documentTechnicalTokens);
     if (technicalMatches >= technicalThreshold) {
-      final confidence = (technicalMatches / technicalTokens.length).clamp(0.5, 1.0);
+      final confidence = (technicalMatches /
+              TextAnalysisLexicons.documentTechnicalTokens.length)
+          .clamp(0.5, 1.0);
       return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.technical,
         reason:
@@ -66,24 +60,13 @@ class NarrativeDocumentClassifier {
       );
     }
 
-    final researchTokens = const [
-      'resumen ejecutivo',
-      'documento de investigación',
-      'objetivo de este documento',
-      'cómo hacer que',
-      'cómo construir',
-      'qué es la',
-      'características:',
-      'se basa',
-      'este documento analiza',
-      'este documento explica',
-      'osint',
-      'apofenia',
-    ];
     final researchThreshold = isManuscript ? 2 : 1;
-    final researchMatches = _countMatches(sample, researchTokens);
+    final researchMatches =
+        _countMatches(sample, TextAnalysisLexicons.documentResearchTokens);
     if (researchMatches >= researchThreshold) {
-      final confidence = (researchMatches / researchTokens.length).clamp(0.5, 1.0);
+      final confidence = (researchMatches /
+              TextAnalysisLexicons.documentResearchTokens.length)
+          .clamp(0.5, 1.0);
       return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.research,
         reason: 'Parece material de investigación o apoyo documental.',
@@ -91,27 +74,15 @@ class NarrativeDocumentClassifier {
       );
     }
 
-    final worldbuildingMagicTokens = const [
-      'reino',
-      'magia',
-      'culto',
-      'ritual',
-      'símbolos',
-      'mitología',
-      'reglas del mundo',
-    ];
-    final worldbuildingBuildTokens = const [
-      'diseñar',
-      'construir',
-      'uso narrativo',
-      'worldbuilding',
-      'origen cultural',
-    ];
-    final magicMatches = _countMatches(sample, worldbuildingMagicTokens);
-    final buildMatches = _countMatches(sample, worldbuildingBuildTokens);
+    final magicMatches = _countMatches(
+        sample, TextAnalysisLexicons.documentWorldbuildingMagicTokens);
+    final buildMatches = _countMatches(
+        sample, TextAnalysisLexicons.documentWorldbuildingBuildTokens);
     if (magicMatches > 0 && buildMatches > 0) {
       final confidence = ((magicMatches + buildMatches) /
-          (worldbuildingMagicTokens.length + worldbuildingBuildTokens.length)).clamp(0.5, 1.0);
+              (TextAnalysisLexicons.documentWorldbuildingMagicTokens.length +
+                  TextAnalysisLexicons.documentWorldbuildingBuildTokens.length))
+          .clamp(0.5, 1.0);
       return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.worldbuilding,
         reason: 'Parece construcción de mundo o material de diseño narrativo.',
@@ -160,32 +131,11 @@ class NarrativeDocumentClassifier {
     bool actionPresent = false;
     bool contextPresent = false;
 
-    final firstPersonTokens = const [
-      ' me ',
-      ' mi ',
-      ' mis ',
-      ' conmigo ',
-      ' desperté',
-      ' miré',
-      ' caminé',
-      ' pensé',
-      ' sentí',
-    ];
-    if (_hasAny(sample, firstPersonTokens)) signals++;
+    if (_hasAny(sample, TextAnalysisLexicons.documentSceneFirstPersonTokens)) {
+      signals++;
+    }
 
-    final actionTokens = const [
-      'dije',
-      'respondió',
-      'preguntó',
-      'me detuve',
-      'entré',
-      'salí',
-      'levanté',
-      'encendí',
-      'seguía',
-      'estaba',
-    ];
-    if (_hasAny(sample, actionTokens)) {
+    if (_hasAny(sample, TextAnalysisLexicons.documentSceneActionTokens)) {
       signals++;
       actionPresent = true;
     }
@@ -194,16 +144,8 @@ class NarrativeDocumentClassifier {
     final timeMatchAMPM = RegExp(r'\b\d{1,2}\s*(?:am|pm)\b').hasMatch(sample);
     final timeMatch = timeMatchClock || timeMatchAMPM;
 
-    final placeTokens = const [
-      'san francisco',
-      'apartamento',
-      'callejón',
-      'redacción',
-      'cafetería',
-      'mission',
-      'tenderloin',
-    ];
-    final hasPlace = _hasAny(sample, placeTokens);
+    final hasPlace =
+        _hasAny(sample, TextAnalysisLexicons.documentScenePlaceTokens);
 
     if (timeMatch || hasPlace) {
       signals++;

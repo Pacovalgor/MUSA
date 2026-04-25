@@ -1,3 +1,4 @@
+import '../../../editor/services/text_analysis_lexicons.dart';
 import '../models/book.dart';
 import '../models/narrative_copilot.dart';
 import 'narrative_document_classifier.dart';
@@ -422,17 +423,20 @@ class NextBestMoveService {
     final tokens = RegExp(r'[a-záéíóúñü]{3,}', caseSensitive: false)
         .allMatches(text.toLowerCase())
         .map((match) => match.group(0)!)
-        .where((token) => !_stopWords.contains(token))
+        .where((token) => !TextAnalysisLexicons.nextMoveStopWords.contains(token))
         .toSet();
     return tokens;
   }
 
   _ContextGateResult _evaluateContextConfidence(String value) {
     final lowered = value.toLowerCase();
-    final hasStructuralMarker = _containsAny(lowered, _structuralMarkers);
-    final hasOperationalVerb = _containsAny(lowered, _operationalVerbs);
+    final hasStructuralMarker =
+        _containsAny(lowered, TextAnalysisLexicons.nextMoveStructuralMarkers);
+    final hasOperationalVerb =
+        _containsAny(lowered, TextAnalysisLexicons.nextMoveOperationalVerbs);
     final isDialogLike = _isDialogLike(value);
-    final isGeneric = _containsAny(lowered, _genericSignals);
+    final isGeneric =
+        _containsAny(lowered, TextAnalysisLexicons.nextMoveGenericSignals);
     final isTooShort =
         lowered.replaceAll(RegExp(r'\s+'), ' ').trim().length < 28;
     final hasEnoughLength =
@@ -480,15 +484,10 @@ class NextBestMoveService {
         trimmed.startsWith('“') ||
         trimmed.endsWith('"') ||
         trimmed.endsWith('”');
-    final hasConversationCue = _containsAny(trimmed.toLowerCase(), const [
-      'dijo',
-      'preguntó',
-      'respondió',
-      'murmuró',
-      'contestó',
-      'dime',
-      'mira',
-    ]);
+    final hasConversationCue = _containsAny(
+      trimmed.toLowerCase(),
+      TextAnalysisLexicons.nextMoveDialogConversationCues,
+    );
     return hasDialogPunctuation || (compactLength < 45 && hasConversationCue);
   }
 
@@ -583,110 +582,6 @@ class NextBestMoveService {
     return '${question.substring(0, 87).trimRight()}...';
   }
 
-  static const Set<String> _stopWords = {
-    'una',
-    'uno',
-    'unos',
-    'unas',
-    'que',
-    'por',
-    'para',
-    'con',
-    'sin',
-    'sobre',
-    'entre',
-    'esta',
-    'este',
-    'esto',
-    'como',
-    'cuando',
-    'donde',
-    'porque',
-    'pero',
-    'tambien',
-    'también',
-    'cada',
-    'todo',
-    'toda',
-    'todas',
-    'todos',
-    'puede',
-    'pueden',
-    'debe',
-    'deben',
-    'hay',
-    'ser',
-    'está',
-    'están',
-    'estan',
-    'hace',
-    'hacer',
-    'más',
-    'mas',
-    'muy',
-    'del',
-    'los',
-    'las',
-    'al',
-    'el',
-    'la',
-    'lo',
-    'y',
-    'o',
-  };
-
-  static const List<String> _structuralMarkers = [
-    'regla',
-    'límite',
-    'limite',
-    'coste',
-    'costo',
-    'obliga',
-    'obligado',
-    'obligación',
-    'obligacion',
-    'prohíbe',
-    'prohibe',
-    'prohibido',
-    'restricción',
-    'restriccion',
-    'impide',
-    'requiere',
-    'solo puede',
-    'no puede',
-    'depende de',
-    'a cambio de',
-    'bajo condición',
-    'bajo condicion',
-  ];
-
-  static const List<String> _operationalVerbs = [
-    'obliga',
-    'requiere',
-    'impide',
-    'limita',
-    'prohíbe',
-    'prohibe',
-    'prohibido',
-    'cuesta',
-    'coste',
-    'costo',
-    'depende de',
-    'solo puede',
-    'no puede',
-    'a cambio de',
-  ];
-
-  static const List<String> _genericSignals = [
-    'depende de quien',
-    'ya veremos',
-    'puede ser',
-    'tal vez',
-    'quizá',
-    'quizas',
-    'quien lo mire',
-  ];
-
   NextBestMoveRecommendation _refineWithLocalContext(
     NextBestMoveRecommendation base,
     String? text,
@@ -696,22 +591,8 @@ class NextBestMoveService {
     final lowered = text.toLowerCase();
     final questionCount = '?'.allMatches(text).length;
     final hasDialogue = _containsAny(text, const ['—', '-', '"', '“']);
-    final hasActionVerbs = _containsAny(lowered, const [
-      'corrió',
-      'golpeó',
-      'abrió',
-      'saltó',
-      'empujó',
-      'sacó',
-      'lanzó',
-      'miró',
-      'caminó',
-      'entró',
-      'salió',
-      'levantó',
-      'subió',
-      'bajó'
-    ]);
+    final hasActionVerbs =
+        _containsAny(lowered, TextAnalysisLexicons.nextMoveActionVerbs);
 
     // 1. High question count -> prioritize closing/consequence
     if (questionCount >= 2 && base.strategy != NextBestMoveStrategy.decision) {

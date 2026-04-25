@@ -951,4 +951,220 @@ class TextAnalysisLexicons {
     ' ruido ',
     ' pasos ',
   ];
+
+  // ─── Clasificación de documentos (narrative_document_classifier) ──
+
+  static const List<String> documentTechnicalTokens = <String>[
+    'entrevista full stack',
+    'manual completo',
+    'objetivo transmitir',
+    'frontend',
+    'backend',
+    ' api ',
+    'pull request',
+    'currículum',
+  ];
+
+  static const List<String> documentResearchTokens = <String>[
+    'resumen ejecutivo',
+    'documento de investigación',
+    'objetivo de este documento',
+    'cómo hacer que',
+    'cómo construir',
+    'qué es la',
+    'características:',
+    'se basa',
+    'este documento analiza',
+    'este documento explica',
+    'osint',
+    'apofenia',
+  ];
+
+  static const List<String> documentWorldbuildingMagicTokens = <String>[
+    'reino',
+    'magia',
+    'culto',
+    'ritual',
+    'símbolos',
+    'mitología',
+    'reglas del mundo',
+  ];
+
+  static const List<String> documentWorldbuildingBuildTokens = <String>[
+    'diseñar',
+    'construir',
+    'uso narrativo',
+    'worldbuilding',
+    'origen cultural',
+  ];
+
+  /// Señales de primera persona en muestreo de documentos (variante de
+  /// `firstPersonCues` con conjunto reducido para clasificación).
+  static const List<String> documentSceneFirstPersonTokens = <String>[
+    ' me ',
+    ' mi ',
+    ' mis ',
+    ' conmigo ',
+    ' desperté',
+    ' miré',
+    ' caminé',
+    ' pensé',
+    ' sentí',
+  ];
+
+  static const List<String> documentSceneActionTokens = <String>[
+    'dije',
+    'respondió',
+    'preguntó',
+    'me detuve',
+    'entré',
+    'salí',
+    'levanté',
+    'encendí',
+    'seguía',
+    'estaba',
+  ];
+
+  static const List<String> documentScenePlaceTokens = <String>[
+    'san francisco',
+    'apartamento',
+    'callejón',
+    'redacción',
+    'cafetería',
+    'mission',
+    'tenderloin',
+  ];
+
+  // ─── next_best_move_service ────────────────────────────────────
+
+  static const Set<String> nextMoveStopWords = <String>{
+    'una',
+    'uno',
+    'unos',
+    'unas',
+    'que',
+    'por',
+    'para',
+    'con',
+    'sin',
+    'sobre',
+    'entre',
+    'esta',
+    'este',
+    'esto',
+    'como',
+    'cuando',
+    'donde',
+    'porque',
+    'pero',
+    'tambien',
+    'también',
+    'cada',
+    'todo',
+    'toda',
+    'todas',
+    'todos',
+    'puede',
+    'pueden',
+    'debe',
+    'deben',
+    'hay',
+    'ser',
+    'está',
+    'están',
+    'estan',
+    'hace',
+    'hacer',
+    'más',
+    'mas',
+    'muy',
+    'del',
+    'los',
+    'las',
+    'al',
+    'el',
+    'la',
+    'lo',
+    'y',
+    'o',
+  };
+
+  static const List<String> nextMoveStructuralMarkers = <String>[
+    'regla',
+    'límite',
+    'limite',
+    'coste',
+    'costo',
+    'obliga',
+    'obligado',
+    'obligación',
+    'obligacion',
+    'prohíbe',
+    'prohibe',
+    'prohibido',
+    'restricción',
+    'restriccion',
+    'impide',
+    'requiere',
+    'solo puede',
+    'no puede',
+    'depende de',
+    'a cambio de',
+    'bajo condición',
+    'bajo condicion',
+  ];
+
+  static const List<String> nextMoveOperationalVerbs = <String>[
+    'obliga',
+    'requiere',
+    'impide',
+    'limita',
+    'prohíbe',
+    'prohibe',
+    'prohibido',
+    'cuesta',
+    'coste',
+    'costo',
+    'depende de',
+    'solo puede',
+    'no puede',
+    'a cambio de',
+  ];
+
+  static const List<String> nextMoveGenericSignals = <String>[
+    'depende de quien',
+    'ya veremos',
+    'puede ser',
+    'tal vez',
+    'quizá',
+    'quizas',
+    'quien lo mire',
+  ];
+
+  static const List<String> nextMoveActionVerbs = <String>[
+    'corrió',
+    'golpeó',
+    'abrió',
+    'saltó',
+    'empujó',
+    'sacó',
+    'lanzó',
+    'miró',
+    'caminó',
+    'entró',
+    'salió',
+    'levantó',
+    'subió',
+    'bajó',
+  ];
+
+  static const List<String> nextMoveDialogConversationCues = <String>[
+    'dijo',
+    'preguntó',
+    'respondió',
+    'murmuró',
+    'contestó',
+    'dime',
+    'mira',
+  ];
 }
