@@ -541,7 +541,9 @@ class FragmentAnalysisService {
       )!;
     }
 
-    if (hasCafe) {
+    // Si bar y café disparan a la vez, gana bar (libro 2: Christopher's
+    // tenía 'barra' y 'café' pero era un bar de cócteles).
+    if (hasCafe && !hasBarRestaurant) {
       const name = 'Cafetería de la esquina';
       final strengthScore = FragmentInferenceUtils.computeScenarioStrength(
         name: name,
@@ -1067,9 +1069,12 @@ class FragmentAnalysisService {
       );
     }
 
+    // Fallback neutro: cuando ningún momento específico dispara, no
+    // imponer "Recogida de indicios" (sesgo a thriller de investigación)
+    // — lo que tenemos es ausencia de foco dominante.
     return const NarrativeMoment(
-      title: 'Recogida de indicios',
-      summary: 'El fragmento ordena señales antes de avanzar.',
+      title: 'Avance abierto',
+      summary: 'El fragmento aún no fija un foco dominante.',
     );
   }
 

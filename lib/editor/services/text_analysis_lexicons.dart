@@ -73,6 +73,14 @@ class TextAnalysisLexicons {
     'muelle',
     'parque',
     'puerto',
+    // Mansiones/edificios nombrados (libro 3, "Hallim House"):
+    'house',
+    'hall',
+    'manor',
+    'palace',
+    'castle',
+    'tavern',
+    'inn',
   };
 
   // ─── Detección de personajes ───────────────────────────────────
@@ -184,6 +192,23 @@ class TextAnalysisLexicons {
     'Alta',
     'Central',
     'Noche',
+    // FPs detectados en diagnóstico libros 1/2/3:
+    // verbos/adverbios capitalizados a inicio de oración + topónimos parciales
+    'Puede',
+    'Cuando',
+    'Preparar',
+    'Mira',
+    'Hum',
+    'Vamos',
+    'Venga',
+    'Vaya',
+    'Ojalá',
+    'Cerco',
+    'Círculo',
+    'Hallim',
+    'Con',
+    'Para',
+    'Atiende',
   };
 
   static const Set<String> commonNonEntityWords = <String>{
@@ -342,6 +367,12 @@ class TextAnalysisLexicons {
     'Sur',
     'Este',
     'Oeste',
+    // Topónimos/instituciones detectados como personajes en libros 1/3:
+    'Mar Sangriento',
+    'Cerco Exterior',
+    'Círculo Supremo',
+    'Hallim House',
+    'Remolino',
   };
 
   static const List<String> firstPersonCues = <String>[
@@ -543,15 +574,16 @@ class TextAnalysisLexicons {
     ' pase temporal ',
   ];
 
+  /// Señales de "apartamento/espacio íntimo doméstico". OJO: las palabras
+  /// genéricas (` casa `, ` habitación `, ` cuarto `, ` piso `) se quitaron
+  /// porque disparaban FPs masivos en cualquier escena con mención casual
+  /// a una vivienda (libro 2 epílogo, libro 3 alcoba). Quedan señales
+  /// específicas que sólo aparecen al describir el espacio íntimo en sí.
   static const List<String> apartmentSignals = <String>[
     ' mi apartamento ',
     ' mi estudio ',
     ' apartamento ',
     ' estudio ',
-    ' habitación ',
-    ' cuarto ',
-    ' piso ',
-    ' casa ',
     ' cama ',
     ' cafetera ',
     ' mochila ',
@@ -561,9 +593,11 @@ class TextAnalysisLexicons {
     ' vecino ',
   ];
 
+  /// Señales de cafetería. Nota: ` barra ` se ha movido sólo a
+  /// `barRestaurantSignals` para no robarle bares (libro 2: el barman de
+  /// "Christopher's" caía en cafetería).
   static const List<String> cafeSignals = <String>[
     ' cafetería ',
-    ' barra ',
     ' chai ',
     ' mesa del fondo ',
     ' leche de avena ',
@@ -633,9 +667,19 @@ class TextAnalysisLexicons {
     ' taquería ',
     ' cocina ',
     ' camarero ',
+    ' barra ',
     ' barra del bar ',
     ' comedor ',
     ' terraza ',
+    ' pub ',
+    ' taburete ',
+    ' barman ',
+    ' whisky ',
+    ' bourbon ',
+    ' cóctel ',
+    ' old fashioned ',
+    ' copa ',
+    ' garito ',
   ];
 
   static const List<String> parkSignals = <String>[
@@ -923,14 +967,16 @@ class TextAnalysisLexicons {
     ' almuerzo ',
   ];
 
+  /// Señales de inicio de investigación. Quitadas ` nombre ` y ` conect`
+  /// porque eran demasiado genéricas (matcheaban cualquier prosa con un
+  /// nombre o el verbo conectar) y disparaban "Recogida de indicios" en
+  /// libros que no son de investigación (libros 2 y 3).
   static const List<String> investigationStartMomentTerms = <String>[
     ' investigar ',
     ' pista ',
     ' indicio ',
     ' buscar ',
     ' anoté ',
-    ' nombre ',
-    ' conect',
   ];
 
   static const List<String> crimeSceneEntryMomentTerms = <String>[

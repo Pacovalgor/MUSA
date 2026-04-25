@@ -1,0 +1,5 @@
+# Libros del usuario para diagnóstico — no se committean.
+*.epub
+extracted/
+report-*.md
+libro*-cap*.txt
