@@ -1,3 +1,4 @@
+import '../../../editor/services/text_normalizer.dart';
 import '../../manuscript/models/document.dart';
 import '../models/book.dart';
 import '../models/narrative_copilot.dart';
@@ -205,18 +206,21 @@ class StoryStateUpdater {
     var score =
         memory.activeThreats.length * 12 + memory.openQuestions.length * 4;
     for (final token in const [
-      'amenaza',
-      'peligro',
-      'muerte',
-      'huye',
-      'arma',
-      'sangre',
-      'secreto'
+      // Amenazas clásicas
+      'amenaza', 'peligro', 'muerte', 'huye', 'arma', 'sangre', 'secreto',
+      // Vocabulario de fase de investigación (thriller, misterio)
+      'asesinat', 'mataron', 'desaparec', 'advertencia', 'crimen',
     ]) {
       if (lowered.contains(token)) score += 8;
     }
     if (genre == BookPrimaryGenre.thriller) score += 12;
-    return score.clamp(0, 100);
+    // Floor: la memoria acumulada marca un mínimo de tensión que los capítulos
+    // de pausa no pueden borrar por completo.
+    final memoryFloor = (memory.activeThreats.length * 6 +
+            memory.openQuestions.length * 3 +
+            (genre == BookPrimaryGenre.thriller ? 8 : 0))
+        .clamp(0, 50);
+    return score.clamp(memoryFloor, 100);
   }
 
   PerceivedRhythm _inferRhythm({
@@ -355,6 +359,26 @@ class StoryStateUpdater {
   }
 
   bool _hasAffirmedToken(String lowered, String token) {
+    if (token.contains(' ')) {
+      return _hasAffirmedSubstring(lowered, token);
+    }
+
+    final tokenStem = TextNormalizer.stem(token);
+    if (tokenStem.isEmpty) return false;
+
+    for (final match in TextNormalizer.wordPattern.allMatches(lowered)) {
+      if (TextNormalizer.stem(match.group(0)!) != tokenStem) continue;
+
+      final prefixStart = (match.start - 24).clamp(0, match.start);
+      final prefix = lowered.substring(prefixStart, match.start);
+      final suffixEnd = (match.end + 16).clamp(match.end, lowered.length);
+      final suffix = lowered.substring(match.end, suffixEnd);
+      if (!_isNegatedContext(prefix, suffix)) return true;
+    }
+    return false;
+  }
+
+  bool _hasAffirmedSubstring(String lowered, String token) {
     var start = 0;
     while (true) {
       final index = lowered.indexOf(token, start);
@@ -364,22 +388,30 @@ class StoryStateUpdater {
       final suffixEnd =
           (index + token.length + 16).clamp(index, lowered.length);
       final suffix = lowered.substring(index + token.length, suffixEnd);
-      final isNegated = prefix.contains('sin ') ||
-          prefix.contains(' ni ') ||
-          prefix.contains('no ') ||
-          prefix.contains('nadie ') ||
-          suffix.contains(' nada');
-      if (!isNegated) return true;
+      if (!_isNegatedContext(prefix, suffix)) return true;
       start = index + token.length;
     }
   }
 
+  bool _isNegatedContext(String prefix, String suffix) {
+    return prefix.contains('sin ') ||
+        prefix.contains(' ni ') ||
+        prefix.contains('no ') ||
+        prefix.contains('nadie ') ||
+        suffix.contains(' nada');
+  }
+
   bool _hasInvestigationLoop(String text) {
     final lowered = text.toLowerCase();
+    // Verbos de acción investigadora (incluye búsquedas online: busqué, buscó...)
     final investigateCount =
-        RegExp(r'investig|busca|pregunta|averigua').allMatches(lowered).length;
+        RegExp(r'investig|busc|pregunt|averigua').allMatches(lowered).length;
+    // Indicios: tanto los clásicos como los del thriller moderno (símbolo, patrón,
+    // captura, imagen) que sirven como pista aunque no se llamen así.
     final clueCount =
-        RegExp(r'pista|indicio|rastro|huella|señal').allMatches(lowered).length;
+        RegExp(r'pista|indicio|rastro|huella|señal|símbolo|patrón|marca|captura|imagen|prueba|conexión')
+            .allMatches(lowered)
+            .length;
     return investigateCount >= 2 && clueCount >= 2;
   }
 

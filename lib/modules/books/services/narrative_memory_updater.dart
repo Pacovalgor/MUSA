@@ -1,3 +1,4 @@
+import '../../../editor/services/text_normalizer.dart';
 import '../../manuscript/models/document.dart';
 import '../models/narrative_copilot.dart';
 import 'contextual_memory_updater.dart';
@@ -86,11 +87,9 @@ class NarrativeMemoryUpdater {
   }
 
   List<String> _collectByKeywords(String text, List<String> keywords) {
-    final loweredKeywords = keywords.map((item) => item.toLowerCase()).toList();
     final results = <String>[];
     for (final sentence in _sentences(text)) {
-      final lowered = sentence.toLowerCase();
-      if (!loweredKeywords.any(lowered.contains)) continue;
+      if (!TextNormalizer.stemmedAnyContains(sentence, keywords)) continue;
       final compacted = _compact(sentence);
       if (!results.contains(compacted)) results.add(compacted);
       if (results.length == 5) break;
