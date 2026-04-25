@@ -1,5 +1,7 @@
 # Claude Code
 .claude/
+.claude-flow/
+.mcp.json
 
 # Miscellaneous
 *.class
