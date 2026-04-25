@@ -4,6 +4,7 @@ import '../../modules/characters/models/character.dart';
 import '../../modules/scenarios/models/scenario.dart';
 import '../models/fragment_analysis.dart';
 import 'fragment_inference_utils.dart';
+import 'text_analysis_lexicons.dart';
 
 final fragmentAnalysisServiceProvider =
     Provider<FragmentAnalysisService>((ref) {
@@ -151,7 +152,7 @@ class FragmentAnalysisService {
     required List<Character> characters,
   }) {
     final compactSelection = normalized.trim();
-    final hitCount = FragmentInferenceUtils.firstPersonCues
+    final hitCount = TextAnalysisLexicons.firstPersonCues
         .where((signal) => normalized.contains(signal))
         .length;
     if (hitCount < 2 && !(normalized.contains('—') && hitCount >= 1)) {
@@ -252,30 +253,11 @@ class FragmentAnalysisService {
     final inferred = <DetectedCharacter>[];
     final properNameRegex = RegExp(
         r'\b[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,}(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,})?\b');
-    final nonPersonTerms = <String>{
-      'Mission District',
-      'San Francisco',
-      'AirDrop',
-      'X',
-      'Twitter',
-      'Instagram',
-      'Google',
-      'WhatsApp',
-      'Mission',
-      'District',
-      'Policía',
-      'Ambulancia',
-      'Callejón',
-      'Crimen',
-      'Norte',
-      'Sur',
-      'Este',
-      'Oeste',
-    };
 
     for (final match in properNameRegex.allMatches(selection)) {
       final candidate = match.group(0)?.trim() ?? '';
-      if (candidate.isEmpty || nonPersonTerms.contains(candidate)) {
+      if (candidate.isEmpty ||
+          TextAnalysisLexicons.nonPersonProperNames.contains(candidate)) {
         continue;
       }
       if (FragmentInferenceUtils.isBlockedCapitalizedWord(candidate)) {
@@ -421,201 +403,50 @@ class FragmentAnalysisService {
     final keyObjectSummary = _buildKeyObjectSummary(normalized);
     final scenarioFunction =
         FragmentInferenceUtils.inferScenarioFunction(selection);
-    final hasNewsroom = _containsAny(normalized, <String>[
-      ' redacción ',
-      ' the bay lens ',
-      ' newsroom ',
-      ' oficina ',
-      ' escritorio ',
-      ' fotocopiadora ',
-      ' gestor de contenidos ',
-      ' periodistas ',
-      ' teléfono ',
-      ' ordenador ',
-      ' segundo piso ',
-      ' edificio ',
-      ' ventanas ',
-      ' suelos de madera ',
-      ' calefacción ',
-    ]);
-    final hasPressIdentity = _containsAny(normalized, <String>[
-      ' becaria ',
-      ' prensa ',
-      ' periodista ',
-      ' reportera ',
-      ' reportero ',
-      ' acreditación ',
-      ' pase temporal ',
-    ]);
-    final hasApartment = _containsAny(normalized, <String>[
-      ' mi apartamento ',
-      ' mi estudio ',
-      ' apartamento ',
-      ' estudio ',
-      ' habitación ',
-      ' cuarto ',
-      ' piso ',
-      ' casa ',
-      ' cama ',
-      ' cafetera ',
-      ' mochila ',
-      ' bernal heights ',
-      ' patio interior ',
-      ' saxofón ',
-      ' vecino ',
-    ]);
-    final hasCafe = _containsAny(normalized, <String>[
-      ' cafetería ',
-      ' barra ',
-      ' chai ',
-      ' mesa del fondo ',
-      ' leche de avena ',
-      ' café negro ',
-      ' café en vasos ',
-      ' vasos de cartón ',
-      ' barista ',
-    ]);
-    final hasWorkshop = _containsAny(normalized, <String>[
-      ' taller ',
-      ' herramientas ',
-      ' banco de trabajo ',
-      ' serrín ',
-      ' grasa ',
-      ' torno ',
-      ' martillo ',
-    ]);
-    final hasWarehouse = _containsAny(normalized, <String>[
-      ' almacén ',
-      ' nave ',
-      ' muelle ',
-      ' cajas ',
-      ' palés ',
-      ' contenedor ',
-      ' carga ',
-      ' descarga ',
-    ]);
-    final hasHospital = _containsAny(normalized, <String>[
-      ' hospital ',
-      ' pasillo ',
-      ' urgencias ',
-      ' enfermera ',
-      ' médico ',
-      ' camilla ',
-      ' sala de espera ',
-    ]);
-    final hasSchool = _containsAny(normalized, <String>[
-      ' instituto ',
-      ' colegio ',
-      ' aula ',
-      ' pupitre ',
-      ' pasillo del instituto ',
-      ' universidad ',
-      ' campus ',
-      ' biblioteca ',
-      ' laboratorio ',
-    ]);
-    final hasStore = _containsAny(normalized, <String>[
-      ' tienda ',
-      ' escaparate ',
-      ' mostrador ',
-      ' cajero ',
-      ' supermercado ',
-      ' ultramarinos ',
-      ' librería ',
-      ' lavandería ',
-    ]);
-    final hasBarRestaurant = _containsAny(normalized, <String>[
-      ' bar ',
-      ' restaurante ',
-      ' taquería ',
-      ' cocina ',
-      ' camarero ',
-      ' barra del bar ',
-      ' comedor ',
-      ' terraza ',
-    ]);
-    final hasPark = _containsAny(normalized, <String>[
-      ' parque ',
-      ' banco ',
-      ' césped ',
-      ' estanque ',
-      ' árboles ',
-      ' columpios ',
-      ' jardín ',
-    ]);
-    final hasRoad = _containsAny(normalized, <String>[
-      ' avenida ',
-      ' calle ',
-      ' carretera ',
-      ' autopista ',
-      ' cruce ',
-      ' semáforo ',
-      ' arcén ',
-      ' barrio ',
-      ' portal ',
-    ]);
-    final hasTown = _containsAny(normalized, <String>[
-      ' pueblo ',
-      ' plaza ',
-      ' ayuntamiento ',
-      ' iglesia ',
-      ' mercado ',
-      ' calle mayor ',
-      ' centro ',
-    ]);
-    final hasBeach = _containsAny(normalized, <String>[
-      ' playa ',
-      ' arena ',
-      ' orilla ',
-      ' mar ',
-      ' acantilado ',
-      ' paseo marítimo ',
-    ]);
-    final hasForest = _containsAny(normalized, <String>[
-      ' bosque ',
-      ' sendero ',
-      ' árboles altos ',
-      ' maleza ',
-      ' barro ',
-      ' hojas secas ',
-    ]);
-    final hasStreetTransit = _containsAny(normalized, <String>[
-      ' camino por ',
-      ' cruzo ',
-      ' paso frente ',
-      ' taquería ',
-      ' luces de neón ',
-      ' esquina ',
-      ' portal ',
-      ' tienda de conveniencia ',
-      ' cerca de ',
-      ' al fondo de ',
-      ' a las afueras de ',
-      ' entre ',
-      ' tras ',
-      ' junto al ',
-      ' junto a la ',
-    ]);
+    final hasNewsroom =
+        _containsAny(normalized, TextAnalysisLexicons.newsroomSignals);
+    final hasPressIdentity =
+        _containsAny(normalized, TextAnalysisLexicons.pressIdentitySignals);
+    final hasApartment =
+        _containsAny(normalized, TextAnalysisLexicons.apartmentSignals);
+    final hasCafe = _containsAny(normalized, TextAnalysisLexicons.cafeSignals);
+    final hasWorkshop =
+        _containsAny(normalized, TextAnalysisLexicons.workshopSignals);
+    final hasWarehouse =
+        _containsAny(normalized, TextAnalysisLexicons.warehouseSignals);
+    final hasHospital =
+        _containsAny(normalized, TextAnalysisLexicons.hospitalSignals);
+    final hasSchool =
+        _containsAny(normalized, TextAnalysisLexicons.schoolSignals);
+    final hasStore =
+        _containsAny(normalized, TextAnalysisLexicons.storeSignals);
+    final hasBarRestaurant =
+        _containsAny(normalized, TextAnalysisLexicons.barRestaurantSignals);
+    final hasPark = _containsAny(normalized, TextAnalysisLexicons.parkSignals);
+    final hasRoad = _containsAny(normalized, TextAnalysisLexicons.roadSignals);
+    final hasTown = _containsAny(normalized, TextAnalysisLexicons.townSignals);
+    final hasBeach =
+        _containsAny(normalized, TextAnalysisLexicons.beachSignals);
+    final hasForest =
+        _containsAny(normalized, TextAnalysisLexicons.forestSignals);
+    final hasStreetTransit =
+        _containsAny(normalized, TextAnalysisLexicons.streetTransitSignals);
     final hasBayLens = normalized.contains(' the bay lens ');
     final hasSanFrancisco = normalized.contains(' san francisco ');
     final hasMissionDistrict = normalized.contains(' mission district ') ||
         normalized.contains(' district mission ') ||
         normalized.contains(' mission ');
+    final hasTenderloin = RegExp(r'\btenderloin\b').hasMatch(normalized);
+    final hasSoMa = RegExp(r'\bsoma\b').hasMatch(normalized) ||
+        normalized.contains(' south of market ');
+    final hasCivicCenter = normalized.contains(' civic center ');
+    final hasEllis = normalized.contains(' ellis street ') ||
+        RegExp(r'\bellis\b').hasMatch(normalized);
     final hasAlley = normalized.contains(' callejón ');
-    final hasCrimeScene = normalized.contains(' crimen ') ||
-        normalized.contains(' policía ') ||
-        normalized.contains(' sangre ') ||
-        normalized.contains(' cinta ') ||
-        normalized.contains(' ambulancia ') ||
-        normalized.contains(' cadáver ') ||
-        normalized.contains(' cuerpo había ') ||
-        normalized.contains(' el cuerpo ') ||
-        normalized.contains(' cuerpo fue ') ||
-        normalized.contains(' cuerpo sin vida ') ||
-        normalized.contains(' retirado ');
-    final hasMoisture = normalized.contains(' húmed') ||
-        normalized.contains(' mojado ') ||
-        normalized.contains(' lluvia ');
+    final hasCrimeScene =
+        _containsAny(normalized, TextAnalysisLexicons.crimeSceneSignals);
+    final hasMoisture =
+        _containsAny(normalized, TextAnalysisLexicons.moistureSignals);
 
     if (hasApartment) {
       final name = normalized.contains(' bernal heights ')
@@ -648,9 +479,13 @@ class FragmentAnalysisService {
     }
 
     if (hasCrimeScene || hasAlley) {
-      final name = hasMissionDistrict
-          ? 'Lugar del crimen en Mission'
-          : 'Lugar del crimen';
+      final name = hasTenderloin
+          ? 'Callejón en Tenderloin'
+          : hasMissionDistrict
+              ? 'Lugar del crimen en Mission'
+              : hasSoMa
+                  ? 'Callejón en SoMa'
+                  : 'Lugar del crimen';
       final strengthScore = FragmentInferenceUtils.computeScenarioStrength(
         name: name,
         context: selection,
@@ -1004,7 +839,17 @@ class FragmentAnalysisService {
     }
 
     if (hasStreetTransit) {
-      final name = hasRoad ? 'Calle o avenida' : 'Calles de la ciudad';
+      final name = hasTenderloin
+          ? 'Calles del Tenderloin'
+          : hasSoMa
+              ? 'Calles de SoMa'
+              : hasCivicCenter || hasEllis
+                  ? 'Calles de Civic Center'
+                  : hasMissionDistrict
+                      ? 'Calles de Mission'
+                      : hasRoad
+                          ? 'Calle o avenida'
+                          : 'Calles de la ciudad';
       final strengthScore = FragmentInferenceUtils.computeScenarioStrength(
         name: name,
         context: selection,
@@ -1144,64 +989,30 @@ class FragmentAnalysisService {
   }
 
   NarrativeMoment _detectMoment(String normalized) {
-    if (_containsAny(normalized, <String>[
-      ' taller ',
-      ' herramientas ',
-      ' grasa ',
-      ' banco de trabajo ',
-    ])) {
+    if (_containsAny(normalized, TextAnalysisLexicons.workshopMomentTerms)) {
       return const NarrativeMoment(
         title: 'Trabajo bajo fricción',
         summary: 'La escena avanza entre tarea, materia y tensión.',
       );
     }
 
-    if (_containsAny(normalized, <String>[
-      ' redacción ',
-      ' escritorio ',
-      ' gestor de contenidos ',
-      ' periodistas ',
-      ' despacho ',
-      ' fotocopiadora ',
-      ' artículo ',
-      ' correcciones ',
-      ' llamadas ',
-    ])) {
+    if (_containsAny(normalized, TextAnalysisLexicons.newsroomMomentTerms)) {
       return const NarrativeMoment(
         title: 'Rutina de redacción',
         summary: 'Trabajo, presión y atención dividida.',
       );
     }
 
-    if (_containsAny(normalized, <String>[
-      ' mi apartamento ',
-      ' mi estudio ',
-      ' apartamento ',
-      ' estudio ',
-      ' cafetera ',
-      ' bernal heights ',
-      ' vecino ',
-      ' saxofón ',
-      ' patio interior ',
-      ' cama ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.intimateMorningMomentTerms)) {
       return const NarrativeMoment(
         title: 'Rutina íntima de mañana',
         summary: 'La escena presenta a la narradora a través de su espacio.',
       );
     }
 
-    if (_containsAny(normalized, <String>[
-      ' mi madre ',
-      ' mensaje ',
-      ' ansiedad ',
-      ' desayuno ',
-      ' no te olvides de comer ',
-      ' no te metas en líos ',
-      ' admiro ',
-      ' no quiero cambiar el sistema ',
-      ' quiero entender ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.backgroundTensionMomentTerms)) {
       return const NarrativeMoment(
         title: 'Rutina con tensión de fondo',
         summary:
@@ -1209,86 +1020,47 @@ class FragmentAnalysisService {
       );
     }
 
-    if (_containsAny(normalized, <String>[
-      ' habitación ',
-      ' portátil ',
-      ' libreta ',
-      ' silencio ',
-      ' símbolo ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.soloProcessingMomentTerms)) {
       return const NarrativeMoment(
         title: 'Procesamiento en soledad',
         summary: 'La escena se vuelve íntima y mental.',
       );
     }
 
-    if (_containsAny(normalized, <String>[
-      ' camino por ',
-      ' cruzo ',
-      ' paso frente ',
-      ' luces de neón ',
-      ' tienda de conveniencia ',
-      ' llego a casa ',
-      ' subo las escaleras ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.nightWalkHomeMomentTerms)) {
       return const NarrativeMoment(
         title: 'Vuelta a casa con inquietud',
         summary: 'La ciudad acompaña el pensamiento de fondo.',
       );
     }
 
-    if (_containsAny(normalized, <String>[
-      ' cafetería ',
-      ' mesa del fondo ',
-      ' café negro ',
-      ' chai ',
-      ' sándwich ',
-      ' almuerzo ',
-    ])) {
+    if (_containsAny(normalized, TextAnalysisLexicons.cafePauseMomentTerms)) {
       return const NarrativeMoment(
         title: 'Pausa con subtexto',
         summary: 'La escena baja el ritmo, pero mantiene tensión de fondo.',
       );
     }
 
-    if (_containsAny(normalized, <String>[
-      ' investigar ',
-      ' pista ',
-      ' indicio ',
-      ' buscar ',
-      ' anoté ',
-      ' nombre ',
-      ' conect',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.investigationStartMomentTerms)) {
       return const NarrativeMoment(
         title: 'Inicio de investigación',
         summary: 'La narradora observa, recoge y conecta.',
       );
     }
 
-    if (_containsAny(normalized, <String>[
-      ' sangre ',
-      ' policía ',
-      ' cinta ',
-      ' crimen ',
-      ' cadáver ',
-      ' el cuerpo ',
-      ' cuerpo sin vida ',
-      ' retirado ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.crimeSceneEntryMomentTerms)) {
       return const NarrativeMoment(
         title: 'Entrada a una escena de crimen',
         summary: 'La escena se sostiene sobre observación e inquietud.',
       );
     }
 
-    if (_containsAny(normalized, <String>[
-      ' grito ',
-      ' sombra ',
-      ' miedo ',
-      ' ruido ',
-      ' pasos ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.containedTensionMomentTerms)) {
       return const NarrativeMoment(
         title: 'Tensión contenida',
         summary: 'Hay amenaza cerca, pero todavía manda la observación.',
@@ -1308,28 +1080,24 @@ class FragmentAnalysisService {
 
   String? _buildKeyObjectSummary(String normalized) {
     final objects = <String>[
-      if (_containsAny(normalized, <String>[' móvil ', ' teléfono '])) 'móvil',
-      if (_containsAny(normalized, <String>[' portátil ', ' ordenador ']))
+      if (_containsAny(normalized, TextAnalysisLexicons.phoneTerms)) 'móvil',
+      if (_containsAny(normalized, TextAnalysisLexicons.laptopTerms))
         'portátil',
       if (normalized.contains(' libreta ')) 'libreta',
-      if (_containsAny(normalized, <String>[' cámara ', ' foto ', ' fotos ']))
-        'cámara',
-      if (_containsAny(normalized, <String>[' vídeo ', ' video '])) 'vídeo',
-      if (_containsAny(normalized, <String>[' carpeta ', ' expediente ']))
+      if (_containsAny(normalized, TextAnalysisLexicons.cameraTerms)) 'cámara',
+      if (_containsAny(normalized, TextAnalysisLexicons.videoTerms)) 'vídeo',
+      if (_containsAny(normalized, TextAnalysisLexicons.folderTerms))
         'expediente',
-      if (_containsAny(normalized, <String>[' llave ', ' llaves '])) 'llaves',
-      if (_containsAny(
-          normalized, <String>[' arma ', ' pistola ', ' cuchillo ']))
+      if (_containsAny(normalized, TextAnalysisLexicons.keyTerms)) 'llaves',
+      if (_containsAny(normalized, TextAnalysisLexicons.dangerousObjectTerms))
         'objeto peligroso',
-      if (_containsAny(
-          normalized, <String>[' sangre ', ' huellas ', ' ceniza ']))
+      if (_containsAny(normalized, TextAnalysisLexicons.physicalTraceTerms))
         'rastro físico',
-      if (_containsAny(
-          normalized, <String>[' contenedor ', ' caja ', ' palé ']))
+      if (_containsAny(normalized, TextAnalysisLexicons.containerTerms))
         'contenedores o cajas',
-      if (_containsAny(normalized, <String>[' taza ', ' café ', ' chai ']))
+      if (_containsAny(normalized, TextAnalysisLexicons.coffeeTerms))
         'café o taza',
-      if (_containsAny(normalized, <String>[' escritorio ', ' silla ']))
+      if (_containsAny(normalized, TextAnalysisLexicons.workFurnitureTerms))
         'mobiliario de trabajo',
     ];
 

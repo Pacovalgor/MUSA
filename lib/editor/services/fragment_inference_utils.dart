@@ -1,493 +1,26 @@
+import 'text_analysis_lexicons.dart';
+
 class FragmentInferenceUtils {
-  static const topLevelGeography = <String>{
-    'San Francisco',
-    'Oakland',
-    'Los Ángeles',
-    'Los Angeles',
-    'Mission District',
-    'Bernal Heights',
-  };
-
-  static const monthWords = <String>{
-    'enero',
-    'febrero',
-    'marzo',
-    'abril',
-    'mayo',
-    'junio',
-    'julio',
-    'agosto',
-    'septiembre',
-    'setiembre',
-    'octubre',
-    'noviembre',
-    'diciembre',
-  };
-
-  static const geographyDescriptorWords = <String>{
-    'street',
-    'st',
-    'avenue',
-    'ave',
-    'road',
-    'rd',
-    'boulevard',
-    'blvd',
-    'district',
-    'heights',
-    'city',
-    'park',
-    'harbor',
-    'harbour',
-    'pier',
-    'bay',
-    'square',
-    'plaza',
-    'lane',
-    'drive',
-    'court',
-    'way',
-    'place',
-    'center',
-    'centre',
-    'calle',
-    'avenida',
-    'carretera',
-    'camino',
-    'distrito',
-    'barrio',
-    'muelle',
-    'parque',
-    'puerto',
-  };
-
-  static const scenarioCoreWords = <String>[
-    'callejón',
-    'apartamento',
-    'estudio',
-    'redacción',
-    'cafetería',
-    'bar',
-    'restaurante',
-    'oficina',
-    'hospital',
-    'escena del crimen',
-    'muelle',
-    'taller',
-    'almacén',
-    'biblioteca',
-    'laboratorio',
-    'parque',
-    'casa',
-    'habitación',
-    'despacho',
-    'pasillo',
-    'azotea',
-    'garaje',
-    'portal',
-    'avenida',
-    'calle',
-    'carretera',
-  ];
-
-  static const blockedCharacterWords = <String>{
-    'El',
-    'La',
-    'Los',
-    'Las',
-    'Un',
-    'Una',
-    'Uno',
-    'Y',
-    'Pero',
-    'No',
-    'Me',
-    'Mi',
-    'Yo',
-    'Lo',
-    'Le',
-    'Se',
-    'Ella',
-    'Él',
-    'Eso',
-    'Esto',
-    'Ese',
-    'Esa',
-    'Aquel',
-    'Aquella',
-    'Alguien',
-    'Algo',
-    'Nada',
-    'Nadie',
-    'Todo',
-    'Todos',
-    'Todas',
-    'Otro',
-    'Otra',
-    'Otros',
-    'Otras',
-    'Desde',
-    'Como',
-    'Por',
-    'Quiero',
-    'Hoy',
-    'Ayer',
-    'Mañana',
-    'Lunes',
-    'Martes',
-    'Miércoles',
-    'Jueves',
-    'Viernes',
-    'Sábado',
-    'Domingo',
-    'Norte',
-    'Sur',
-    'Este',
-    'Oeste',
-    'Mission',
-    'San',
-    'Francisco',
-    'District',
-    'Twitter',
-    'X',
-    'Instagram',
-    'Google',
-    'WhatsApp',
-    'Entendido',
-    'Vale',
-    'Bien',
-    'Hecho',
-    'Claro',
-    'Perfecto',
-    'Exacto',
-    'Noviembre',
-    'Diciembre',
-    'Enero',
-    'Rápida',
-    'Rapida',
-    'Alta',
-    'Central',
-    'Noche',
-  };
-
-  static const commonNonEntityWords = <String>{
-    'nada',
-    'nadie',
-    'algo',
-    'alguien',
-    'todo',
-    'todos',
-    'todas',
-    'otro',
-    'otra',
-    'otros',
-    'otras',
-    'desde',
-    'como',
-    'por',
-    'quiero',
-    'hoy',
-    'ayer',
-    'mañana',
-    'lunes',
-    'martes',
-    'miércoles',
-    'jueves',
-    'viernes',
-    'sábado',
-    'domingo',
-    'antes',
-    'después',
-    'siempre',
-    'nunca',
-    'solo',
-    'sólo',
-    'quizá',
-    'quizas',
-    'quizás',
-    'líneas',
-    'lineas',
-    'formas',
-    'sombras',
-    'pasos',
-    'ruidos',
-    'señales',
-    'detalles',
-    'marcas',
-    'notas',
-    'grafitis',
-    'grietas',
-    'entendido',
-    'vale',
-    'bien',
-    'hecho',
-    'claro',
-    'perfecto',
-    'exacto',
-    'noviembre',
-    'diciembre',
-    'enero',
-    'demasiado',
-    'rápida',
-    'rapida',
-    'alta',
-    'central',
-    'noche',
-  };
-
-  static const narrativeVerbNonEntities = <String>{
-    'Pienso',
-    'Creo',
-    'Recuerdo',
-    'Siento',
-    'Miro',
-    'Camino',
-    'Reviso',
-    'Preparo',
-    'Llevo',
-    'Entro',
-    'Salgo',
-    'Llego',
-    'Vivo',
-    'Estoy',
-    'Estaba',
-    'Había',
-    'Pensé',
-    'Vi',
-    'Oí',
-    'Escuché',
-    'Encontré',
-    'Seguí',
-    'Tomé',
-    'Dejé',
-    'Cerré',
-    'Noté',
-    'Observé',
-    'Corrí',
-    'Temí',
-    'Imaginé',
-    'Intenté',
-    'Recordé',
-    'Sabía',
-    'Quería',
-    'Debía',
-    'Busco',
-    'Pruebo',
-    'Suspiro',
-    'Encuentro',
-    'Guardo',
-    'Decido',
-    'Escribía',
-    'Llevaba',
-    'Fui',
-    'Soy',
-    'Entré',
-    'Salí',
-    'Llegué',
-    'Dije',
-    'Volví',
-    'Hice',
-    'Podía',
-  };
-
-  static const narrativeNounNonEntities = <String>{
-    'Líneas',
-    'Lineas',
-    'Formas',
-    'Sombras',
-    'Pasos',
-    'Ruidos',
-    'Señales',
-    'Detalles',
-    'Marcas',
-    'Notas',
-    'Grafitis',
-    'Grietas',
-  };
-
-  static const firstPersonCues = <String>[
-    ' yo ',
-    ' me ',
-    ' mi ',
-    ' mis ',
-    ' conmigo ',
-    ' tengo ',
-    ' puedo ',
-    ' llevo ',
-    ' entro ',
-    ' salgo ',
-    ' llego ',
-    ' camino ',
-    ' preparo ',
-    ' reviso ',
-    ' me levanto ',
-    ' me despierto ',
-    ' vivo ',
-    ' estoy ',
-    ' estaba ',
-    ' había ',
-    ' saqué ',
-    ' abrí ',
-    ' busqué ',
-    ' miré ',
-    ' me acerqué ',
-    ' pregunté ',
-    ' anoté ',
-    ' pensé ',
-    ' vi ',
-    ' oí ',
-    ' escuché ',
-    ' encontré ',
-    ' seguí ',
-    ' tomé ',
-    ' dejé ',
-    ' cerré ',
-    ' noté ',
-    ' observé ',
-    ' corrí ',
-    ' temí ',
-    ' imaginé ',
-    ' intenté ',
-    ' recordé ',
-    ' sabía ',
-    ' quería ',
-    ' debía ',
-    ' llevaba ',
-    ' fui ',
-    ' soy ',
-    ' entré ',
-    ' salí ',
-    ' llegué ',
-    ' dije ',
-    ' volví ',
-    ' hice ',
-    ' podía ',
-    ' no podía ',
-  ];
-
-  static const professionCues = <String>[
-    'abogada',
-    'abogado',
-    'periodista',
-    'reportera',
-    'reportero',
-    'detective',
-    'profesora',
-    'profesor',
-    'médica',
-    'médico',
-    'doctora',
-    'doctor',
-    'escritora',
-    'escritor',
-    'becaria',
-    'becario',
-    'editora',
-    'editor',
-    'policía',
-    'agente',
-    'inspectora',
-    'inspector',
-    'fotógrafa',
-    'fotógrafo',
-    'enfermera',
-    'enfermero',
-    'camarera',
-    'camarero',
-    'cocinera',
-    'cocinero',
-    'recepcionista',
-    'fiscal',
-    'jueza',
-    'juez',
-    'taxista',
-    'conductora',
-    'conductor',
-    'mecánica',
-    'mecánico',
-    'obrera',
-    'obrero',
-    'funcionaria',
-    'funcionario',
-    'bibliotecaria',
-    'bibliotecario',
-    'investigadora',
-    'investigador',
-    'analista',
-  ];
-
-  static const relationshipCues = <String>[
-    'madre',
-    'padre',
-    'hermana',
-    'hermano',
-    'tía',
-    'tio',
-    'tío',
-    'prima',
-    'primo',
-    'hija',
-    'hijo',
-    'novia',
-    'novio',
-    'pareja',
-    'marido',
-    'mujer',
-    'amiga',
-    'amigo',
-    'jefa',
-    'jefe',
-    'vecina',
-    'vecino',
-    'compañera',
-    'compañero',
-    'editora',
-    'editor',
-    'profesora',
-    'profesor',
-    'inspectora',
-    'inspector',
-  ];
-
   static bool isBlockedCapitalizedWord(String value) {
-    return blockedCharacterWords.contains(value) ||
-        narrativeVerbNonEntities.contains(value) ||
-        narrativeNounNonEntities.contains(value);
+    return TextAnalysisLexicons.blockedCharacterWords.contains(value) ||
+        TextAnalysisLexicons.narrativeVerbNonEntities.contains(value) ||
+        TextAnalysisLexicons.narrativeNounNonEntities.contains(value);
   }
 
   static bool isCommonNonEntityWord(String value) {
     final lowered = value.toLowerCase();
-    return commonNonEntityWords.contains(lowered) ||
-        narrativeVerbNonEntities.any((item) => item.toLowerCase() == lowered) ||
-        narrativeNounNonEntities.any((item) => item.toLowerCase() == lowered);
+    return TextAnalysisLexicons.commonNonEntityWords.contains(lowered) ||
+        TextAnalysisLexicons.narrativeVerbNonEntities
+            .any((item) => item.toLowerCase() == lowered) ||
+        TextAnalysisLexicons.narrativeNounNonEntities
+            .any((item) => item.toLowerCase() == lowered);
   }
 
   static bool looksLikeOrganizationName(String name) {
     final lowered = name.trim().toLowerCase();
     if (lowered.isEmpty) return false;
 
-    const organizationSignals = <String>[
-      'times',
-      'post',
-      'news',
-      'press',
-      'media',
-      'journal',
-      'tribune',
-      'chronicle',
-      'gazette',
-      'herald',
-      'observer',
-      'bulletin',
-      'review',
-      'wire',
-      'standard',
-      'ledger',
-      'mirror',
-      'lens',
-    ];
-
-    for (final signal in organizationSignals) {
+    for (final signal in TextAnalysisLexicons.organizationSignals) {
       if (RegExp(r'(^|\\s)' + RegExp.escape(signal) + r'(\\s|$)')
           .hasMatch(lowered)) {
         return true;
@@ -499,14 +32,14 @@ class FragmentInferenceUtils {
   static bool looksLikeGeographicName(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return false;
-    if (topLevelGeography.contains(trimmed)) return true;
+    if (TextAnalysisLexicons.topLevelGeography.contains(trimmed)) return true;
 
     final lowered = trimmed.toLowerCase();
-    if (monthWords.contains(lowered)) return true;
+    if (TextAnalysisLexicons.monthWords.contains(lowered)) return true;
     if (RegExp(r'\b\d{1,4}\b').hasMatch(lowered)) return true;
 
     final parts = lowered.split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
-    return parts.any(geographyDescriptorWords.contains);
+    return parts.any(TextAnalysisLexicons.geographyDescriptorWords.contains);
   }
 
   static bool appearsInGeographicContext(String text, String name) {
@@ -629,7 +162,9 @@ class FragmentInferenceUtils {
         r'\b' +
             escaped +
             r'\b.{0,40}\b(' +
-            (professionCues + relationshipCues).join('|') +
+            (TextAnalysisLexicons.professionCues +
+                    TextAnalysisLexicons.relationshipCues)
+                .join('|') +
             r')\b',
         caseSensitive: false,
       ),
@@ -710,7 +245,7 @@ class FragmentInferenceUtils {
       score += 2;
     }
 
-    if (relationshipCues
+    if (TextAnalysisLexicons.relationshipCues
         .any((cue) => mentionsRelationshipCue(localContext, cue))) {
       score += 2;
     }
@@ -757,7 +292,7 @@ class FragmentInferenceUtils {
 
     final sentence = match.group(1)!.trim();
     final lowered = sentence.toLowerCase();
-    for (final cue in professionCues) {
+    for (final cue in TextAnalysisLexicons.professionCues) {
       if (lowered.contains(cue)) {
         return sentence;
       }
@@ -768,7 +303,7 @@ class FragmentInferenceUtils {
   static bool isLikelyFirstPersonNarrator(String selection) {
     final normalized = ' ${selection.trim().toLowerCase()} ';
     var score = 0;
-    for (final cue in firstPersonCues) {
+    for (final cue in TextAnalysisLexicons.firstPersonCues) {
       if (normalized.contains(cue)) {
         score += 1;
       }
@@ -793,66 +328,33 @@ class FragmentInferenceUtils {
 
   static bool isBroadGeographicContext(String candidate) {
     final normalized = candidate.trim();
-    return topLevelGeography.contains(normalized);
+    return TextAnalysisLexicons.topLevelGeography.contains(normalized);
   }
 
   static String? inferScenarioFunction(String context) {
     final normalized = ' ${context.toLowerCase()} ';
-    if (_containsAny(normalized, <String>[
-      ' sangre ',
-      ' policía ',
-      ' cinta ',
-      ' cadáver ',
-      ' cuerpo sin vida ',
-      ' móvil caído ',
-      ' contenedor abierto ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.scenarioFunctionCrimeSignals)) {
       return 'Escena de crimen';
     }
-    if (_containsAny(normalized, <String>[
-      ' apartamento ',
-      ' estudio ',
-      ' cama ',
-      ' cafetera ',
-      ' patio interior ',
-      ' refugio ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.scenarioFunctionIntimacySignals)) {
       return 'Espacio de intimidad';
     }
-    if (_containsAny(normalized, <String>[
-      ' redacción ',
-      ' oficina ',
-      ' escritorio ',
-      ' gestor de contenidos ',
-      ' periodistas ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.scenarioFunctionWorkSignals)) {
       return 'Lugar de trabajo';
     }
-    if (_containsAny(normalized, <String>[
-      ' camino por ',
-      ' cruzo ',
-      ' avenida ',
-      ' calle ',
-      ' carretera ',
-      ' paso frente ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.scenarioFunctionTransitSignals)) {
       return 'Zona de tránsito';
     }
-    if (_containsAny(normalized, <String>[
-      ' sala de espera ',
-      ' pasillo ',
-      ' urgencias ',
-      ' espera ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.scenarioFunctionWaitingSignals)) {
       return 'Espacio de espera';
     }
-    if (_containsAny(normalized, <String>[
-      ' observar ',
-      ' miré ',
-      ' vi ',
-      ' focos ',
-      ' desde la ventana ',
-    ])) {
+    if (_containsAny(
+        normalized, TextAnalysisLexicons.scenarioFunctionObservationSignals)) {
       return 'Lugar de observación';
     }
     return null;
@@ -866,42 +368,18 @@ class FragmentInferenceUtils {
     var score = 0;
 
     if (!isBroadGeographicContext(name) &&
-        scenarioCoreWords.any((word) => name.toLowerCase().contains(word))) {
+        TextAnalysisLexicons.scenarioCoreWords
+            .any((word) => name.toLowerCase().contains(word))) {
       score += 3;
     } else if (!isBroadGeographicContext(name) && name.trim().isNotEmpty) {
       score += 2;
     }
 
-    if (_containsAny(normalized, <String>[
-      ' húmed',
-      ' mojado ',
-      ' vacío ',
-      ' acordonado ',
-      ' oscuro ',
-      ' tranquilo ',
-      ' pequeño ',
-      ' precario ',
-      ' tenso ',
-      ' frío ',
-      ' caliente ',
-    ])) {
+    if (_containsAny(normalized, TextAnalysisLexicons.scenarioAtmosphereTerms)) {
       score += 2;
     }
 
-    if (_containsAny(normalized, <String>[
-      ' móvil ',
-      ' portátil ',
-      ' libreta ',
-      ' sangre ',
-      ' contenedor ',
-      ' café ',
-      ' cámara ',
-      ' expediente ',
-      ' llave ',
-      ' vaso ',
-      ' mochila ',
-      ' cinta amarilla ',
-    ])) {
+    if (_containsAny(normalized, TextAnalysisLexicons.scenarioObjectTerms)) {
       score += 2;
     }
 
@@ -934,7 +412,7 @@ class FragmentInferenceUtils {
         normalizedB.contains(normalizedA)) {
       return true;
     }
-    for (final core in scenarioCoreWords) {
+    for (final core in TextAnalysisLexicons.scenarioCoreWords) {
       if (normalizedA.contains(core) && normalizedB.contains(core)) {
         return true;
       }

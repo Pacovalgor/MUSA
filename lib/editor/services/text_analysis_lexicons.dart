@@ -1,0 +1,954 @@
+/// Léxicos centralizados para detección y análisis de texto.
+///
+/// Toda lista de palabras-clave usada por `fragment_analysis_service.dart`
+/// y `fragment_inference_utils.dart` vive aquí. La lógica de matching no
+/// cambia: estas listas son sólo datos. Cuando haga falta añadir un nuevo
+/// tipo de escenario, momento u objeto, este es el único punto a tocar.
+///
+/// Convenciones:
+/// - Las listas que se buscan con `contains` sobre texto normalizado
+///   `' ${text.toLowerCase()} '` mantienen los espacios envolventes
+///   (` palabra `) para forzar word-boundary.
+/// - Las listas que sirven para regex o lookup directo van sin espacios.
+class TextAnalysisLexicons {
+  // ─── Geografía ─────────────────────────────────────────────────
+
+  static const Set<String> topLevelGeography = <String>{
+    'San Francisco',
+    'Oakland',
+    'Los Ángeles',
+    'Los Angeles',
+    'Mission District',
+    'Bernal Heights',
+  };
+
+  static const Set<String> monthWords = <String>{
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'setiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  };
+
+  static const Set<String> geographyDescriptorWords = <String>{
+    'street',
+    'st',
+    'avenue',
+    'ave',
+    'road',
+    'rd',
+    'boulevard',
+    'blvd',
+    'district',
+    'heights',
+    'city',
+    'park',
+    'harbor',
+    'harbour',
+    'pier',
+    'bay',
+    'square',
+    'plaza',
+    'lane',
+    'drive',
+    'court',
+    'way',
+    'place',
+    'center',
+    'centre',
+    'calle',
+    'avenida',
+    'carretera',
+    'camino',
+    'distrito',
+    'barrio',
+    'muelle',
+    'parque',
+    'puerto',
+  };
+
+  // ─── Detección de personajes ───────────────────────────────────
+
+  static const List<String> scenarioCoreWords = <String>[
+    'callejón',
+    'apartamento',
+    'estudio',
+    'redacción',
+    'cafetería',
+    'bar',
+    'restaurante',
+    'oficina',
+    'hospital',
+    'escena del crimen',
+    'muelle',
+    'taller',
+    'almacén',
+    'biblioteca',
+    'laboratorio',
+    'parque',
+    'casa',
+    'habitación',
+    'despacho',
+    'pasillo',
+    'azotea',
+    'garaje',
+    'portal',
+    'avenida',
+    'calle',
+    'carretera',
+  ];
+
+  static const Set<String> blockedCharacterWords = <String>{
+    'El',
+    'La',
+    'Los',
+    'Las',
+    'Un',
+    'Una',
+    'Uno',
+    'Y',
+    'Pero',
+    'No',
+    'Me',
+    'Mi',
+    'Yo',
+    'Lo',
+    'Le',
+    'Se',
+    'Ella',
+    'Él',
+    'Eso',
+    'Esto',
+    'Ese',
+    'Esa',
+    'Aquel',
+    'Aquella',
+    'Alguien',
+    'Algo',
+    'Nada',
+    'Nadie',
+    'Todo',
+    'Todos',
+    'Todas',
+    'Otro',
+    'Otra',
+    'Otros',
+    'Otras',
+    'Desde',
+    'Como',
+    'Por',
+    'Quiero',
+    'Hoy',
+    'Ayer',
+    'Mañana',
+    'Lunes',
+    'Martes',
+    'Miércoles',
+    'Jueves',
+    'Viernes',
+    'Sábado',
+    'Domingo',
+    'Norte',
+    'Sur',
+    'Este',
+    'Oeste',
+    'Mission',
+    'San',
+    'Francisco',
+    'District',
+    'Twitter',
+    'X',
+    'Instagram',
+    'Google',
+    'WhatsApp',
+    'Entendido',
+    'Vale',
+    'Bien',
+    'Hecho',
+    'Claro',
+    'Perfecto',
+    'Exacto',
+    'Noviembre',
+    'Diciembre',
+    'Enero',
+    'Rápida',
+    'Rapida',
+    'Alta',
+    'Central',
+    'Noche',
+  };
+
+  static const Set<String> commonNonEntityWords = <String>{
+    'nada',
+    'nadie',
+    'algo',
+    'alguien',
+    'todo',
+    'todos',
+    'todas',
+    'otro',
+    'otra',
+    'otros',
+    'otras',
+    'desde',
+    'como',
+    'por',
+    'quiero',
+    'hoy',
+    'ayer',
+    'mañana',
+    'lunes',
+    'martes',
+    'miércoles',
+    'jueves',
+    'viernes',
+    'sábado',
+    'domingo',
+    'antes',
+    'después',
+    'siempre',
+    'nunca',
+    'solo',
+    'sólo',
+    'quizá',
+    'quizas',
+    'quizás',
+    'líneas',
+    'lineas',
+    'formas',
+    'sombras',
+    'pasos',
+    'ruidos',
+    'señales',
+    'detalles',
+    'marcas',
+    'notas',
+    'grafitis',
+    'grietas',
+    'entendido',
+    'vale',
+    'bien',
+    'hecho',
+    'claro',
+    'perfecto',
+    'exacto',
+    'noviembre',
+    'diciembre',
+    'enero',
+    'demasiado',
+    'rápida',
+    'rapida',
+    'alta',
+    'central',
+    'noche',
+  };
+
+  static const Set<String> narrativeVerbNonEntities = <String>{
+    'Pienso',
+    'Creo',
+    'Recuerdo',
+    'Siento',
+    'Miro',
+    'Camino',
+    'Reviso',
+    'Preparo',
+    'Llevo',
+    'Entro',
+    'Salgo',
+    'Llego',
+    'Vivo',
+    'Estoy',
+    'Estaba',
+    'Había',
+    'Pensé',
+    'Vi',
+    'Oí',
+    'Escuché',
+    'Encontré',
+    'Seguí',
+    'Tomé',
+    'Dejé',
+    'Cerré',
+    'Noté',
+    'Observé',
+    'Corrí',
+    'Temí',
+    'Imaginé',
+    'Intenté',
+    'Recordé',
+    'Sabía',
+    'Quería',
+    'Debía',
+    'Busco',
+    'Pruebo',
+    'Suspiro',
+    'Encuentro',
+    'Guardo',
+    'Decido',
+    'Escribía',
+    'Llevaba',
+    'Fui',
+    'Soy',
+    'Entré',
+    'Salí',
+    'Llegué',
+    'Dije',
+    'Volví',
+    'Hice',
+    'Podía',
+  };
+
+  static const Set<String> narrativeNounNonEntities = <String>{
+    'Líneas',
+    'Lineas',
+    'Formas',
+    'Sombras',
+    'Pasos',
+    'Ruidos',
+    'Señales',
+    'Detalles',
+    'Marcas',
+    'Notas',
+    'Grafitis',
+    'Grietas',
+  };
+
+  /// Nombres propios capitalizados que aparecen en el texto pero no son
+  /// personas (lugares específicos, marcas, redes sociales).
+  static const Set<String> nonPersonProperNames = <String>{
+    'Mission District',
+    'San Francisco',
+    'AirDrop',
+    'X',
+    'Twitter',
+    'Instagram',
+    'Google',
+    'WhatsApp',
+    'Mission',
+    'District',
+    'Policía',
+    'Ambulancia',
+    'Callejón',
+    'Crimen',
+    'Norte',
+    'Sur',
+    'Este',
+    'Oeste',
+  };
+
+  static const List<String> firstPersonCues = <String>[
+    ' yo ',
+    ' me ',
+    ' mi ',
+    ' mis ',
+    ' conmigo ',
+    ' tengo ',
+    ' puedo ',
+    ' llevo ',
+    ' entro ',
+    ' salgo ',
+    ' llego ',
+    ' camino ',
+    ' preparo ',
+    ' reviso ',
+    ' me levanto ',
+    ' me despierto ',
+    ' vivo ',
+    ' estoy ',
+    ' estaba ',
+    ' había ',
+    ' saqué ',
+    ' abrí ',
+    ' busqué ',
+    ' miré ',
+    ' me acerqué ',
+    ' pregunté ',
+    ' anoté ',
+    ' pensé ',
+    ' vi ',
+    ' oí ',
+    ' escuché ',
+    ' encontré ',
+    ' seguí ',
+    ' tomé ',
+    ' dejé ',
+    ' cerré ',
+    ' noté ',
+    ' observé ',
+    ' corrí ',
+    ' temí ',
+    ' imaginé ',
+    ' intenté ',
+    ' recordé ',
+    ' sabía ',
+    ' quería ',
+    ' debía ',
+    ' llevaba ',
+    ' fui ',
+    ' soy ',
+    ' entré ',
+    ' salí ',
+    ' llegué ',
+    ' dije ',
+    ' volví ',
+    ' hice ',
+    ' podía ',
+    ' no podía ',
+  ];
+
+  static const List<String> professionCues = <String>[
+    'abogada',
+    'abogado',
+    'periodista',
+    'reportera',
+    'reportero',
+    'detective',
+    'profesora',
+    'profesor',
+    'médica',
+    'médico',
+    'doctora',
+    'doctor',
+    'escritora',
+    'escritor',
+    'becaria',
+    'becario',
+    'editora',
+    'editor',
+    'policía',
+    'agente',
+    'inspectora',
+    'inspector',
+    'fotógrafa',
+    'fotógrafo',
+    'enfermera',
+    'enfermero',
+    'camarera',
+    'camarero',
+    'cocinera',
+    'cocinero',
+    'recepcionista',
+    'fiscal',
+    'jueza',
+    'juez',
+    'taxista',
+    'conductora',
+    'conductor',
+    'mecánica',
+    'mecánico',
+    'obrera',
+    'obrero',
+    'funcionaria',
+    'funcionario',
+    'bibliotecaria',
+    'bibliotecario',
+    'investigadora',
+    'investigador',
+    'analista',
+  ];
+
+  static const List<String> relationshipCues = <String>[
+    'madre',
+    'padre',
+    'hermana',
+    'hermano',
+    'tía',
+    'tio',
+    'tío',
+    'prima',
+    'primo',
+    'hija',
+    'hijo',
+    'novia',
+    'novio',
+    'pareja',
+    'marido',
+    'mujer',
+    'amiga',
+    'amigo',
+    'jefa',
+    'jefe',
+    'vecina',
+    'vecino',
+    'compañera',
+    'compañero',
+    'editora',
+    'editor',
+    'profesora',
+    'profesor',
+    'inspectora',
+    'inspector',
+  ];
+
+  /// Tokens dentro de nombres que sugieren organización/medio.
+  /// Usados por `looksLikeOrganizationName`.
+  static const List<String> organizationSignals = <String>[
+    'times',
+    'post',
+    'news',
+    'press',
+    'media',
+    'journal',
+    'tribune',
+    'chronicle',
+    'gazette',
+    'herald',
+    'observer',
+    'bulletin',
+    'review',
+    'wire',
+    'standard',
+    'ledger',
+    'mirror',
+    'lens',
+  ];
+
+  // ─── Detección de tipo de escenario ────────────────────────────
+  // Se buscan con `_containsAny` sobre texto normalizado
+  // (` ${text.toLowerCase()} `), por eso van con espacios envolventes.
+
+  static const List<String> newsroomSignals = <String>[
+    ' redacción ',
+    ' the bay lens ',
+    ' newsroom ',
+    ' oficina ',
+    ' escritorio ',
+    ' fotocopiadora ',
+    ' gestor de contenidos ',
+    ' periodistas ',
+    ' teléfono ',
+    ' ordenador ',
+    ' segundo piso ',
+    ' edificio ',
+    ' ventanas ',
+    ' suelos de madera ',
+    ' calefacción ',
+  ];
+
+  static const List<String> pressIdentitySignals = <String>[
+    ' becaria ',
+    ' prensa ',
+    ' periodista ',
+    ' reportera ',
+    ' reportero ',
+    ' acreditación ',
+    ' pase temporal ',
+  ];
+
+  static const List<String> apartmentSignals = <String>[
+    ' mi apartamento ',
+    ' mi estudio ',
+    ' apartamento ',
+    ' estudio ',
+    ' habitación ',
+    ' cuarto ',
+    ' piso ',
+    ' casa ',
+    ' cama ',
+    ' cafetera ',
+    ' mochila ',
+    ' bernal heights ',
+    ' patio interior ',
+    ' saxofón ',
+    ' vecino ',
+  ];
+
+  static const List<String> cafeSignals = <String>[
+    ' cafetería ',
+    ' barra ',
+    ' chai ',
+    ' mesa del fondo ',
+    ' leche de avena ',
+    ' café negro ',
+    ' café en vasos ',
+    ' vasos de cartón ',
+    ' barista ',
+  ];
+
+  static const List<String> workshopSignals = <String>[
+    ' taller ',
+    ' herramientas ',
+    ' banco de trabajo ',
+    ' serrín ',
+    ' grasa ',
+    ' torno ',
+    ' martillo ',
+  ];
+
+  static const List<String> warehouseSignals = <String>[
+    ' almacén ',
+    ' nave ',
+    ' muelle ',
+    ' cajas ',
+    ' palés ',
+    ' contenedor ',
+    ' carga ',
+    ' descarga ',
+  ];
+
+  static const List<String> hospitalSignals = <String>[
+    ' hospital ',
+    ' pasillo ',
+    ' urgencias ',
+    ' enfermera ',
+    ' médico ',
+    ' camilla ',
+    ' sala de espera ',
+  ];
+
+  static const List<String> schoolSignals = <String>[
+    ' instituto ',
+    ' colegio ',
+    ' aula ',
+    ' pupitre ',
+    ' pasillo del instituto ',
+    ' universidad ',
+    ' campus ',
+    ' biblioteca ',
+    ' laboratorio ',
+  ];
+
+  static const List<String> storeSignals = <String>[
+    ' tienda ',
+    ' escaparate ',
+    ' mostrador ',
+    ' cajero ',
+    ' supermercado ',
+    ' ultramarinos ',
+    ' librería ',
+    ' lavandería ',
+  ];
+
+  static const List<String> barRestaurantSignals = <String>[
+    ' bar ',
+    ' restaurante ',
+    ' taquería ',
+    ' cocina ',
+    ' camarero ',
+    ' barra del bar ',
+    ' comedor ',
+    ' terraza ',
+  ];
+
+  static const List<String> parkSignals = <String>[
+    ' parque ',
+    ' banco ',
+    ' césped ',
+    ' estanque ',
+    ' árboles ',
+    ' columpios ',
+    ' jardín ',
+  ];
+
+  static const List<String> roadSignals = <String>[
+    ' avenida ',
+    ' calle ',
+    ' carretera ',
+    ' autopista ',
+    ' cruce ',
+    ' semáforo ',
+    ' arcén ',
+    ' barrio ',
+    ' portal ',
+  ];
+
+  static const List<String> townSignals = <String>[
+    ' pueblo ',
+    ' plaza ',
+    ' ayuntamiento ',
+    ' iglesia ',
+    ' mercado ',
+    ' calle mayor ',
+    ' centro ',
+  ];
+
+  static const List<String> beachSignals = <String>[
+    ' playa ',
+    ' arena ',
+    ' orilla ',
+    ' mar ',
+    ' acantilado ',
+    ' paseo marítimo ',
+  ];
+
+  static const List<String> forestSignals = <String>[
+    ' bosque ',
+    ' sendero ',
+    ' árboles altos ',
+    ' maleza ',
+    ' barro ',
+    ' hojas secas ',
+  ];
+
+  static const List<String> streetTransitSignals = <String>[
+    ' camino por ',
+    ' cruzo ',
+    ' paso frente ',
+    ' taquería ',
+    ' luces de neón ',
+    ' esquina ',
+    ' portal ',
+    ' tienda de conveniencia ',
+    ' cerca de ',
+    ' al fondo de ',
+    ' a las afueras de ',
+    ' entre ',
+    ' tras ',
+    ' junto al ',
+    ' junto a la ',
+  ];
+
+  // ─── Marcadores de crimen / atmósfera ──────────────────────────
+
+  static const List<String> crimeSceneSignals = <String>[
+    ' crimen ',
+    ' policía ',
+    ' sangre ',
+    ' cinta ',
+    ' ambulancia ',
+    ' cadáver ',
+    ' cuerpo había ',
+    ' el cuerpo ',
+    ' cuerpo fue ',
+    ' cuerpo sin vida ',
+    ' retirado ',
+  ];
+
+  /// Marcadores de humedad usados por la detección de crimen / clima.
+  /// Nota: ' húmed' (sin cierre) es intencional — captura húmedo/húmeda/húmedos.
+  static const List<String> moistureSignals = <String>[
+    ' húmed',
+    ' mojado ',
+    ' lluvia ',
+  ];
+
+  // ─── Función del escenario (inferScenarioFunction) ──────────────
+
+  static const List<String> scenarioFunctionCrimeSignals = <String>[
+    ' sangre ',
+    ' policía ',
+    ' cinta ',
+    ' cadáver ',
+    ' cuerpo sin vida ',
+    ' móvil caído ',
+    ' contenedor abierto ',
+  ];
+
+  static const List<String> scenarioFunctionIntimacySignals = <String>[
+    ' apartamento ',
+    ' estudio ',
+    ' cama ',
+    ' cafetera ',
+    ' patio interior ',
+    ' refugio ',
+  ];
+
+  static const List<String> scenarioFunctionWorkSignals = <String>[
+    ' redacción ',
+    ' oficina ',
+    ' escritorio ',
+    ' gestor de contenidos ',
+    ' periodistas ',
+  ];
+
+  static const List<String> scenarioFunctionTransitSignals = <String>[
+    ' camino por ',
+    ' cruzo ',
+    ' avenida ',
+    ' calle ',
+    ' carretera ',
+    ' paso frente ',
+  ];
+
+  static const List<String> scenarioFunctionWaitingSignals = <String>[
+    ' sala de espera ',
+    ' pasillo ',
+    ' urgencias ',
+    ' espera ',
+  ];
+
+  static const List<String> scenarioFunctionObservationSignals = <String>[
+    ' observar ',
+    ' miré ',
+    ' vi ',
+    ' focos ',
+    ' desde la ventana ',
+  ];
+
+  // ─── Atmósfera y objetos para scoring ──────────────────────────
+
+  static const List<String> scenarioAtmosphereTerms = <String>[
+    ' húmed',
+    ' mojado ',
+    ' vacío ',
+    ' acordonado ',
+    ' oscuro ',
+    ' tranquilo ',
+    ' pequeño ',
+    ' precario ',
+    ' tenso ',
+    ' frío ',
+    ' caliente ',
+  ];
+
+  static const List<String> scenarioObjectTerms = <String>[
+    ' móvil ',
+    ' portátil ',
+    ' libreta ',
+    ' sangre ',
+    ' contenedor ',
+    ' café ',
+    ' cámara ',
+    ' expediente ',
+    ' llave ',
+    ' vaso ',
+    ' mochila ',
+    ' cinta amarilla ',
+  ];
+
+  // ─── Objetos clave (para _buildKeyObjectSummary) ───────────────
+
+  static const List<String> phoneTerms = <String>[' móvil ', ' teléfono '];
+  static const List<String> laptopTerms = <String>[' portátil ', ' ordenador '];
+  static const List<String> cameraTerms = <String>[
+    ' cámara ',
+    ' foto ',
+    ' fotos ',
+  ];
+  static const List<String> videoTerms = <String>[' vídeo ', ' video '];
+  static const List<String> folderTerms = <String>[
+    ' carpeta ',
+    ' expediente ',
+  ];
+  static const List<String> keyTerms = <String>[' llave ', ' llaves '];
+  static const List<String> dangerousObjectTerms = <String>[
+    ' arma ',
+    ' pistola ',
+    ' cuchillo ',
+  ];
+  static const List<String> physicalTraceTerms = <String>[
+    ' sangre ',
+    ' huellas ',
+    ' ceniza ',
+  ];
+  static const List<String> containerTerms = <String>[
+    ' contenedor ',
+    ' caja ',
+    ' palé ',
+  ];
+  static const List<String> coffeeTerms = <String>[' taza ', ' café ', ' chai '];
+  static const List<String> workFurnitureTerms = <String>[
+    ' escritorio ',
+    ' silla ',
+  ];
+
+  // ─── Momentos narrativos (para _detectMoment) ──────────────────
+
+  static const List<String> workshopMomentTerms = <String>[
+    ' taller ',
+    ' herramientas ',
+    ' grasa ',
+    ' banco de trabajo ',
+  ];
+
+  static const List<String> newsroomMomentTerms = <String>[
+    ' redacción ',
+    ' escritorio ',
+    ' gestor de contenidos ',
+    ' periodistas ',
+    ' despacho ',
+    ' fotocopiadora ',
+    ' artículo ',
+    ' correcciones ',
+    ' llamadas ',
+  ];
+
+  static const List<String> intimateMorningMomentTerms = <String>[
+    ' mi apartamento ',
+    ' mi estudio ',
+    ' apartamento ',
+    ' estudio ',
+    ' cafetera ',
+    ' bernal heights ',
+    ' vecino ',
+    ' saxofón ',
+    ' patio interior ',
+    ' cama ',
+  ];
+
+  static const List<String> backgroundTensionMomentTerms = <String>[
+    ' mi madre ',
+    ' mensaje ',
+    ' ansiedad ',
+    ' desayuno ',
+    ' no te olvides de comer ',
+    ' no te metas en líos ',
+    ' admiro ',
+    ' no quiero cambiar el sistema ',
+    ' quiero entender ',
+  ];
+
+  static const List<String> soloProcessingMomentTerms = <String>[
+    ' habitación ',
+    ' portátil ',
+    ' libreta ',
+    ' silencio ',
+    ' símbolo ',
+  ];
+
+  static const List<String> nightWalkHomeMomentTerms = <String>[
+    ' camino por ',
+    ' cruzo ',
+    ' paso frente ',
+    ' luces de neón ',
+    ' tienda de conveniencia ',
+    ' llego a casa ',
+    ' subo las escaleras ',
+  ];
+
+  static const List<String> cafePauseMomentTerms = <String>[
+    ' cafetería ',
+    ' mesa del fondo ',
+    ' café negro ',
+    ' chai ',
+    ' sándwich ',
+    ' almuerzo ',
+  ];
+
+  static const List<String> investigationStartMomentTerms = <String>[
+    ' investigar ',
+    ' pista ',
+    ' indicio ',
+    ' buscar ',
+    ' anoté ',
+    ' nombre ',
+    ' conect',
+  ];
+
+  static const List<String> crimeSceneEntryMomentTerms = <String>[
+    ' sangre ',
+    ' policía ',
+    ' cinta ',
+    ' crimen ',
+    ' cadáver ',
+    ' el cuerpo ',
+    ' cuerpo sin vida ',
+    ' retirado ',
+  ];
+
+  static const List<String> containedTensionMomentTerms = <String>[
+    ' grito ',
+    ' sombra ',
+    ' miedo ',
+    ' ruido ',
+    ' pasos ',
+  ];
+}
