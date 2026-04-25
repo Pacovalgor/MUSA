@@ -1167,4 +1167,165 @@ class TextAnalysisLexicons {
     'dime',
     'mira',
   ];
+
+  // ─── narrative_memory_updater: keywords por categoría ──────────
+
+  static const List<String> memoryClueKeywords = <String>[
+    'pista',
+    'indicio',
+    'rastro',
+    'señal',
+    'huella',
+    'clave',
+  ];
+
+  static const List<String> memoryThreatKeywords = <String>[
+    'amenaza',
+    'peligro',
+    'miedo',
+    'riesgo',
+    'persecución',
+    'muerte',
+  ];
+
+  static const List<String> memoryFactKeywords = <String>[
+    'descubre',
+    'revela',
+    'sabe que',
+    'comprende',
+    'recuerda',
+  ];
+
+  static const List<String> memoryCharacterShiftKeywords = <String>[
+    'decide',
+    'duda',
+    'cambia',
+    'renuncia',
+    'confiesa',
+    'teme',
+  ];
+
+  // ─── story_state_updater: tokens de estado ─────────────────────
+
+  /// Tokens que suben tensión global cuando aparecen en la escena.
+  static const List<String> tensionTokens = <String>[
+    // Amenazas clásicas
+    'amenaza', 'peligro', 'muerte', 'huye', 'arma', 'sangre', 'secreto',
+    // Vocabulario de fase de investigación (thriller, misterio)
+    'asesinat', 'mataron', 'desaparec', 'advertencia', 'crimen',
+  ];
+
+  /// Verbos/sustantivos que sugieren amenaza activa en el progreso real.
+  static const List<String> progressThreatTokens = <String>[
+    'amenaza',
+    'peligro',
+    'riesgo',
+    'persecución',
+    'muerte',
+  ];
+
+  /// Verbos que sugieren información nueva en el progreso real.
+  static const List<String> progressFactTokens = <String>[
+    'descubre',
+    'revela',
+    'sabe que',
+    'comprende',
+  ];
+
+  /// Tokens base para detectar progreso real cuando el género no impone
+  /// reglas adicionales.
+  static const List<String> progressDefaultTokens = <String>[
+    'descubre',
+    'decide',
+    'revela',
+    'amenaza',
+    'confiesa',
+    'pierde',
+  ];
+
+  /// Léxico de "sistema" (sci-fi: explicaciones que tocan reglas técnicas).
+  static const List<String> systemTokens = <String>[
+    'sistema',
+    'tecnología',
+    'algoritmo',
+    'motor',
+    'órbita',
+    'colonia',
+    'protocolo',
+  ];
+
+  /// Verbos que indican un cambio estructural (decisiones, costes,
+  /// consecuencias). Usados con stemming → captan también pretérito/imperfecto.
+  static const List<String> structuralShiftTokens = <String>[
+    'obliga',
+    'exige',
+    'decide',
+    'elige',
+    'pierde',
+    'cruza',
+    'renuncia',
+    'empuja',
+    'marca',
+    'implica',
+    'cambia',
+    'regla',
+    'coste',
+    'consecuencia',
+    'prohíbe',
+    'limita',
+    'altera',
+    'reduce',
+    'aumenta',
+    'impide',
+  ];
+
+  /// Texturas de mundo de fantasía (bosques, magia, oráculos…).
+  static const List<String> fantasyWorldTextureTokens = <String>[
+    'bosque',
+    'reino',
+    'magia',
+    'templo',
+    'dragón',
+    'hechizo',
+    'oráculo',
+  ];
+
+  /// Presión narrativa típica de fantasía (deuda, destino, maldición…).
+  static const List<String> fantasyPressureTokens = <String>[
+    'deuda',
+    'destino',
+    'maldición',
+    'juramento',
+    'amenaza',
+    'sombra',
+    'guerra',
+    'exilio',
+  ];
+
+  // ─── Sinónimos curados ─────────────────────────────────────────
+
+  /// Mapa de sinónimos para análisis tolerante a variación léxica.
+  ///
+  /// Convención conservadora: sólo equivalencias claras dentro del mismo
+  /// dominio narrativo. Añadir entradas requiere verificar con tests:
+  /// expandir demasiado introduce falsos positivos en escenas que sólo
+  /// tocan el concepto por encima.
+  ///
+  /// Las búsquedas con sinónimos pasan a través del stemmer, así que un
+  /// sinónimo cubre también sus formas conjugadas (ej. 'opta' → 'optó',
+  /// 'optaba', 'optaron').
+  static const Map<String, List<String>> synonymMap =
+      <String, List<String>>{
+    // Miedo / amenaza
+    'miedo': <String>['temor', 'pavor', 'angustia'],
+    'amenaza': <String>['peligro', 'advertencia'],
+    // Decisión / duda
+    'decide': <String>['elige', 'opta', 'resuelve'],
+    'duda': <String>['vacila', 'titubea'],
+    // Descubrimiento / revelación
+    'descubre': <String>['halla', 'encuentra'],
+    'revela': <String>['muestra', 'expone', 'desvela'],
+    // Confesión
+    'confiesa': <String>['admite', 'reconoce'],
+  };
 }

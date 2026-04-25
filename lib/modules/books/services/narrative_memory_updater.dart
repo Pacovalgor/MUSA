@@ -1,3 +1,4 @@
+import '../../../editor/services/text_analysis_lexicons.dart';
 import '../../../editor/services/text_normalizer.dart';
 import '../../manuscript/models/document.dart';
 import '../models/narrative_copilot.dart';
@@ -34,26 +35,19 @@ class NarrativeMemoryUpdater {
       openQuestions: _collectQuestions(recentText),
       plantedClues: _collectByKeywords(
         recentText,
-        const ['pista', 'indicio', 'rastro', 'señal', 'huella', 'clave'],
+        TextAnalysisLexicons.memoryClueKeywords,
       ),
       activeThreats: _collectByKeywords(
         recentText,
-        const [
-          'amenaza',
-          'peligro',
-          'miedo',
-          'riesgo',
-          'persecución',
-          'muerte'
-        ],
+        TextAnalysisLexicons.memoryThreatKeywords,
       ),
       importantFacts: _collectByKeywords(
         recentText,
-        const ['descubre', 'revela', 'sabe que', 'comprende', 'recuerda'],
+        TextAnalysisLexicons.memoryFactKeywords,
       ),
       recentCharacterShifts: _collectByKeywords(
         recentText,
-        const ['decide', 'duda', 'cambia', 'renuncia', 'confiesa', 'teme'],
+        TextAnalysisLexicons.memoryCharacterShiftKeywords,
       ),
       worldRules: contextualMemory.worldRules,
       systemConstraints: contextualMemory.systemConstraints,
@@ -89,7 +83,13 @@ class NarrativeMemoryUpdater {
   List<String> _collectByKeywords(String text, List<String> keywords) {
     final results = <String>[];
     for (final sentence in _sentences(text)) {
-      if (!TextNormalizer.stemmedAnyContains(sentence, keywords)) continue;
+      if (!TextNormalizer.stemmedAnyContainsWithSynonyms(
+        sentence,
+        keywords,
+        TextAnalysisLexicons.synonymMap,
+      )) {
+        continue;
+      }
       final compacted = _compact(sentence);
       if (!results.contains(compacted)) results.add(compacted);
       if (results.length == 5) break;

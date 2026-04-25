@@ -1,3 +1,4 @@
+import '../../../editor/services/text_analysis_lexicons.dart';
 import '../../../editor/services/text_normalizer.dart';
 import '../../manuscript/models/document.dart';
 import '../models/book.dart';
@@ -205,12 +206,7 @@ class StoryStateUpdater {
     final lowered = recentText.toLowerCase();
     var score =
         memory.activeThreats.length * 12 + memory.openQuestions.length * 4;
-    for (final token in const [
-      // Amenazas clásicas
-      'amenaza', 'peligro', 'muerte', 'huye', 'arma', 'sangre', 'secreto',
-      // Vocabulario de fase de investigación (thriller, misterio)
-      'asesinat', 'mataron', 'desaparec', 'advertencia', 'crimen',
-    ]) {
+    for (final token in TextAnalysisLexicons.tensionTokens) {
       if (lowered.contains(token)) score += 8;
     }
     if (genre == BookPrimaryGenre.thriller) score += 12;
@@ -259,101 +255,45 @@ class StoryStateUpdater {
         _hasLatentFantasyConflict(lowered)) {
       return true;
     }
-    return _hasAffirmedAny(lowered, const [
-      'descubre',
-      'decide',
-      'revela',
-      'amenaza',
-      'confiesa',
-      'pierde'
-    ]);
+    return _hasAffirmedAny(lowered, TextAnalysisLexicons.progressDefaultTokens);
   }
 
   bool _hasMemoryProgressSignal(String lowered, NarrativeMemory memory) {
     final hasThreat = memory.activeThreats.isNotEmpty &&
-        _hasAffirmedAny(lowered, const [
-          'amenaza',
-          'peligro',
-          'riesgo',
-          'persecución',
-          'muerte',
-        ]);
+        _hasAffirmedAny(lowered, TextAnalysisLexicons.progressThreatTokens);
     final hasFact = memory.importantFacts.isNotEmpty &&
-        _hasAffirmedAny(lowered, const [
-          'descubre',
-          'revela',
-          'sabe que',
-          'comprende',
-        ]);
+        _hasAffirmedAny(lowered, TextAnalysisLexicons.progressFactTokens);
     final hasShift =
         memory.recentCharacterShifts.isNotEmpty && _hasStructuralShift(lowered);
     return hasThreat || hasFact || hasShift;
   }
 
   bool _hasSystemImplication(String lowered) {
-    final hasSystem = _hasAffirmedAny(lowered, const [
-      'sistema',
-      'tecnología',
-      'algoritmo',
-      'motor',
-      'órbita',
-      'colonia',
-      'protocolo',
-    ]);
+    final hasSystem =
+        _hasAffirmedAny(lowered, TextAnalysisLexicons.systemTokens);
     return hasSystem && _hasStructuralShift(lowered);
   }
 
   bool _hasStructuralShift(String lowered) {
-    return _hasAffirmedAny(lowered, const [
-      'obliga',
-      'exige',
-      'decide',
-      'elige',
-      'pierde',
-      'cruza',
-      'renuncia',
-      'empuja',
-      'marca',
-      'implica',
-      'cambia',
-      'regla',
-      'coste',
-      'consecuencia',
-      'prohíbe',
-      'limita',
-      'altera',
-      'reduce',
-      'aumenta',
-      'impide',
-    ]);
+    return _hasAffirmedAny(lowered, TextAnalysisLexicons.structuralShiftTokens);
   }
 
   bool _hasLatentFantasyConflict(String lowered) {
-    final hasWorldTexture = _hasAffirmedAny(lowered, const [
-      'bosque',
-      'reino',
-      'magia',
-      'templo',
-      'dragón',
-      'hechizo',
-      'oráculo',
-    ]);
-    final hasPressure = _hasAffirmedAny(lowered, const [
-      'deuda',
-      'destino',
-      'maldición',
-      'juramento',
-      'amenaza',
-      'sombra',
-      'guerra',
-      'exilio',
-    ]);
+    final hasWorldTexture = _hasAffirmedAny(
+        lowered, TextAnalysisLexicons.fantasyWorldTextureTokens);
+    final hasPressure =
+        _hasAffirmedAny(lowered, TextAnalysisLexicons.fantasyPressureTokens);
     return hasWorldTexture && hasPressure && _hasStructuralShift(lowered);
   }
 
   bool _hasAffirmedAny(String lowered, List<String> tokens) {
     for (final token in tokens) {
       if (_hasAffirmedToken(lowered, token)) return true;
+      final synonyms = TextAnalysisLexicons.synonymMap[token.toLowerCase()];
+      if (synonyms == null) continue;
+      for (final synonym in synonyms) {
+        if (_hasAffirmedToken(lowered, synonym)) return true;
+      }
     }
     return false;
   }

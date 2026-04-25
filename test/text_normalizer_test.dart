@@ -107,4 +107,71 @@ void main() {
       );
     });
   });
+
+  group('stemmedAnyContainsWithSynonyms', () {
+    const synonymMap = <String, List<String>>{
+      'miedo': <String>['temor', 'pavor'],
+      'decide': <String>['elige', 'opta'],
+    };
+
+    test('matches the original needle', () {
+      expect(
+        TextNormalizer.stemmedAnyContainsWithSynonyms(
+          'Sentí un miedo lento subir desde el suelo.',
+          ['miedo'],
+          synonymMap,
+        ),
+        isTrue,
+      );
+    });
+
+    test('matches via synonym, with morphology', () {
+      expect(
+        TextNormalizer.stemmedAnyContainsWithSynonyms(
+          'Optaron por marcharse antes del amanecer.',
+          ['decide'],
+          synonymMap,
+        ),
+        isTrue,
+      );
+      expect(
+        TextNormalizer.stemmedAnyContainsWithSynonyms(
+          'Un pavor antiguo le cerró la garganta.',
+          ['miedo'],
+          synonymMap,
+        ),
+        isTrue,
+      );
+    });
+
+    test('returns false when neither needle nor synonyms appear', () {
+      expect(
+        TextNormalizer.stemmedAnyContainsWithSynonyms(
+          'La tarde se cerró sin sobresaltos.',
+          ['miedo', 'decide'],
+          synonymMap,
+        ),
+        isFalse,
+      );
+    });
+
+    test('handles empty needles or empty synonym map', () {
+      expect(
+        TextNormalizer.stemmedAnyContainsWithSynonyms(
+          'cualquier texto',
+          [],
+          synonymMap,
+        ),
+        isFalse,
+      );
+      expect(
+        TextNormalizer.stemmedAnyContainsWithSynonyms(
+          'opta sin pensarlo',
+          ['miedo'],
+          const {},
+        ),
+        isFalse,
+      );
+    });
+  });
 }

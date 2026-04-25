@@ -68,6 +68,29 @@ class TextNormalizer {
     return false;
   }
 
+  /// Como `stemmedAnyContains` pero expandiendo cada needle con sus
+  /// sinónimos antes de comparar. Útil para captar variación léxica que
+  /// el stemmer no resuelve (ej. miedo / temor / pavor).
+  ///
+  /// La búsqueda de cada sinónimo pasa también por el stemmer, así que
+  /// un sinónimo cubre sus formas conjugadas / plurales.
+  static bool stemmedAnyContainsWithSynonyms(
+    String haystack,
+    List<String> needles,
+    Map<String, List<String>> synonymMap,
+  ) {
+    if (needles.isEmpty || haystack.isEmpty) return false;
+    for (final needle in needles) {
+      if (stemmedContains(haystack, needle)) return true;
+      final synonyms = synonymMap[needle.toLowerCase()];
+      if (synonyms == null) continue;
+      for (final synonym in synonyms) {
+        if (stemmedContains(haystack, synonym)) return true;
+      }
+    }
+    return false;
+  }
+
   /// Patrón para tokenizar palabras del español. Útil para callers que
   /// necesitan iterar matches y mirar contexto (ej. detectar negación).
   static final RegExp wordPattern =
