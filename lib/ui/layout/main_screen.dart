@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/theme.dart';
+import '../inbox/popover/inbox_toolbar_button.dart';
 import '../../editor/controller/editor_controller.dart';
 import '../../editor/widgets/book_editor.dart';
 import '../../editor/widgets/chapter_insight_panel.dart';
@@ -380,6 +381,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
           ),
           Row(
             children: [
+              const InboxToolbarButton(),
+              const SizedBox(width: 8),
               _WorkspaceSaveIndicator(status: persistenceStatus),
               const SizedBox(width: 12),
               if (canAnalyzeChapter) ...[
