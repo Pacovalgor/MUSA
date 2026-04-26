@@ -23,8 +23,12 @@ class InboxPopover extends ConsumerWidget {
 
     return asyncCaps.when(
       loading: () => const Padding(
-        padding: EdgeInsets.all(20),
-        child: Center(child: CircularProgressIndicator()),
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+        child: SizedBox(
+          height: 24,
+          width: 24,
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
       ),
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(20),
@@ -33,8 +37,9 @@ class InboxPopover extends ConsumerWidget {
       data: (caps) {
         if (caps.isEmpty) {
           return const Padding(
-            padding: EdgeInsets.all(20),
-            child: Center(child: Text('No hay capturas pendientes.')),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+            child: Text('No hay capturas pendientes.',
+                textAlign: TextAlign.center),
           );
         }
         final visible = caps.take(5).toList();

@@ -4,22 +4,71 @@ import 'package:musa/modules/inbox/providers/inbox_captures_provider.dart';
 import 'package:musa/modules/inbox/providers/inbox_folder_provider.dart';
 import 'package:musa/ui/inbox/popover/inbox_popover.dart';
 
-/// Botón de la bandeja en la toolbar del Studio Shell. Abre el popover.
-class InboxToolbarButton extends ConsumerWidget {
+/// Botón de la bandeja en la toolbar del Studio Shell. Abre el popover
+/// vía `OverlayPortal`. Cierra al volver a hacer clic o al tocar fuera.
+class InboxToolbarButton extends ConsumerStatefulWidget {
   const InboxToolbarButton({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InboxToolbarButton> createState() =>
+      _InboxToolbarButtonState();
+}
+
+class _InboxToolbarButtonState extends ConsumerState<InboxToolbarButton> {
+  final _portalController = OverlayPortalController();
+  final _link = LayerLink();
+
+  @override
+  Widget build(BuildContext context) {
     final folder = ref.watch(inboxFolderProvider);
     final asyncCaps = ref.watch(inboxPendingCapturesProvider);
     final unreachable = folder.health == InboxFolderHealth.unreachable;
     final unconfigured = folder.health == InboxFolderHealth.unconfigured;
 
-    return MenuAnchor(
-      builder: (context, controller, child) {
-        return InkWell(
-          onTap: () =>
-              controller.isOpen ? controller.close() : controller.open(),
+    return CompositedTransformTarget(
+      link: _link,
+      child: OverlayPortal(
+        controller: _portalController,
+        overlayChildBuilder: (overlayContext) => Stack(
+          children: [
+            // Tap fuera del popover lo cierra.
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _portalController.hide,
+              ),
+            ),
+            CompositedTransformFollower(
+              link: _link,
+              targetAnchor: Alignment.bottomRight,
+              followerAnchor: Alignment.topRight,
+              offset: const Offset(0, 6),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.black.withValues(alpha: 0.08),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.18),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: const SizedBox(
+                  width: 320,
+                  child: InboxPopover(),
+                ),
+              ),
+            ),
+          ],
+        ),
+        child: InkWell(
+          onTap: _portalController.toggle,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -61,14 +110,8 @@ class InboxToolbarButton extends ConsumerWidget {
               ],
             ),
           ),
-        );
-      },
-      menuChildren: const [
-        SizedBox(
-          width: 320,
-          child: InboxPopover(),
         ),
-      ],
+      ),
     );
   }
 }
