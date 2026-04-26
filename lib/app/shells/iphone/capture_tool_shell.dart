@@ -1,69 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:musa/modules/inbox/providers/inbox_folder_provider.dart';
+import 'package:musa/ui/inbox/iphone/capture_screen.dart';
+import 'package:musa/ui/inbox/iphone/history_screen.dart';
+import 'package:musa/ui/inbox/iphone/inbox_settings_screen.dart';
+import 'package:musa/ui/inbox/iphone/onboarding_screen.dart';
 
-import '../../adaptive/adaptive_spec.dart';
-import '../../features/workspace/presentation/widgets/capture_workspace_view.dart';
-import '../../features/workspace/presentation/widgets/document_focus_view.dart';
-import '../../features/workspace/presentation/widgets/workspace_library_panel.dart';
-
-class CaptureToolShell extends StatefulWidget {
+/// Shell del iPhone para Ola 1 — "MUSA Capturar".
+///
+/// Los tabs históricos (Biblioteca, Documento) están ocultos en Ola 1; sólo
+/// se exponen Capturar e Historial. La pantalla de onboarding aparece si no
+/// hay carpeta configurada.
+class CaptureToolShell extends ConsumerStatefulWidget {
   const CaptureToolShell({super.key});
 
   @override
-  State<CaptureToolShell> createState() => _CaptureToolShellState();
+  ConsumerState<CaptureToolShell> createState() => _CaptureToolShellState();
 }
 
-class _CaptureToolShellState extends State<CaptureToolShell> {
-  int _currentIndex = 1;
+class _CaptureToolShellState extends ConsumerState<CaptureToolShell> {
+  int _index = 0;
 
   @override
   Widget build(BuildContext context) {
-    final spec = context.musaAdaptiveSpec;
-
-    final pages = [
-      WorkspaceLibraryPanel(
-        onDocumentSelected: (_) => setState(() => _currentIndex = 1),
-        onNoteSelected: (_) => setState(() => _currentIndex = 2),
-      ),
-      const DocumentFocusView(
-        titleOverride: 'Documento activo',
-        subtitle: 'Escritura ligera centrada en el texto',
-      ),
-      CaptureWorkspaceView(
-        onDocumentRequested: () => setState(() => _currentIndex = 1),
-      ),
-    ];
-
+    final folder = ref.watch(inboxFolderProvider);
+    if (folder.health == InboxFolderHealth.unconfigured) {
+      return InboxOnboardingScreen(onCompleted: () => setState(() {}));
+    }
     return Scaffold(
-      body: SafeArea(
-        child: IndexedStack(
-          index: _currentIndex,
-          children: pages,
-        ),
+      body: IndexedStack(
+        index: _index,
+        children: const [
+          CaptureScreen(),
+          HistoryScreen(),
+        ],
       ),
-      bottomNavigationBar: spec.supportsBottomNavigation
-          ? NavigationBar(
-              selectedIndex: _currentIndex,
-              onDestinationSelected: (value) =>
-                  setState(() => _currentIndex = value),
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.library_books_outlined),
-                  selectedIcon: Icon(Icons.library_books),
-                  label: 'Biblioteca',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.description_outlined),
-                  selectedIcon: Icon(Icons.description),
-                  label: 'Documento',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.edit_note_outlined),
-                  selectedIcon: Icon(Icons.edit_note),
-                  label: 'Captura',
-                ),
-              ],
-            )
-          : null,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.edit_note_outlined),
+            selectedIcon: Icon(Icons.edit_note),
+            label: 'Capturar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history_outlined),
+            selectedIcon: Icon(Icons.history),
+            label: 'Historial',
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.small(
+        heroTag: 'inbox-settings',
+        tooltip: 'Ajustes de la bandeja',
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+              builder: (_) => const InboxSettingsScreen()),
+        ),
+        child: const Icon(Icons.settings),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
     );
   }
 }
