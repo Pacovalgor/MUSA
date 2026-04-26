@@ -110,8 +110,105 @@ class SecureFilePickerHandler: NSObject {
     }
 }
 
+/// Method channel para gestionar security-scoped bookmarks de la bandeja de
+/// capturas en macOS.
+///
+/// API:
+/// - `pickFolder` → `{ "bookmark": <bytes>, "path": <string> }` o `null` si
+///   el usuario cancela.
+/// - `resolveBookmark(bookmark: <bytes>)` → `{ "path": <string>, "stale": <bool> }`
+///   o lanza `FlutterError` si no se puede resolver.
+final class InboxBookmarkChannel: NSObject {
+  private let channel: FlutterMethodChannel
+
+  init(messenger: FlutterBinaryMessenger) {
+    channel = FlutterMethodChannel(
+      name: "musa/inbox_bookmark",
+      binaryMessenger: messenger
+    )
+    super.init()
+    channel.setMethodCallHandler(handle)
+  }
+
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "pickFolder":
+      pickFolder(result: result)
+    case "resolveBookmark":
+      resolveBookmark(call: call, result: result)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func pickFolder(result: @escaping FlutterResult) {
+    let panel = NSOpenPanel()
+    panel.canChooseDirectories = true
+    panel.canChooseFiles = false
+    panel.allowsMultipleSelection = false
+    panel.message = "Elige la carpeta donde MUSA guardará y leerá tus capturas"
+    panel.prompt = "Elegir carpeta"
+
+    panel.begin { response in
+      guard response == .OK, let url = panel.url else {
+        result(nil)
+        return
+      }
+      do {
+        let bookmark = try url.bookmarkData(
+          options: [.withSecurityScope],
+          includingResourceValuesForKeys: nil,
+          relativeTo: nil
+        )
+        result([
+          "bookmark": FlutterStandardTypedData(bytes: bookmark),
+          "path": url.path,
+        ])
+      } catch {
+        result(FlutterError(
+          code: "BOOKMARK_FAILED",
+          message: "No se pudo crear bookmark: \(error.localizedDescription)",
+          details: nil
+        ))
+      }
+    }
+  }
+
+  private func resolveBookmark(call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard
+      let args = call.arguments as? [String: Any],
+      let blob = args["bookmark"] as? FlutterStandardTypedData
+    else {
+      result(FlutterError(code: "BAD_ARGS", message: "missing bookmark", details: nil))
+      return
+    }
+    var stale = false
+    do {
+      let url = try URL(
+        resolvingBookmarkData: blob.data,
+        options: [.withSecurityScope],
+        relativeTo: nil,
+        bookmarkDataIsStale: &stale
+      )
+      // Iniciamos acceso. Lo dejamos abierto durante la sesión.
+      _ = url.startAccessingSecurityScopedResource()
+      result([
+        "path": url.path,
+        "stale": stale,
+      ])
+    } catch {
+      result(FlutterError(
+        code: "BOOKMARK_INVALID",
+        message: error.localizedDescription,
+        details: nil
+      ))
+    }
+  }
+}
+
 class MainFlutterWindow: NSWindow {
   private let secureFilePicker = SecureFilePickerHandler()
+  private var inboxBookmarkChannel: InboxBookmarkChannel?
   private let initialSize = NSSize(width: 1280, height: 820)
   private let minimumSize = NSSize(width: 1100, height: 720)
   private let trafficLightLeftInset: CGFloat = 14
@@ -137,6 +234,10 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     secureFilePicker.register(with: flutterViewController.engine.registrar(forPlugin: "SecureFilePicker"))
+
+    inboxBookmarkChannel = InboxBookmarkChannel(
+      messenger: flutterViewController.engine.binaryMessenger
+    )
 
     super.awakeFromNib()
     // positionTrafficLights()
