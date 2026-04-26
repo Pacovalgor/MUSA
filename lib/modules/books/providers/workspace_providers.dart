@@ -540,6 +540,56 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
     );
   }
 
+  /// Crea una `Note` cuyo origen es una captura del inbox.
+  ///
+  /// La nota llega a la bandeja del libro activo con `kind = NoteKind.loose`
+  /// y `status = NoteStatus.inbox`. El `body` es lo que el usuario aceptó
+  /// (texto, o texto + URL si era kind=link). El `title` se infiere de la
+  /// primera línea no vacía si existe.
+  Future<Note?> addNoteFromInbox({
+    required String body,
+    required String? url,
+    required DateTime capturedAt,
+    required String deviceLabel,
+  }) async {
+    final workspace = state.value;
+    final activeBook = workspace?.activeBook;
+    if (workspace == null || activeBook == null) return null;
+
+    final fullContent = url == null || url.isEmpty
+        ? body
+        : (body.isEmpty ? url : '$body\n\n$url');
+
+    String inferredTitle = '';
+    for (final raw in fullContent.split('\n')) {
+      final line = raw.trim();
+      if (line.isNotEmpty) {
+        inferredTitle = line.length > 80 ? '${line.substring(0, 77)}…' : line;
+        break;
+      }
+    }
+
+    final now = DateTime.now();
+    final newNote = Note(
+      id: generateEntityId('note'),
+      bookId: activeBook.id,
+      title: inferredTitle.isEmpty ? null : inferredTitle,
+      content: fullContent,
+      kind: NoteKind.loose,
+      status: NoteStatus.inbox,
+      createdAt: capturedAt,
+      updatedAt: now,
+    );
+
+    await _persist(
+      workspace.copyWith(
+        notes: [...workspace.notes, newNote],
+        books: _touchActiveBook(workspace.books, activeBook.id, now),
+      ),
+    );
+    return newNote;
+  }
+
   Future<Note?> createWorkflowNote({
     required String title,
     required String content,
