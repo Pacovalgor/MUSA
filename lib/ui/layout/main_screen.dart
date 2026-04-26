@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/theme.dart';
 import '../../modules/inbox/providers/inbox_folder_provider.dart';
 import '../inbox/popover/inbox_toolbar_button.dart';
+import '../inbox/window/inbox_management_screen.dart';
 import '../../editor/controller/editor_controller.dart';
 import '../../editor/widgets/book_editor.dart';
 import '../../editor/widgets/chapter_insight_panel.dart';
@@ -105,7 +106,7 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
     const sidebarKeepOpenDistance = _sidebarWidth * _edgeKeepOpenMultiplier;
     const inspectorKeepOpenDistance = _inspectorWidth * _edgeKeepOpenMultiplier;
 
-    return Scaffold(
+    final scaffold = Scaffold(
       body: MouseRegion(
         onHover: appSettings.edgeHoverPanelsEnabled
             ? (event) {
@@ -209,6 +210,28 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
             ],
           ),
         ),
+      ),
+    );
+
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.keyB, meta: true, shift: true):
+            _OpenInboxIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _OpenInboxIntent: CallbackAction<_OpenInboxIntent>(
+            onInvoke: (_) {
+              Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(
+                  builder: (_) => const InboxManagementScreen(),
+                ),
+              );
+              return null;
+            },
+          ),
+        },
+        child: scaffold,
       ),
     );
   }
@@ -944,4 +967,8 @@ class _WorkspaceSaveIndicator extends StatelessWidget {
       WorkspacePersistenceStatus.idle => const SizedBox.shrink(),
     };
   }
+}
+
+class _OpenInboxIntent extends Intent {
+  const _OpenInboxIntent();
 }
