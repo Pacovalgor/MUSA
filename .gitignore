@@ -2,6 +2,7 @@
 .claude/
 .claude-flow/
 .mcp.json
+.superpowers/
 
 # Miscellaneous
 *.class
