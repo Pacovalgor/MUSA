@@ -56,10 +56,31 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
   Timer? _inspectorCloseTimer;
 
   @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_handleGlobalKey);
+  }
+
+  @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKey);
     _sidebarCloseTimer?.cancel();
     _inspectorCloseTimer?.cancel();
     super.dispose();
+  }
+
+  /// Captura `⌘⇧B` a nivel global (antes que cualquier widget) para abrir
+  /// la ventana de gestión de la bandeja.
+  bool _handleGlobalKey(KeyEvent event) {
+    if (!mounted) return false;
+    if (event is! KeyDownEvent) return false;
+    if (event.logicalKey != LogicalKeyboardKey.keyB) return false;
+    final keyboard = HardwareKeyboard.instance;
+    if (!keyboard.isMetaPressed || !keyboard.isShiftPressed) return false;
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(builder: (_) => const InboxManagementScreen()),
+    );
+    return true;
   }
 
   void _scheduleSidebarAutoClose() {
@@ -106,7 +127,7 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
     const sidebarKeepOpenDistance = _sidebarWidth * _edgeKeepOpenMultiplier;
     const inspectorKeepOpenDistance = _inspectorWidth * _edgeKeepOpenMultiplier;
 
-    final scaffold = Scaffold(
+    return Scaffold(
       body: MouseRegion(
         onHover: appSettings.edgeHoverPanelsEnabled
             ? (event) {
@@ -210,28 +231,6 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
             ],
           ),
         ),
-      ),
-    );
-
-    return Shortcuts(
-      shortcuts: const <ShortcutActivator, Intent>{
-        SingleActivator(LogicalKeyboardKey.keyB, meta: true, shift: true):
-            _OpenInboxIntent(),
-      },
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          _OpenInboxIntent: CallbackAction<_OpenInboxIntent>(
-            onInvoke: (_) {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const InboxManagementScreen(),
-                ),
-              );
-              return null;
-            },
-          ),
-        },
-        child: scaffold,
       ),
     );
   }
@@ -967,8 +966,4 @@ class _WorkspaceSaveIndicator extends StatelessWidget {
       WorkspacePersistenceStatus.idle => const SizedBox.shrink(),
     };
   }
-}
-
-class _OpenInboxIntent extends Intent {
-  const _OpenInboxIntent();
 }
