@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:musa/modules/inbox/providers/inbox_captures_provider.dart';
 import 'package:musa/modules/inbox/services/inbox_bookmark_service.dart';
 import 'package:musa/modules/inbox/services/inbox_storage_service.dart';
+import 'package:musa/modules/inbox/services/inbox_watcher_service.dart';
 
 enum InboxFolderHealth { unconfigured, healthy, unreachable }
 
@@ -71,4 +73,24 @@ final inboxStorageProvider = Provider<InboxStorageService?>((ref) {
     return null;
   }
   return InboxStorageService(rootDirectory: Directory(folder.path!));
+});
+
+/// Watcher reactivo de la carpeta. Sólo macOS. Cuando emite cambios,
+/// incrementa el `inboxRefreshTickProvider` para forzar recarga.
+final inboxWatcherProvider = Provider.autoDispose<InboxWatcherService?>((ref) {
+  final folder = ref.watch(inboxFolderProvider);
+  if (folder.health != InboxFolderHealth.healthy || folder.path == null) {
+    return null;
+  }
+  if (!Platform.isMacOS) return null;
+  final watcher = InboxWatcherService(rootDirectory: Directory(folder.path!));
+  watcher.start();
+  final sub = watcher.changes.listen((_) {
+    ref.read(inboxRefreshTickProvider.notifier).state++;
+  });
+  ref.onDispose(() {
+    sub.cancel();
+    watcher.dispose();
+  });
+  return watcher;
 });

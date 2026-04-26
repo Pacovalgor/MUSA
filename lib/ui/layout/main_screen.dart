@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/theme.dart';
+import '../../modules/inbox/providers/inbox_folder_provider.dart';
 import '../inbox/popover/inbox_toolbar_button.dart';
 import '../../editor/controller/editor_controller.dart';
 import '../../editor/widgets/book_editor.dart';
@@ -87,6 +88,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
     if (workspaceState.hasError) {
       return _buildProjectUnavailableScaffold(tokens);
     }
+    // Activa el watcher FSEvents de la bandeja cuando hay carpeta sana.
+    ref.watch(inboxWatcherProvider);
     final showSidebar = ref.watch(sidebarVisibilityProvider);
     final showInspector = ref.watch(inspectorVisibilityProvider);
     final sidebarAutoOpened = ref.watch(sidebarAutoOpenedProvider);
