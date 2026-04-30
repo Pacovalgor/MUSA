@@ -6,7 +6,11 @@ El formato sigue una variante ligera de Keep a Changelog: las entradas nuevas em
 
 ## Unreleased
 
-- Pendiente de documentar en el próximo cambio relevante.
+### Changed
+
+- Reforzado el README público como presentación de producto y pieza de portfolio.
+- Ampliado `.gitignore` para excluir secretos, credenciales locales, proyectos `.musa`, modelos `.gguf` y artefactos generados de Flutter.
+- Registrada en memoria estable la convención de higiene para repositorio público local-first.
 
 ## 2026-04-12 - Contexto narrativo, importación local y picker seguro
 

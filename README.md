@@ -4,6 +4,30 @@ MUSA es una aplicación de escritura asistida por IA, local-first y orientada a 
 
 No es un simple editor con autocompletado. MUSA intenta actuar como una mesa de trabajo literaria donde el texto, el contexto narrativo y las intervenciones editoriales especializadas comparten el mismo espacio.
 
+## Por qué este repositorio importa
+
+MUSA es una pieza de portfolio pensada para demostrar criterio de producto, arquitectura y sensibilidad de usuario en un problema difícil: ayudar a escribir sin convertir la escritura en una caja negra dependiente de la nube.
+
+El proyecto muestra capacidad para diseñar una experiencia completa, no solo pantallas sueltas:
+
+- producto local-first con una tesis clara de privacidad, control y soberanía del autor,
+- arquitectura Flutter + Riverpod organizada por dominio narrativo,
+- persistencia portable mediante documentos `.musa`,
+- integración de inferencia local con modelos `.gguf` y runtime nativo en macOS,
+- flujos editoriales estructurados que convierten análisis en acciones reutilizables,
+- UI de escritorio con manuscrito, inspector, navegación, revisión, impresión y música de foco,
+- documentación de arquitectura, auditorías narrativas y memoria técnica del proyecto.
+
+Como carta de presentación, MUSA comunica tres cosas: puedo construir software usable de extremo a extremo, puedo tomar decisiones técnicas con restricciones reales y puedo convertir una idea creativa en un producto con identidad defendible.
+
+## Tesis del producto
+
+La mayoría de editores con IA tratan el texto como un prompt. MUSA lo trata como una obra en progreso.
+
+El manuscrito no vive aislado: está conectado a personajes, escenarios, notas, continuidad, ADN narrativo, memoria contextual, snapshots y decisiones editoriales. La IA no aparece como una capa genérica encima del editor, sino como un conjunto de musas con intención y alcance definidos.
+
+La apuesta técnica es deliberada: privacidad por defecto, archivos locales, modelos instalados en la máquina y un flujo que sigue funcionando aunque no haya servicios externos disponibles.
+
 ## Vista rápida
 
 Capturas reales del estado actual de la app.

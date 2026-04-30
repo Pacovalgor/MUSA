@@ -2,6 +2,7 @@
 
 ## Decisiones estables
 - MUSA es un estudio de escritura asistida por IA **local-first** con foco en escritorio macOS y arquitectura Flutter + Riverpod.
+- El repositorio público debe preservar esa tesis local-first: excluir secretos, credenciales, proyectos `.musa`, modelos `.gguf` y bases de datos locales mediante `.gitignore`.
 - El flujo crítico del producto sigue la cadena: `main` → providers de workspace/libro → `editor_controller` → servicios IA/análisis → persistencia local.
 - La persistencia del workspace y del documento `.musa` es un contrato central: cualquier cambio debe preservar compatibilidad de serialización y restauración.
 - El dominio está segmentado en módulos (`books`, `manuscript`, `characters`, `scenarios`, `notes`, `continuity`, `musa`) con modelos inmutables y providers específicos por slice.

@@ -4,6 +4,31 @@
 .mcp.json
 .superpowers/
 
+# Secrets and local credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.keystore
+key.properties
+*.mobileprovision
+GoogleService-Info.plist
+google-services.json
+
+# Local user data and AI model artifacts
+*.musa
+*.gguf
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+/models/
+/Application Support/
+
 # Miscellaneous
 *.class
 *.log
@@ -41,6 +66,9 @@ devtools_options.yaml
 /build/
 /coverage/
 tmp/
+**/Flutter/Generated.xcconfig
+**/Flutter/flutter_export_environment.sh
+**/Flutter/ephemeral/
 
 # Symbolication related
 app.*.symbols
