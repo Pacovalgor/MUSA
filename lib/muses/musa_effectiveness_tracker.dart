@@ -6,6 +6,7 @@ import 'dart:convert';
 /// musas that get accepted frequently should appear more often.
 class MusaEffectivenessTracker {
   static const String _storageKey = 'musa_effectiveness_stats';
+  static const int minimumSamples = 5;
 
   final Map<String, MusaEffectiveness> _stats = {};
   SharedPreferences? _prefs;
@@ -84,6 +85,9 @@ class MusaEffectivenessTracker {
   /// 0.3-0.6: multiply by 1.0 (keep default)
   /// < 0.3 acceptance: multiply by 0.8 (show less often)
   double getThresholdMultiplier(String musaSlug) {
+    final shown = getTotalSuggestionsShown(musaSlug);
+    if (shown < minimumSamples) return 1.0;
+
     final rate = getAcceptanceRate(musaSlug);
 
     if (rate > 0.8) return 1.2; // Very effective: be more aggressive

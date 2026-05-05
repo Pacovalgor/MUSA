@@ -60,20 +60,6 @@ class NarrativeDocumentClassifier {
       );
     }
 
-    final researchThreshold = isManuscript ? 2 : 1;
-    final researchMatches =
-        _countMatches(sample, TextAnalysisLexicons.documentResearchTokens);
-    if (researchMatches >= researchThreshold) {
-      final confidence = (researchMatches /
-              TextAnalysisLexicons.documentResearchTokens.length)
-          .clamp(0.5, 1.0);
-      return NarrativeDocumentClassification(
-        kind: NarrativeDocumentKind.research,
-        reason: 'Parece material de investigación o apoyo documental.',
-        confidence: confidence,
-      );
-    }
-
     final magicMatches = _countMatches(
         sample, TextAnalysisLexicons.documentWorldbuildingMagicTokens);
     final buildMatches = _countMatches(
@@ -90,14 +76,30 @@ class NarrativeDocumentClassifier {
       );
     }
 
-    final (sceneSignals, actionPresent, contextPresent) = _countSceneSignals(sample);
+    final researchThreshold = isManuscript ? 2 : 1;
+    final researchMatches =
+        _countMatches(sample, TextAnalysisLexicons.documentResearchTokens);
+    if (researchMatches >= researchThreshold) {
+      final confidence = (researchMatches /
+              TextAnalysisLexicons.documentResearchTokens.length)
+          .clamp(0.5, 1.0);
+      return NarrativeDocumentClassification(
+        kind: NarrativeDocumentKind.research,
+        reason: 'Parece material de investigación o apoyo documental.',
+        confidence: confidence,
+      );
+    }
+
+    final (sceneSignals, actionPresent, contextPresent, eventPresent) =
+        _countSceneSignals(sample);
     final manuscriptBonus = isManuscript && content.length > 40 ? 0.3 : 0.0;
 
     // Require action/context signals alongside introspection to avoid false positives
-    final hasSceneContext = actionPresent || contextPresent;
+    final hasSceneContext = actionPresent || eventPresent;
 
     if (sceneSignals > 0 && hasSceneContext || manuscriptBonus > 0) {
-      final baseConfidence = (sceneSignals * 0.25).clamp(0.0, 1.0) + manuscriptBonus;
+      final baseConfidence =
+          (sceneSignals * 0.3).clamp(0.0, 1.0) + manuscriptBonus;
       return NarrativeDocumentClassification(
         kind: NarrativeDocumentKind.scene,
         reason:
@@ -126,18 +128,24 @@ class NarrativeDocumentClassifier {
         document.kind == DocumentKind.scene;
   }
 
-  (int, bool, bool) _countSceneSignals(String sample) {
+  (int, bool, bool, bool) _countSceneSignals(String sample) {
     int signals = 0;
     bool actionPresent = false;
     bool contextPresent = false;
+    bool eventPresent = false;
 
     if (_hasAny(sample, TextAnalysisLexicons.documentSceneFirstPersonTokens)) {
       signals++;
     }
 
-    if (_hasAny(sample, TextAnalysisLexicons.documentSceneActionTokens)) {
+    if (_hasSceneAction(sample)) {
       signals++;
       actionPresent = true;
+    }
+
+    if (_hasWeakNarrativeEvent(sample)) {
+      signals++;
+      eventPresent = true;
     }
 
     final timeMatchClock = RegExp(r'\b\d{1,2}:\s?\d{2}\b').hasMatch(sample);
@@ -152,7 +160,20 @@ class NarrativeDocumentClassifier {
       contextPresent = true;
     }
 
-    return (signals, actionPresent, contextPresent);
+    return (signals, actionPresent, contextPresent, eventPresent);
+  }
+
+  bool _hasSceneAction(String value) {
+    for (final token in TextAnalysisLexicons.documentSceneActionTokens) {
+      if (token == 'estaba') continue;
+      if (value.contains(token)) return true;
+    }
+    return false;
+  }
+
+  bool _hasWeakNarrativeEvent(String value) {
+    return RegExp(r'^\s*(?:.+\n)?algo\s+pas[oó][\.\s]', multiLine: true)
+        .hasMatch(value);
   }
 
   bool _hasAny(String value, List<String> tokens) {

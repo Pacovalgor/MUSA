@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../musa_autopilot.dart';
 import '../musa.dart';
@@ -13,10 +15,20 @@ final availableMusesProvider = Provider<List<Musa>>((ref) {
 });
 
 final musaAutopilotProvider = Provider<MusaAutopilot>((ref) {
-  return const MusaAutopilot();
+  final tracker = ref.watch(musaEffectivenessTrackerProvider);
+  return MusaAutopilot(
+    scoreMultipliers: {
+      'style': tracker.getThresholdMultiplier('style'),
+      'tension': tracker.getThresholdMultiplier('tension'),
+      'rhythm': tracker.getThresholdMultiplier('rhythm'),
+      'clarity': tracker.getThresholdMultiplier('clarity'),
+    },
+  );
 });
 
 final musaEffectivenessTrackerProvider =
     Provider<MusaEffectivenessTracker>((ref) {
-  return MusaEffectivenessTracker();
+  final tracker = MusaEffectivenessTracker();
+  unawaited(tracker.initialize());
+  return tracker;
 });

@@ -4,13 +4,21 @@ import 'editorial_signals.dart';
 import 'musa.dart';
 
 class MusaAutopilot {
-  const MusaAutopilot();
+  final Map<String, double> scoreMultipliers;
+
+  const MusaAutopilot({
+    this.scoreMultipliers = const {},
+  });
 
   EditorialRecommendation recommend({
     required String selection,
     required NarrativeContext context,
   }) {
     final analysis = _analyze(selection, context);
+    final clarityScore = _adjustedScore('clarity', analysis.clarityScore);
+    final rhythmScore = _adjustedScore('rhythm', analysis.rhythmScore);
+    final styleScore = _adjustedScore('style', analysis.styleScore);
+    final tensionScore = _adjustedScore('tension', analysis.tensionScore);
 
     // Calculate secondary candidates for all paths
     final allMusas = [
@@ -22,10 +30,10 @@ class MusaAutopilot {
 
     List<Musa> getSecondaryMusas(List<Musa> primaryMusas) {
       final scores = <Musa, double>{
-        const ClarityMusa(): analysis.clarityScore / 6,
-        const RhythmMusa(): analysis.rhythmScore / 5,
-        const StyleMusa(): analysis.styleScore / 4,
-        const TensionMusa(): analysis.tensionScore / 5,
+        const ClarityMusa(): clarityScore / 6,
+        const RhythmMusa(): rhythmScore / 5,
+        const StyleMusa(): styleScore / 4,
+        const TensionMusa(): tensionScore / 5,
       };
 
       return allMusas
@@ -36,9 +44,9 @@ class MusaAutopilot {
     }
 
     // PRIORITY: Dominance check
-    if (analysis.tensionScore >= 2 &&
-        analysis.tensionScore >= analysis.rhythmScore &&
-        analysis.tensionScore > analysis.styleScore) {
+    if (tensionScore >= 2 &&
+        tensionScore >= rhythmScore &&
+        tensionScore > styleScore) {
       const primary = TensionMusa();
       final triggers = analysis.triggers[primary.id] ?? [];
       return EditorialRecommendation(
@@ -46,14 +54,14 @@ class MusaAutopilot {
         musas: const [primary],
         secondaryMusas: getSecondaryMusas(const [primary]).take(2).toList(),
         reason: _buildReason(primary, triggers),
-        confidence: analysis.tensionScore / 5,
+        confidence: (tensionScore / 5).clamp(0, 1).toDouble(),
       );
     }
 
-    if (analysis.rhythmScore >= 3 &&
-        analysis.rhythmScore > analysis.tensionScore &&
-        analysis.rhythmScore > analysis.styleScore &&
-        analysis.rhythmScore > analysis.clarityScore) {
+    if (rhythmScore >= 3 &&
+        rhythmScore > tensionScore &&
+        rhythmScore > styleScore &&
+        rhythmScore > clarityScore) {
       const primary = RhythmMusa();
       final triggers = analysis.triggers[primary.id] ?? [];
       return EditorialRecommendation(
@@ -61,14 +69,14 @@ class MusaAutopilot {
         musas: const [primary],
         secondaryMusas: getSecondaryMusas(const [primary]).take(2).toList(),
         reason: _buildReason(primary, triggers),
-        confidence: analysis.rhythmScore / 5,
+        confidence: (rhythmScore / 5).clamp(0, 1).toDouble(),
       );
     }
 
-    if (analysis.styleScore >= 3 &&
-        analysis.styleScore > analysis.tensionScore &&
-        analysis.styleScore > analysis.rhythmScore &&
-        analysis.styleScore > analysis.clarityScore) {
+    if (styleScore >= 3 &&
+        styleScore > tensionScore &&
+        styleScore > rhythmScore &&
+        styleScore > clarityScore) {
       const primary = StyleMusa();
       final triggers = analysis.triggers[primary.id] ?? [];
       return EditorialRecommendation(
@@ -76,13 +84,13 @@ class MusaAutopilot {
         musas: const [primary],
         secondaryMusas: getSecondaryMusas(const [primary]).take(2).toList(),
         reason: _buildReason(primary, triggers),
-        confidence: analysis.styleScore / 4,
+        confidence: (styleScore / 4).clamp(0, 1).toDouble(),
       );
     }
 
-    if (analysis.clarityScore >= 4 &&
-        analysis.rhythmScore >= 3 &&
-        analysis.styleScore >= 2) {
+    if (clarityScore >= 4 &&
+        rhythmScore >= 3 &&
+        styleScore >= 2) {
       const primaryMusas = [ClarityMusa(), RhythmMusa(), StyleMusa()];
       return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
@@ -94,7 +102,7 @@ class MusaAutopilot {
       );
     }
 
-    if (analysis.clarityScore >= 4 && analysis.styleScore >= 3) {
+    if (clarityScore >= 4 && styleScore >= 3) {
       const primaryMusas = [ClarityMusa(), StyleMusa()];
       return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
@@ -106,7 +114,7 @@ class MusaAutopilot {
       );
     }
 
-    if (analysis.clarityScore >= 4 && analysis.rhythmScore >= 3) {
+    if (clarityScore >= 4 && rhythmScore >= 3) {
       const primaryMusas = [ClarityMusa(), RhythmMusa()];
       return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
@@ -118,7 +126,7 @@ class MusaAutopilot {
       );
     }
 
-    if (analysis.rhythmScore >= 4 && analysis.styleScore >= 3) {
+    if (rhythmScore >= 4 && styleScore >= 3) {
       const primaryMusas = [RhythmMusa(), StyleMusa()];
       return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
@@ -130,7 +138,7 @@ class MusaAutopilot {
       );
     }
 
-    if (analysis.rhythmScore >= 4 && analysis.tensionScore >= 3) {
+    if (rhythmScore >= 4 && tensionScore >= 3) {
       const primaryMusas = [RhythmMusa(), TensionMusa()];
       return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
@@ -142,7 +150,7 @@ class MusaAutopilot {
       );
     }
 
-    if (analysis.clarityScore >= 4 && analysis.tensionScore >= 3) {
+    if (clarityScore >= 4 && tensionScore >= 3) {
       const primaryMusas = [ClarityMusa(), TensionMusa()];
       return EditorialRecommendation(
         type: EditorialRecommendationType.pipeline,
@@ -154,7 +162,16 @@ class MusaAutopilot {
       );
     }
 
-    final best = analysis.bestMusa;
+    final adjustedScores = <Musa, double>{
+      const ClarityMusa(): (clarityScore / 6).clamp(0, 1).toDouble(),
+      const RhythmMusa(): (rhythmScore / 5).clamp(0, 1).toDouble(),
+      const StyleMusa(): (styleScore / 4).clamp(0, 1).toDouble(),
+      const TensionMusa(): (tensionScore / 5).clamp(0, 1).toDouble(),
+    };
+    final bestEntry = adjustedScores.entries.reduce(
+      (current, next) => current.value >= next.value ? current : next,
+    );
+    final best = bestEntry.key;
     final bestTriggers = analysis.triggers[best.id] ?? [];
     final reason = _buildReason(best, bestTriggers);
 
@@ -163,8 +180,12 @@ class MusaAutopilot {
       musas: <Musa>[best],
       secondaryMusas: getSecondaryMusas([best]).take(2).toList(),
       reason: reason,
-      confidence: analysis.bestScore,
+      confidence: bestEntry.value,
     );
+  }
+
+  double _adjustedScore(String musaId, int rawScore) {
+    return rawScore * (scoreMultipliers[musaId] ?? 1.0);
   }
 
   String _buildReason(Musa musa, List<String> triggers) {

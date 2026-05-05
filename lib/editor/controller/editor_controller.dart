@@ -1321,6 +1321,8 @@ class EditorController extends StateNotifier<EditorState> {
     final text = state.controller.text;
     final originalText = text;
 
+    _recordMusaFeedback(accepted: true);
+
     final newText = text.replaceRange(selection.start, selection.end, result);
 
     state.controller.value = TextEditingValue(
@@ -1348,6 +1350,7 @@ class EditorController extends StateNotifier<EditorState> {
   void discardSuggestion() {
     _activeRunToken += 1;
     _aiSubscription?.cancel();
+    _recordMusaFeedback(accepted: false);
     state = state.copyWith(
       clearSuggestion: true,
       clearStreamingText: true,
@@ -1553,6 +1556,30 @@ class EditorController extends StateNotifier<EditorState> {
       generationPhase: MusaGenerationPhase.completed,
       showOverlay: false,
     );
+    _recordMusaSuggestionShown(state.musaExecutionHistory);
+  }
+
+  void _recordMusaSuggestionShown(List<Musa> musas) {
+    final tracker = _ref.read(musaEffectivenessTrackerProvider);
+    for (final musaId in musas.map((musa) => musa.id).toSet()) {
+      unawaited(tracker.recordSuggestionShown(musaId));
+    }
+  }
+
+  void _recordMusaFeedback({required bool accepted}) {
+    if (state.currentSuggestion == null ||
+        state.currentSuggestion!.id.startsWith('error')) {
+      return;
+    }
+
+    final tracker = _ref.read(musaEffectivenessTrackerProvider);
+    for (final musaId in state.musaExecutionHistory.map((musa) => musa.id).toSet()) {
+      unawaited(
+        accepted
+            ? tracker.recordAcceptance(musaId)
+            : tracker.recordRejection(musaId),
+      );
+    }
   }
 
   Future<narrative.MusaSuggestion?> _executeMusaStep({

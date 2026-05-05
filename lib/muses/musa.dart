@@ -155,23 +155,25 @@ class TensionMusa extends Musa {
   List<String> _detectLocalRules(String selection) {
     final rules = <String>[];
     final signals = buildEditorialSignals(selection);
+    final hasPhysicalOrOperationalAction =
+        signals.physicalActionScore > 0 || signals.operationalScore > 0;
 
     // 1. Diálogo estancado
-    if (signals.dialogueMarksCount >= 2 && !signals.hasAction) {
+    if (signals.dialogueMarksCount >= 2 && !hasPhysicalOrOperationalAction) {
       rules.add(
         'He detectado un intercambio de diálogo sin acción ni consecuencias; introduce gestos, movimientos o decisiones que hagan avanzar la escena y aumenten la tensión real.',
       );
     }
 
     // 2. Muchas preguntas sin acción
-    if (signals.questionCount >= 3 && !signals.hasAction) {
+    if (signals.questionCount >= 3 && !hasPhysicalOrOperationalAction) {
       rules.add(
         'He detectado múltiples interrogantes sin señales de acción; prioriza las consecuencias y la fricción dramática frente a la duda pura.',
       );
     }
 
     // 3. Pasaje estático sin acción
-    if (selection.length > 60 && !signals.hasAction) {
+    if (selection.length > 60 && !hasPhysicalOrOperationalAction) {
       rules.add(
         'El pasaje parece estático; inyecta verbos de acción física o fricción concreta para elevar la tensión.',
       );

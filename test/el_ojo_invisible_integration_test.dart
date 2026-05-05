@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 // Integration tests for "El ojo invisible" — all 7 chapters
 // Validates: classification, editorial signals, copilot heuristics,
 // autopilot recommendations, and open-question accumulation.
@@ -457,7 +459,6 @@ void main() {
   // ── 5. Preguntas abiertas acumuladas ───────────────────────────────────────
   group('Memoria narrativa: preguntas abiertas de El ojo invisible', () {
     test('cap01 genera al menos una pregunta abierta (¿quién es la sombra?)', () {
-      final book = Book(id: 'b', title: 'El ojo invisible', createdAt: _now, updatedAt: _now);
       final docs = [
         Document(id: 'd1', bookId: 'b', title: _kTitles[0], orderIndex: 0,
             content: _kCap01, wordCount: _kCap01.split(' ').length, createdAt: _now, updatedAt: _now),
@@ -472,8 +473,6 @@ void main() {
     });
 
     test('caps 1-7 acumulan más conceptos persistentes que solo cap01', () {
-      final book = Book(id: 'b', title: 'El ojo invisible', createdAt: _now, updatedAt: _now);
-
       final docs1 = [
         Document(id: 'd1', bookId: 'b', title: _kTitles[0], orderIndex: 0,
             content: _kCap01, wordCount: _kCap01.split(' ').length, createdAt: _now, updatedAt: _now),

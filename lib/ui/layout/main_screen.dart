@@ -535,11 +535,11 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                 tooltip: 'Música Lofi',
                 onPressed: () => showDialog<void>(
                   context: context,
-                  builder: (_) => Dialog(
+                  builder: (_) => const Dialog(
                     child: SizedBox(
                       width: 360,
                       height: 600,
-                      child: const LofiPlayerWidget(),
+                      child: LofiPlayerWidget(),
                     ),
                   ),
                 ),

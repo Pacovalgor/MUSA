@@ -164,12 +164,12 @@ class InboxStorageService {
   }
 
   static String _formatDate(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${_2(d.month)}-${_2(d.day)}';
+      '${d.year.toString().padLeft(4, '0')}-${_two(d.month)}-${_two(d.day)}';
 
   static String _formatTime(DateTime d) =>
-      '${_2(d.hour)}-${_2(d.minute)}-${_2(d.second)}';
+      '${_two(d.hour)}-${_two(d.minute)}-${_two(d.second)}';
 
-  static String _2(int n) => n.toString().padLeft(2, '0');
+  static String _two(int n) => n.toString().padLeft(2, '0');
 
   static int _now() => DateTime.now().microsecondsSinceEpoch;
 }

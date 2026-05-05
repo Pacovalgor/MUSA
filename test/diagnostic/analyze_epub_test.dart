@@ -3,7 +3,7 @@
 // Se salta automáticamente si los EPUBs no están presentes (no rompe CI).
 //
 // Para ejecutar:
-//   flutter test test/diagnostic/analyze_epub_test.dart
+//   flutter test --dart-define=MUSA_RUN_EPUB_DIAGNOSTIC=true test/diagnostic/analyze_epub_test.dart
 
 import 'dart:convert';
 import 'dart:io';
@@ -24,6 +24,7 @@ const _chapterAnalysisService = ChapterAnalysisService();
 const _fragmentAnalysisService = FragmentAnalysisService();
 const _memoryUpdater = NarrativeMemoryUpdater();
 const _stateUpdater = StoryStateUpdater();
+const _runEpubDiagnostic = bool.fromEnvironment('MUSA_RUN_EPUB_DIAGNOSTIC');
 
 void main() {
   group('Diagnóstico EPUB', () {
@@ -35,6 +36,12 @@ void main() {
 
     for (final c in cases) {
       test('analiza ${c.path}', () {
+        if (!_runEpubDiagnostic) {
+          markTestSkipped(
+            'Diagnóstico desactivado. Ejecuta con --dart-define=MUSA_RUN_EPUB_DIAGNOSTIC=true.',
+          );
+          return;
+        }
         final file = File(c.path);
         if (!file.existsSync()) {
           markTestSkipped('${c.path} no existe; salta');

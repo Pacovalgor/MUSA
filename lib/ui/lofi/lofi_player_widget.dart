@@ -160,6 +160,7 @@ class _LofiPlayerWidgetState extends ConsumerState<LofiPlayerWidget> {
       ref.read(lofiCurrentTrackProvider.notifier).setTrack(track);
       await service.playTrack(track);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error playing track: $e')),
       );

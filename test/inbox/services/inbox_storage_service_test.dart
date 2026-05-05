@@ -20,7 +20,7 @@ void main() {
     if (tempRoot.existsSync()) tempRoot.deleteSync(recursive: true);
   });
 
-  InboxCapture _capture({
+  InboxCapture makeCapture({
     String id = '550e8400-e29b-41d4-a716-446655440000',
     DateTime? capturedAt,
     InboxCaptureKind kind = InboxCaptureKind.text,
@@ -40,7 +40,7 @@ void main() {
 
   group('write', () {
     test('writes capture in MUSA-Inbox/<localDate>/<HH-MM-SS>-<id>.json', () async {
-      final capture = _capture(capturedAt: DateTime.utc(2026, 4, 25, 17, 32, 14));
+      final capture = makeCapture(capturedAt: DateTime.utc(2026, 4, 25, 17, 32, 14));
       final file = await storage.write(capture);
 
       expect(file.existsSync(), isTrue);
@@ -56,7 +56,7 @@ void main() {
 
   group('read', () {
     test('reads valid capture and reports status=pending', () async {
-      final capture = _capture();
+      final capture = makeCapture();
       await storage.write(capture);
 
       final all = await storage.readAll();
@@ -66,7 +66,7 @@ void main() {
     });
 
     test('reports status=processed when file is in processed/', () async {
-      final capture = _capture();
+      final capture = makeCapture();
       final file = await storage.write(capture);
       await storage.markProcessed(file);
 
@@ -75,7 +75,7 @@ void main() {
     });
 
     test('reports status=discarded when file is in discarded/', () async {
-      final capture = _capture();
+      final capture = makeCapture();
       final file = await storage.write(capture);
       await storage.markDiscarded(file);
 
@@ -113,8 +113,8 @@ void main() {
     });
 
     test('readPending returns only pending captures', () async {
-      final c1 = _capture(id: 'a');
-      final c2 = _capture(id: 'b');
+      final c1 = makeCapture(id: 'a');
+      final c2 = makeCapture(id: 'b');
       final f1 = await storage.write(c1);
       await storage.write(c2);
       await storage.markProcessed(f1);
@@ -127,7 +127,7 @@ void main() {
 
   group('move', () {
     test('markProcessed moves to processed/ keeping name', () async {
-      final f = await storage.write(_capture());
+      final f = await storage.write(makeCapture());
       final basename = p.basename(f.path);
 
       await storage.markProcessed(f);
@@ -138,7 +138,7 @@ void main() {
     });
 
     test('markDiscarded moves to discarded/ keeping name', () async {
-      final f = await storage.write(_capture());
+      final f = await storage.write(makeCapture());
       final basename = p.basename(f.path);
 
       await storage.markDiscarded(f);

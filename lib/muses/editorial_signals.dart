@@ -55,7 +55,7 @@ EditorialSignals buildEditorialSignals(String text) {
   final lowered = normalized.toLowerCase();
 
   // Dialogue marks
-  final dialogueMarksCount = RegExp(r'[—“””]').allMatches(normalized).length;
+  final dialogueMarksCount = RegExp(r'[—"“”]').allMatches(normalized).length;
   final isDialogueHeavy = dialogueMarksCount >= 4;
 
   // Questions
