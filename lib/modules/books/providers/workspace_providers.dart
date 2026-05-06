@@ -584,6 +584,20 @@ class NarrativeWorkspaceNotifier
     final updatedCards = workspace.creativeCards.map((item) {
       if (item.id != card.id) return item;
       bookId = item.bookId;
+      final hasChanges = item.title != card.title ||
+          item.body != card.body ||
+          item.type != card.type ||
+          item.status != card.status ||
+          !_stringListsEqual(item.tags, card.tags) ||
+          !_creativeAttachmentsEqual(item.attachments, card.attachments) ||
+          item.source != card.source ||
+          !_stringListsEqual(
+              item.linkedCharacterIds, card.linkedCharacterIds) ||
+          !_stringListsEqual(item.linkedScenarioIds, card.linkedScenarioIds) ||
+          !_stringListsEqual(item.linkedDocumentIds, card.linkedDocumentIds) ||
+          !_stringListsEqual(item.linkedNoteIds, card.linkedNoteIds) ||
+          !_creativeConversionsEqual(item.convertedTo, card.convertedTo);
+      if (!hasChanges) return item;
       changed = true;
       return item.copyWith(
         title: card.title,
@@ -683,6 +697,39 @@ class NarrativeWorkspaceNotifier
         books: _touchActiveBook(workspace.books, bookId, now),
       ),
     );
+  }
+
+  bool _stringListsEqual(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var index = 0; index < a.length; index++) {
+      if (a[index] != b[index]) return false;
+    }
+    return true;
+  }
+
+  bool _creativeAttachmentsEqual(
+    List<CreativeCardAttachment> a,
+    List<CreativeCardAttachment> b,
+  ) {
+    if (a.length != b.length) return false;
+    for (var index = 0; index < a.length; index++) {
+      if (a[index].id != b[index].id ||
+          a[index].kind != b[index].kind ||
+          a[index].uri != b[index].uri ||
+          a[index].title != b[index].title ||
+          a[index].createdAt != b[index].createdAt) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _creativeConversionsEqual(
+    CreativeCardConversion? a,
+    CreativeCardConversion? b,
+  ) {
+    if (a == null || b == null) return a == b;
+    return a.kind == b.kind && a.targetId == b.targetId;
   }
 
   Future<void> createNote({

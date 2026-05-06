@@ -280,6 +280,13 @@ void main() {
 
       final notifier = container.read(narrativeWorkspaceProvider.notifier);
       await notifier.bootstrap();
+      await notifier.updateCreativeCard(CreativeCard(
+        id: 'missing',
+        bookId: 'book-1',
+        title: 'No existe',
+        createdAt: now,
+        updatedAt: now,
+      ));
       await notifier.moveCreativeCard(
         cardId: 'missing',
         status: CreativeCardStatus.archived,
@@ -288,6 +295,39 @@ void main() {
         cardId: 'missing',
         characterIds: const ['char-1'],
       );
+
+      expect(repository.workspace.creativeCards.single.toJson(), card.toJson());
+      expect(repository.workspace.books.single.updatedAt, now);
+    });
+
+    test('workspace notifier ignores no-op creative card updates', () async {
+      final now = DateTime.utc(2026, 5, 7);
+      final card = CreativeCard(
+        id: 'creative-1',
+        bookId: 'book-1',
+        title: 'Idea',
+        body: 'Sin cambios',
+        tags: const ['clara'],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final repository = _MemoryWorkspaceRepository(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(id: 'book-1', title: 'Libro', createdAt: now, updatedAt: now),
+        ],
+        creativeCards: [card],
+      ));
+      final container = ProviderContainer(
+        overrides: [
+          narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(narrativeWorkspaceProvider.notifier);
+      await notifier.bootstrap();
+      await notifier.updateCreativeCard(card);
 
       expect(repository.workspace.creativeCards.single.toJson(), card.toJson());
       expect(repository.workspace.books.single.updatedAt, now);
