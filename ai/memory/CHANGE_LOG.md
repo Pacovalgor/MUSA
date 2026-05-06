@@ -11,3 +11,4 @@
 - Se registra V1.8 en memoria estable: memoria narrativa por libro ampliada y nuevo estado de la novela derivado en la vista de libro activo.
 - Se registra V1.9 en memoria estable: auditor de continuidad derivado y panel de riesgos en libro activo.
 - Se registra V2.0 fase 1 en memoria estable: reescritura guiada determinista desde el menú de selección, con propuestas comparables antes de aplicar y contrato de seguridad editorial.
+- Se registra V2.0 fase 2 en memoria estable: planificador contextual de reescritura guiada y recomendación destacada en el menú de selección.

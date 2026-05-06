@@ -41,6 +41,10 @@
   - ✅ **Contrato de seguridad editorial**: cada propuesta preserva hechos y voz, evita personajes nuevos y no resuelve trama ni promesas abiertas.
   - ✅ **Flujo integrado en editor**: el menú de selección crea una propuesta revisable que reutiliza comparación/aplicar/descartar mediante `MusaSuggestion`.
   - ✅ **Cobertura base**: `guided_rewrite_service_test.dart` valida que las acciones no inventan hechos, no contaminan diálogo y manejan selección vacía.
+- **V2.0 fase 2 (2026-05-06)**:
+  - ✅ **Planificador contextual de reescritura**: `GuidedRewritePlanner` recomienda una acción guiada según fragmento, estado de novela, memoria narrativa, continuidad y género.
+  - ✅ **Prioridad conservadora**: exposición acumulada, diálogo sin respiración, promesas abiertas y baja tensión compiten por prioridad; si no hay señal clara no fuerza recomendación.
+  - ✅ **Recomendación visible en editor**: el menú contextual destaca “Recomendado” con razón breve, pero mantiene el flujo revisable de comparar antes de aplicar.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -53,6 +57,7 @@
 - Los reportes globales de salud narrativa deben ser derivados y recalculables; solo la memoria narrativa estable debe persistirse en el `.musa`.
 - Los hallazgos de continuidad V1.9 deben permanecer derivados/recalculables; no se persisten hasta que exista un flujo explícito de revisión/aceptación por Paco.
 - La reescritura guiada V2.0 fase 1 debe permanecer controlada y revisable: no aplica cambios directamente, no llama al modelo local y entra siempre por comparación antes de tocar el manuscrito.
+- Las recomendaciones de reescritura V2.0 fase 2 son derivadas y no persistidas; deben ayudar a elegir herramienta, no sustituir criterio editorial ni aplicar cambios automáticos.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

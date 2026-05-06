@@ -8,8 +8,10 @@ import '../../modules/books/models/narrative_workspace.dart';
 import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/characters/providers/character_providers.dart';
 import '../../modules/characters/widgets/character_picker_sheet.dart';
+import '../../modules/continuity/providers/continuity_providers.dart';
 import '../../modules/manuscript/providers/document_providers.dart';
 import '../../modules/musa/models/guided_rewrite.dart';
+import '../../modules/musa/providers/guided_rewrite_providers.dart';
 import '../../modules/scenarios/providers/scenario_providers.dart';
 import '../../modules/scenarios/widgets/scenario_picker_sheet.dart';
 import '../../muses/musa.dart';
@@ -223,6 +225,15 @@ class MusaEditorOverlay extends ConsumerWidget {
     final editorState = ref.watch(editorProvider);
     final musas = ref.watch(availableMusesProvider);
     final isBusy = editorState.isProcessing;
+    final workspace = ref.watch(narrativeWorkspaceProvider).value;
+    final recommendation = ref.watch(guidedRewritePlannerProvider).recommend(
+          selection: editorState.selectionContext?.selectedText ?? '',
+          book: workspace?.activeBook,
+          novelStatus: ref.watch(activeNovelStatusProvider),
+          continuityFindings: ref.watch(activeContinuityFindingsProvider),
+          memory: workspace?.activeNarrativeMemory,
+          storyState: workspace?.activeStoryState,
+        );
 
     return PopupMenuButton<_SelectionMenuAction>(
       enabled: !isBusy,
@@ -326,6 +337,17 @@ class MusaEditorOverlay extends ConsumerWidget {
           height: 34,
           child: _SelectionMenuSectionLabel('Texto'),
         ),
+        if (recommendation != null) ...[
+          PopupMenuItem(
+            value: _SelectionMenuAction.guidedRewrite(recommendation.action),
+            child: _NarrativeMenuItem(
+              icon: _iconForGuidedRewriteAction(recommendation.action),
+              label: 'Recomendado: ${recommendation.title}',
+              detail: recommendation.reason,
+            ),
+          ),
+          const PopupMenuDivider(),
+        ],
         const PopupMenuItem(
           value: _SelectionMenuAction.guidedRewrite(
             GuidedRewriteAction.raiseTension,
@@ -574,6 +596,15 @@ class MusaEditorOverlay extends ConsumerWidget {
     return Icons.auto_awesome;
   }
 
+  IconData _iconForGuidedRewriteAction(GuidedRewriteAction action) {
+    return switch (action) {
+      GuidedRewriteAction.raiseTension => Icons.bolt_outlined,
+      GuidedRewriteAction.clarify => Icons.visibility_outlined,
+      GuidedRewriteAction.reduceExposition => Icons.compress_outlined,
+      GuidedRewriteAction.naturalizeDialogue => Icons.forum_outlined,
+    };
+  }
+
   Future<String?> _promptForEntityName(
     BuildContext context, {
     required String title,
@@ -639,10 +670,12 @@ class _NarrativeMenuItem extends StatelessWidget {
   const _NarrativeMenuItem({
     required this.icon,
     required this.label,
+    this.detail,
   });
 
   final IconData icon;
   final String label;
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
@@ -650,12 +683,34 @@ class _NarrativeMenuItem extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: Colors.black87),
         const SizedBox(width: 10),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.black87,
-                fontWeight: FontWeight.w600,
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
+              if (detail?.trim().isNotEmpty == true) ...[
+                const SizedBox(height: 2),
+                Text(
+                  detail!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.black54,
+                        height: 1.15,
+                      ),
+                ),
+              ],
+            ],
+          ),
         ),
       ],
     );
