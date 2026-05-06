@@ -7,6 +7,7 @@ import '../../modules/books/models/writing_settings.dart';
 import '../../modules/books/models/musa_settings.dart';
 import '../../modules/books/models/typography_settings.dart';
 import '../../modules/books/providers/workspace_providers.dart';
+import '../../modules/musa/models/guided_rewrite.dart';
 import '../../muses/musa.dart';
 import '../../muses/musa_effectiveness_tracker.dart';
 import '../../muses/providers/musa_providers.dart';
@@ -61,7 +62,10 @@ class MusaSettingsDialog extends ConsumerWidget {
                               const SizedBox(height: 10),
                               Text(
                                 'Ajustes editoriales',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: tokens.textPrimary,
                                       fontSize: 31,
@@ -72,7 +76,10 @@ class MusaSettingsDialog extends ConsumerWidget {
                               const SizedBox(height: 10),
                               Text(
                                 'Configura cómo quieres escribir y cómo deben intervenir las Musas.',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
                                       color: tokens.textSecondary,
                                       height: 1.55,
                                       fontSize: 15,
@@ -99,12 +106,14 @@ class MusaSettingsDialog extends ConsumerWidget {
                             _ChoiceOption(
                               value: AppAppearance.light,
                               title: 'Claro',
-                              subtitle: 'Fondo limpio y luminoso para sesiones editoriales diurnas.',
+                              subtitle:
+                                  'Fondo limpio y luminoso para sesiones editoriales diurnas.',
                             ),
                             _ChoiceOption(
                               value: AppAppearance.dark,
                               title: 'Oscuro',
-                              subtitle: 'Contraste más bajo y ambiente más calmado para trabajar de noche.',
+                              subtitle:
+                                  'Contraste más bajo y ambiente más calmado para trabajar de noche.',
                             ),
                           ],
                           onSelected: (value) => _saveAppSettings(
@@ -133,19 +142,21 @@ class MusaSettingsDialog extends ConsumerWidget {
                       children: [
                         Text(
                           'MUSA mantiene el foco en el texto. Las opciones de formato están pensadas para apoyar la escritura, no para maquetar el manuscrito.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: palette.textSecondary,
-                                fontStyle: FontStyle.italic,
-                                height: 1.5,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: palette.textSecondary,
+                                    fontStyle: FontStyle.italic,
+                                    height: 1.5,
+                                  ),
                         ),
                         const SizedBox(height: 22),
                         Text(
                           'Presentación del texto',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: palette.textPrimary,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: palette.textPrimary,
+                                  ),
                         ),
                         const SizedBox(height: 16),
                         _TwoColumnGrid(
@@ -157,17 +168,20 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: EditorLineHeightMode.compact,
                                   title: 'Compacto',
-                                  subtitle: 'Líneas más juntas para máxima densidad.',
+                                  subtitle:
+                                      'Líneas más juntas para máxima densidad.',
                                 ),
                                 _ChoiceOption(
                                   value: EditorLineHeightMode.standard,
                                   title: 'Estándar',
-                                  subtitle: 'Equilibrio perfecto (por defecto).',
+                                  subtitle:
+                                      'Equilibrio perfecto (por defecto).',
                                 ),
                                 _ChoiceOption(
                                   value: EditorLineHeightMode.relaxed,
                                   title: 'Amplio',
-                                  subtitle: 'Mayor respiración visual entre líneas.',
+                                  subtitle:
+                                      'Mayor respiración visual entre líneas.',
                                 ),
                               ],
                               onSelected: (value) => _saveWritingSettings(
@@ -182,17 +196,20 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: EditorMaxWidthMode.narrow,
                                   title: 'Estrecho',
-                                  subtitle: 'Columnas cortas para lectura rápida.',
+                                  subtitle:
+                                      'Columnas cortas para lectura rápida.',
                                 ),
                                 _ChoiceOption(
                                   value: EditorMaxWidthMode.medium,
                                   title: 'Medio',
-                                  subtitle: 'El ancho cómodo tradicional (por defecto).',
+                                  subtitle:
+                                      'El ancho cómodo tradicional (por defecto).',
                                 ),
                                 _ChoiceOption(
                                   value: EditorMaxWidthMode.wide,
                                   title: 'Amplio',
-                                  subtitle: 'Más palabras por línea en pantallas grandes.',
+                                  subtitle:
+                                      'Más palabras por línea en pantallas grandes.',
                                 ),
                               ],
                               onSelected: (value) => _saveWritingSettings(
@@ -212,12 +229,14 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: EditorParagraphSpacing.generous,
                                   title: 'Generosa',
-                                  subtitle: 'Marcada separación entre las ideas.',
+                                  subtitle:
+                                      'Marcada separación entre las ideas.',
                                 ),
                               ],
                               onSelected: (value) => _saveWritingSettings(
                                 ref,
-                                writingSettings.copyWith(paragraphSpacing: value),
+                                writingSettings.copyWith(
+                                    paragraphSpacing: value),
                               ),
                             ),
                           ],
@@ -225,21 +244,24 @@ class MusaSettingsDialog extends ConsumerWidget {
                         const SizedBox(height: 28),
                         Text(
                           'Comportamiento en el editor',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: palette.textPrimary,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: palette.textPrimary,
+                                  ),
                         ),
                         const SizedBox(height: 16),
                         _TwoColumnGrid(
                           children: [
                             _BooleanField(
                               label: 'Modo Máquina de Escribir (Focus)',
-                              description: 'Desplaza el papel automáticamente para que la línea actual se mantenga centrada en la pantalla.',
+                              description:
+                                  'Desplaza el papel automáticamente para que la línea actual se mantenga centrada en la pantalla.',
                               value: writingSettings.typewriterModeEnabled,
                               onChanged: (value) => _saveWritingSettings(
                                 ref,
-                                writingSettings.copyWith(typewriterModeEnabled: value),
+                                writingSettings.copyWith(
+                                    typewriterModeEnabled: value),
                               ),
                             ),
                             _BooleanField(
@@ -249,7 +271,8 @@ class MusaSettingsDialog extends ConsumerWidget {
                               value: writingSettings.focusModeEnabled,
                               onChanged: (value) => _saveWritingSettings(
                                 ref,
-                                writingSettings.copyWith(focusModeEnabled: value),
+                                writingSettings.copyWith(
+                                    focusModeEnabled: value),
                               ),
                             ),
                           ],
@@ -257,17 +280,19 @@ class MusaSettingsDialog extends ConsumerWidget {
                         const SizedBox(height: 28),
                         Text(
                           'Soporte de formato base (modo silencioso)',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: palette.textPrimary,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: palette.textPrimary,
+                                  ),
                         ),
                         const SizedBox(height: 16),
                         _TwoColumnGrid(
                           children: [
                             _BooleanField(
                               label: 'Soporte de cursiva (Cmd + I)',
-                              description: 'Permite añadir énfasis silenciosamente. No añade botones.',
+                              description:
+                                  'Permite añadir énfasis silenciosamente. No añade botones.',
                               value: writingSettings.enableItalics,
                               onChanged: (value) => _saveWritingSettings(
                                 ref,
@@ -276,7 +301,8 @@ class MusaSettingsDialog extends ConsumerWidget {
                             ),
                             _BooleanField(
                               label: 'Soporte de negrita (Cmd + B)',
-                              description: 'Permite marcar peso visual. No añade botones.',
+                              description:
+                                  'Permite marcar peso visual. No añade botones.',
                               value: writingSettings.enableBold,
                               onChanged: (value) => _saveWritingSettings(
                                 ref,
@@ -290,17 +316,20 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: FormatRenderMode.visual,
                                   title: 'Visual (Rich Text)',
-                                  subtitle: 'Verás la cursiva o negrita real en la pantalla.',
+                                  subtitle:
+                                      'Verás la cursiva o negrita real en la pantalla.',
                                 ),
                                 _ChoiceOption(
                                   value: FormatRenderMode.markdown,
                                   title: 'Marcado (Markdown)',
-                                  subtitle: 'Verás los asteriscos de markdown intactos (*texto*).',
+                                  subtitle:
+                                      'Verás los asteriscos de markdown intactos (*texto*).',
                                 ),
                               ],
                               onSelected: (value) => _saveWritingSettings(
                                 ref,
-                                writingSettings.copyWith(formatRenderMode: value),
+                                writingSettings.copyWith(
+                                    formatRenderMode: value),
                               ),
                             ),
                           ],
@@ -308,21 +337,24 @@ class MusaSettingsDialog extends ConsumerWidget {
                         const SizedBox(height: 28),
                         Text(
                           'Comportamiento de Notas',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: palette.textPrimary,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: palette.textPrimary,
+                                  ),
                         ),
                         const SizedBox(height: 16),
                         _TwoColumnGrid(
                           children: [
                             _BooleanField(
                               label: 'Mostrar indicadores de notas en el texto',
-                              description: 'Dibuja un subrayado punteado sutil en los fragmentos que tienen una nota anclada.',
+                              description:
+                                  'Dibuja un subrayado punteado sutil en los fragmentos que tienen una nota anclada.',
                               value: writingSettings.showNoteMarkers,
                               onChanged: (value) => _saveWritingSettings(
                                 ref,
-                                writingSettings.copyWith(showNoteMarkers: value),
+                                writingSettings.copyWith(
+                                    showNoteMarkers: value),
                               ),
                             ),
                             _ChoiceField<NoteOpenBehavior>(
@@ -332,17 +364,20 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: NoteOpenBehavior.sidebar,
                                   title: 'Panel Lateral (Focus)',
-                                  subtitle: 'Cambia el contexto del editor a la nota para trabajar en ella.',
+                                  subtitle:
+                                      'Cambia el contexto del editor a la nota para trabajar en ella.',
                                 ),
                                 _ChoiceOption(
                                   value: NoteOpenBehavior.inspector,
                                   title: 'En el Inspector (Multitarea)',
-                                  subtitle: 'Abre la nota a la derecha pudiendo seguir viendo tu manuscrito al lado.',
+                                  subtitle:
+                                      'Abre la nota a la derecha pudiendo seguir viendo tu manuscrito al lado.',
                                 ),
                               ],
                               onSelected: (value) => _saveWritingSettings(
                                 ref,
-                                writingSettings.copyWith(noteOpenBehavior: value),
+                                writingSettings.copyWith(
+                                    noteOpenBehavior: value),
                               ),
                             ),
                           ],
@@ -355,10 +390,11 @@ class MusaSettingsDialog extends ConsumerWidget {
                       children: [
                         Text(
                           'Define una voz visual para cada tipo de texto. Los cambios se guardan por proyecto y se aplican al editor.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: palette.textSecondary,
-                                height: 1.5,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: palette.textSecondary,
+                                    height: 1.5,
+                                  ),
                         ),
                         const SizedBox(height: 20),
                         _TwoColumnGrid(
@@ -406,23 +442,27 @@ class MusaSettingsDialog extends ConsumerWidget {
                         _TwoColumnGrid(
                           children: [
                             _ChoiceField<EditorialIntensity>(
-                              label: 'Cuánto quieres que la Musa transforme tu texto',
+                              label:
+                                  'Cuánto quieres que la Musa transforme tu texto',
                               value: settings.editorialIntensity,
                               options: const [
                                 _ChoiceOption(
                                   value: EditorialIntensity.gentle,
                                   title: 'Suave',
-                                  subtitle: 'La Musa tocará lo justo para mejorar el texto.',
+                                  subtitle:
+                                      'La Musa tocará lo justo para mejorar el texto.',
                                 ),
                                 _ChoiceOption(
                                   value: EditorialIntensity.balanced,
                                   title: 'Equilibrada',
-                                  subtitle: 'Mejora el texto sin cambiar demasiado tu forma de escribir.',
+                                  subtitle:
+                                      'Mejora el texto sin cambiar demasiado tu forma de escribir.',
                                 ),
                                 _ChoiceOption(
                                   value: EditorialIntensity.expressive,
                                   title: 'Expresiva',
-                                  subtitle: 'Se permite una mano más creativa al dar forma a la frase.',
+                                  subtitle:
+                                      'Se permite una mano más creativa al dar forma a la frase.',
                                 ),
                               ],
                               onSelected: (value) => _saveMusa(
@@ -431,7 +471,8 @@ class MusaSettingsDialog extends ConsumerWidget {
                               ),
                             ),
                             _ChoiceField<PreferredEditorialTone>(
-                              label: 'Qué tipo de reescritura prefieres por defecto',
+                              label:
+                                  'Qué tipo de reescritura prefieres por defecto',
                               value: settings.preferredEditorialTone,
                               options: const [
                                 _ChoiceOption(
@@ -442,17 +483,20 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: PreferredEditorialTone.literary,
                                   title: 'Literario',
-                                  subtitle: 'Más cuidado en la prosa y en el matiz.',
+                                  subtitle:
+                                      'Más cuidado en la prosa y en el matiz.',
                                 ),
                                 _ChoiceOption(
                                   value: PreferredEditorialTone.tense,
                                   title: 'Tenso',
-                                  subtitle: 'Más nervio y una inquietud más visible.',
+                                  subtitle:
+                                      'Más nervio y una inquietud más visible.',
                                 ),
                                 _ChoiceOption(
                                   value: PreferredEditorialTone.clear,
                                   title: 'Claro',
-                                  subtitle: 'Más limpieza y una lectura más directa.',
+                                  subtitle:
+                                      'Más limpieza y una lectura más directa.',
                                 ),
                               ],
                               onSelected: (value) => _saveMusa(
@@ -469,17 +513,20 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: OutputLanguageMode.matchSelection,
                                   title: 'Igual que el texto seleccionado',
-                                  subtitle: 'La Musa seguirá el idioma del fragmento.',
+                                  subtitle:
+                                      'La Musa seguirá el idioma del fragmento.',
                                 ),
                                 _ChoiceOption(
                                   value: OutputLanguageMode.spanish,
                                   title: 'Siempre en español',
-                                  subtitle: 'La Musa responderá siempre en español.',
+                                  subtitle:
+                                      'La Musa responderá siempre en español.',
                                 ),
                                 _ChoiceOption(
                                   value: OutputLanguageMode.english,
                                   title: 'Siempre en inglés',
-                                  subtitle: 'La Musa responderá siempre en inglés.',
+                                  subtitle:
+                                      'La Musa responderá siempre en inglés.',
                                 ),
                               ],
                               onSelected: (value) => _saveMusa(
@@ -498,23 +545,27 @@ class MusaSettingsDialog extends ConsumerWidget {
                         _TwoColumnGrid(
                           children: [
                             _ChoiceField<FragmentFidelity>(
-                              label: 'Qué fiel quieres que sea la Musa al fragmento original',
+                              label:
+                                  'Qué fiel quieres que sea la Musa al fragmento original',
                               value: settings.fragmentFidelity,
                               options: const [
                                 _ChoiceOption(
                                   value: FragmentFidelity.veryFaithful,
                                   title: 'Muy fiel',
-                                  subtitle: 'Cambiará muy poco y se pegará al original.',
+                                  subtitle:
+                                      'Cambiará muy poco y se pegará al original.',
                                 ),
                                 _ChoiceOption(
                                   value: FragmentFidelity.faithful,
                                   title: 'Fiel',
-                                  subtitle: 'Mejorará el texto sin apartarse de él.',
+                                  subtitle:
+                                      'Mejorará el texto sin apartarse de él.',
                                 ),
                                 _ChoiceOption(
                                   value: FragmentFidelity.freer,
                                   title: 'Con un poco más de libertad',
-                                  subtitle: 'Podrá reformular un poco más la frase sin perder su sentido.',
+                                  subtitle:
+                                      'Podrá reformular un poco más la frase sin perder su sentido.',
                                 ),
                               ],
                               onSelected: (value) => _saveMusa(
@@ -523,23 +574,27 @@ class MusaSettingsDialog extends ConsumerWidget {
                               ),
                             ),
                             _ChoiceField<ScopeProtection>(
-                              label: 'Hasta qué punto puede salirse del fragmento',
+                              label:
+                                  'Hasta qué punto puede salirse del fragmento',
                               value: settings.scopeProtection,
                               options: const [
                                 _ChoiceOption(
                                   value: ScopeProtection.strict,
                                   title: 'Estricto',
-                                  subtitle: 'Si se sale del fragmento, la propuesta se bloqueará.',
+                                  subtitle:
+                                      'Si se sale del fragmento, la propuesta se bloqueará.',
                                 ),
                                 _ChoiceOption(
                                   value: ScopeProtection.balanced,
                                   title: 'Equilibrado',
-                                  subtitle: 'Si se abre un poco, te lo avisaremos y podrás decidir.',
+                                  subtitle:
+                                      'Si se abre un poco, te lo avisaremos y podrás decidir.',
                                 ),
                                 _ChoiceOption(
                                   value: ScopeProtection.flexible,
                                   title: 'Flexible',
-                                  subtitle: 'Le daremos algo más de aire si la frase lo pide.',
+                                  subtitle:
+                                      'Le daremos algo más de aire si la frase lo pide.',
                                 ),
                               ],
                               onSelected: (value) => _saveMusa(
@@ -560,6 +615,10 @@ class MusaSettingsDialog extends ConsumerWidget {
                           tracker: learningTracker,
                         ),
                         const SizedBox(height: 24),
+                        _GuidedRewriteLearningOverview(
+                          tracker: learningTracker,
+                        ),
+                        const SizedBox(height: 24),
                         _TwoColumnGrid(
                           children: [
                             _ChoiceField<StyleMusaIntensity>(
@@ -574,12 +633,14 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: StyleMusaIntensity.balanced,
                                   title: 'Equilibrada',
-                                  subtitle: 'Refinará con tacto y buena medida.',
+                                  subtitle:
+                                      'Refinará con tacto y buena medida.',
                                 ),
                                 _ChoiceOption(
                                   value: StyleMusaIntensity.expressive,
                                   title: 'Más expresiva',
-                                  subtitle: 'Podrá dar más relieve al lenguaje.',
+                                  subtitle:
+                                      'Podrá dar más relieve al lenguaje.',
                                 ),
                               ],
                               onSelected: (value) => _saveMusa(
@@ -594,17 +655,20 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: TensionMusaIntensity.subtle,
                                   title: 'Sutil',
-                                  subtitle: 'Añadirá inquietud con mucha contención.',
+                                  subtitle:
+                                      'Añadirá inquietud con mucha contención.',
                                 ),
                                 _ChoiceOption(
                                   value: TensionMusaIntensity.medium,
                                   title: 'Media',
-                                  subtitle: 'Subirá la tensión sin perder la medida.',
+                                  subtitle:
+                                      'Subirá la tensión sin perder la medida.',
                                 ),
                                 _ChoiceOption(
                                   value: TensionMusaIntensity.marked,
                                   title: 'Marcada',
-                                  subtitle: 'Marcará más el nervio de la frase.',
+                                  subtitle:
+                                      'Marcará más el nervio de la frase.',
                                 ),
                               ],
                               onSelected: (value) => _saveMusa(
@@ -619,17 +683,20 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: RhythmMusaIntensity.light,
                                   title: 'Ligera',
-                                  subtitle: 'Retocará el ritmo sin mover demasiado la frase.',
+                                  subtitle:
+                                      'Retocará el ritmo sin mover demasiado la frase.',
                                 ),
                                 _ChoiceOption(
                                   value: RhythmMusaIntensity.medium,
                                   title: 'Media',
-                                  subtitle: 'Buscará una lectura más fluida y natural.',
+                                  subtitle:
+                                      'Buscará una lectura más fluida y natural.',
                                 ),
                                 _ChoiceOption(
                                   value: RhythmMusaIntensity.corrective,
                                   title: 'Correctiva',
-                                  subtitle: 'Reordenará con más decisión si la frase lo necesita.',
+                                  subtitle:
+                                      'Reordenará con más decisión si la frase lo necesita.',
                                 ),
                               ],
                               onSelected: (value) => _saveMusa(
@@ -644,17 +711,20 @@ class MusaSettingsDialog extends ConsumerWidget {
                                 _ChoiceOption(
                                   value: ClarityMusaIntensity.light,
                                   title: 'Ligera',
-                                  subtitle: 'Despejará lo justo sin volverlo plano.',
+                                  subtitle:
+                                      'Despejará lo justo sin volverlo plano.',
                                 ),
                                 _ChoiceOption(
                                   value: ClarityMusaIntensity.medium,
                                   title: 'Media',
-                                  subtitle: 'Hará la frase más clara sin perder tono.',
+                                  subtitle:
+                                      'Hará la frase más clara sin perder tono.',
                                 ),
                                 _ChoiceOption(
                                   value: ClarityMusaIntensity.strict,
                                   title: 'Estricta',
-                                  subtitle: 'Priorizará nitidez y precisión por encima de todo.',
+                                  subtitle:
+                                      'Priorizará nitidez y precisión por encima de todo.',
                                 ),
                               ],
                               onSelected: (value) => _saveMusa(
@@ -671,23 +741,27 @@ class MusaSettingsDialog extends ConsumerWidget {
                       title: 'Acompañamiento de MUSA',
                       children: [
                         _ChoiceField<VisualPresence>(
-                          label: 'Cómo quieres que MUSA te acompañe mientras trabaja',
+                          label:
+                              'Cómo quieres que MUSA te acompañe mientras trabaja',
                           value: settings.visualPresence,
                           options: const [
                             _ChoiceOption(
                               value: VisualPresence.visible,
                               title: 'Visible',
-                              subtitle: 'Verás con claridad que la Musa está trabajando.',
+                              subtitle:
+                                  'Verás con claridad que la Musa está trabajando.',
                             ),
                             _ChoiceOption(
                               value: VisualPresence.subtle,
                               title: 'Sutil',
-                              subtitle: 'Acompañará de forma discreta y elegante.',
+                              subtitle:
+                                  'Acompañará de forma discreta y elegante.',
                             ),
                             _ChoiceOption(
                               value: VisualPresence.minimal,
                               title: 'Mínima',
-                              subtitle: 'Se hará notar lo mínimo mientras trabaja.',
+                              subtitle:
+                                  'Se hará notar lo mínimo mientras trabaja.',
                             ),
                           ],
                           onSelected: (value) => _saveMusa(
@@ -712,7 +786,9 @@ class MusaSettingsDialog extends ConsumerWidget {
   }
 
   void _saveTypography(WidgetRef ref, TypographySettings settings) {
-    ref.read(narrativeWorkspaceProvider.notifier).updateTypographySettings(settings);
+    ref
+        .read(narrativeWorkspaceProvider.notifier)
+        .updateTypographySettings(settings);
   }
 
   void _saveAppSettings(WidgetRef ref, AppSettings settings) {
@@ -720,7 +796,9 @@ class MusaSettingsDialog extends ConsumerWidget {
   }
 
   void _saveWritingSettings(WidgetRef ref, WritingSettings settings) {
-    ref.read(narrativeWorkspaceProvider.notifier).updateWritingSettings(settings);
+    ref
+        .read(narrativeWorkspaceProvider.notifier)
+        .updateWritingSettings(settings);
   }
 }
 
@@ -980,6 +1058,187 @@ class _MusaLearningCard extends StatelessWidget {
   }
 }
 
+class _GuidedRewriteLearningOverview extends StatefulWidget {
+  const _GuidedRewriteLearningOverview({
+    required this.tracker,
+  });
+
+  final MusaEffectivenessTracker tracker;
+
+  @override
+  State<_GuidedRewriteLearningOverview> createState() =>
+      _GuidedRewriteLearningOverviewState();
+}
+
+class _GuidedRewriteLearningOverviewState
+    extends State<_GuidedRewriteLearningOverview> {
+  var _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatuses();
+  }
+
+  @override
+  void didUpdateWidget(covariant _GuidedRewriteLearningOverview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tracker != widget.tracker) {
+      _loaded = false;
+      _loadStatuses();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _SettingsPalette.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Reescritura guiada',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: palette.textPrimary,
+              ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 14,
+          runSpacing: 14,
+          children: [
+            for (final action in GuidedRewriteAction.values)
+              _GuidedRewriteLearningCard(
+                action: action,
+                status: _loaded
+                    ? widget.tracker.getLearningStatus(action.feedbackSlug)
+                    : MusaLearningStatus(
+                        slug: action.feedbackSlug,
+                        totalShown: 0,
+                        timesAccepted: 0,
+                        timesRejected: 0,
+                        acceptanceRate: 0.5,
+                        multiplier: 1.0,
+                        label: 'Aprendiendo',
+                        hasEnoughData: false,
+                      ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _loadStatuses() async {
+    await widget.tracker.initialize();
+    if (!mounted) return;
+    setState(() {
+      _loaded = true;
+    });
+  }
+}
+
+class _GuidedRewriteLearningCard extends StatelessWidget {
+  const _GuidedRewriteLearningCard({
+    required this.action,
+    required this.status,
+  });
+
+  final GuidedRewriteAction action;
+  final MusaLearningStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _SettingsPalette.of(context);
+    final percent = (status.acceptanceRate * 100).round();
+
+    return Container(
+      width: 196,
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
+      decoration: BoxDecoration(
+        color: palette.softSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: palette.border.withValues(alpha: 0.82),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _iconForAction(action),
+                size: 16,
+                color: palette.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _labelForAction(action),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: palette.textPrimary,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            status.label,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: palette.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${status.totalShown} muestras · $percent% aceptadas',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.textSecondary,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${status.timesAccepted} aplicadas · ${status.timesRejected} descartadas',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.textTertiary,
+                ),
+          ),
+          const SizedBox(height: 10),
+          _LearningMeter(value: status.acceptanceRate),
+        ],
+      ),
+    );
+  }
+
+  String _labelForAction(GuidedRewriteAction action) {
+    return switch (action) {
+      GuidedRewriteAction.raiseTension => 'Tensión',
+      GuidedRewriteAction.clarify => 'Claridad',
+      GuidedRewriteAction.reduceExposition => 'Exposición',
+      GuidedRewriteAction.naturalizeDialogue => 'Diálogo',
+    };
+  }
+
+  IconData _iconForAction(GuidedRewriteAction action) {
+    return switch (action) {
+      GuidedRewriteAction.raiseTension => Icons.bolt_outlined,
+      GuidedRewriteAction.clarify => Icons.visibility_outlined,
+      GuidedRewriteAction.reduceExposition => Icons.compress_outlined,
+      GuidedRewriteAction.naturalizeDialogue => Icons.forum_outlined,
+    };
+  }
+}
+
 class _LearningMeter extends StatelessWidget {
   const _LearningMeter({required this.value});
 
@@ -1117,7 +1376,8 @@ class _ChoiceCardState extends State<_ChoiceCard> {
             boxShadow: [
               if (_hovered || selected)
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: selected ? 0.028 : 0.014),
+                  color:
+                      Colors.black.withValues(alpha: selected ? 0.028 : 0.014),
                   blurRadius: selected ? 8 : 6,
                   offset: const Offset(0, 1),
                 ),
@@ -1367,7 +1627,8 @@ class _TypographyRoleEditor extends StatelessWidget {
             min: 1.0,
             max: 2.0,
             suffix: 'x',
-            onChanged: (value) => onChanged(settings.copyWith(lineHeight: value)),
+            onChanged: (value) =>
+                onChanged(settings.copyWith(lineHeight: value)),
           ),
           const SizedBox(height: 14),
           Text(
@@ -1440,7 +1701,8 @@ class _DropdownField<T> extends StatelessWidget {
           decoration: InputDecoration(
             filled: true,
             fillColor: palette.sectionBackground,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(
@@ -1512,7 +1774,8 @@ class _SliderField extends StatelessWidget {
           value: safeValue,
           min: min,
           max: max,
-          divisions: suffix == 'pt' ? (max - min).round() : ((max - min) * 20).round(),
+          divisions:
+              suffix == 'pt' ? (max - min).round() : ((max - min) * 20).round(),
           onChanged: onChanged,
         ),
       ],
@@ -1545,8 +1808,10 @@ String _descriptionForRole(TypographyRole role) => switch (role) {
 String _previewTextForRole(TypographyRole role) => switch (role) {
       TypographyRole.title => 'La casa frente al mar',
       TypographyRole.subtitle => 'Un regreso, una deuda, una noche de agosto.',
-      TypographyRole.body => 'La puerta seguía allí, igual que en mi infancia, aunque la pintura ya no resistía el salitre.',
-      TypographyRole.note => 'Nota: revisar esta escena y añadir la reacción de Clara al final del párrafo.',
+      TypographyRole.body =>
+        'La puerta seguía allí, igual que en mi infancia, aunque la pintura ya no resistía el salitre.',
+      TypographyRole.note =>
+        'Nota: revisar esta escena y añadir la reacción de Clara al final del párrafo.',
     };
 
 String _labelForStylePreset(TypographyStylePreset preset) => switch (preset) {

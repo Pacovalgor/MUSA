@@ -53,6 +53,10 @@
   - ✅ **Atribución por acción guiada**: cada `GuidedRewriteAction` expone un `feedbackSlug` estable (`guided-rewrite.raise-tension`, `guided-rewrite.clarify`, etc.).
   - ✅ **Aprendizaje accionable**: el editor registra las propuestas guiadas como mostradas y atribuye aceptación/rechazo a la acción concreta, no al bucket genérico `guided-rewrite`.
   - ✅ **Base para personalización**: el tracker existente puede acumular preferencias de Paco por tipo de reescritura sin mezclarlo con las Musas clásicas.
+- **V2.0 cierre (2026-05-06)**:
+  - ✅ **Aprendizaje visible de reescritura**: `MusaSettingsDialog` muestra tarjetas de aceptación/rechazo para tensión, claridad, exposición y diálogo.
+  - ✅ **Recomendaciones personalizadas**: `GuidedRewritePlanner` acepta multiplicadores aprendidos y el menú contextual prioriza acciones guiadas según preferencias locales.
+  - ✅ **Sin persistencia nueva**: se reutiliza `MusaEffectivenessTracker`, manteniendo las preferencias locales y separadas por slug estable.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -68,6 +72,7 @@
 - Las recomendaciones de reescritura V2.0 fase 2 son derivadas y no persistidas; deben ayudar a elegir herramienta, no sustituir criterio editorial ni aplicar cambios automáticos.
 - La auditoría de seguridad V2.0 fase 3 es informativa, no bloqueante; debe alertar antes de aplicar, pero la decisión final sigue siendo del usuario.
 - Los slugs de aprendizaje de reescritura guiada V2.0 fase 4 son contrato estable de preferencias; no renombrarlos sin migración de estadísticas locales.
+- El cierre V2.0 usa el aprendizaje solo para ordenar recomendaciones cuando hay señales competidoras; no debe ocultar acciones manuales ni aplicar cambios automáticamente.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

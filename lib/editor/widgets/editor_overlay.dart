@@ -226,14 +226,20 @@ class MusaEditorOverlay extends ConsumerWidget {
     final musas = ref.watch(availableMusesProvider);
     final isBusy = editorState.isProcessing;
     final workspace = ref.watch(narrativeWorkspaceProvider).value;
+    final tracker = ref.watch(musaEffectivenessTrackerProvider);
     final recommendation = ref.watch(guidedRewritePlannerProvider).recommend(
-          selection: editorState.selectionContext?.selectedText ?? '',
-          book: workspace?.activeBook,
-          novelStatus: ref.watch(activeNovelStatusProvider),
-          continuityFindings: ref.watch(activeContinuityFindingsProvider),
-          memory: workspace?.activeNarrativeMemory,
-          storyState: workspace?.activeStoryState,
-        );
+      selection: editorState.selectionContext?.selectedText ?? '',
+      book: workspace?.activeBook,
+      novelStatus: ref.watch(activeNovelStatusProvider),
+      continuityFindings: ref.watch(activeContinuityFindingsProvider),
+      memory: workspace?.activeNarrativeMemory,
+      storyState: workspace?.activeStoryState,
+      actionMultipliers: {
+        for (final action in GuidedRewriteAction.values)
+          action.feedbackSlug:
+              tracker.getThresholdMultiplier(action.feedbackSlug),
+      },
+    );
 
     return PopupMenuButton<_SelectionMenuAction>(
       enabled: !isBusy,

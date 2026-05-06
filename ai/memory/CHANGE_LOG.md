@@ -14,3 +14,4 @@
 - Se registra V2.0 fase 2 en memoria estable: planificador contextual de reescritura guiada y recomendación destacada en el menú de selección.
 - Se registra V2.0 fase 3 en memoria estable: auditoría de seguridad para reescrituras guiadas, con advertencias visibles en la revisión de propuesta.
 - Se registra V2.0 fase 4 en memoria estable: atribución de aprendizaje por acción concreta de reescritura guiada.
+- Se registra cierre V2.0 en memoria estable: aprendizaje visible de acciones guiadas y recomendaciones ordenadas por preferencias locales.

@@ -14,6 +14,7 @@ class GuidedRewritePlanner {
     required List<ContinuityFinding> continuityFindings,
     required NarrativeMemory? memory,
     required StoryState? storyState,
+    Map<String, double> actionMultipliers = const {},
   }) {
     final trimmed = selection.trim();
     if (trimmed.length < 24) return null;
@@ -28,8 +29,20 @@ class GuidedRewritePlanner {
     ];
 
     if (candidates.isEmpty) return null;
-    candidates.sort((a, b) => b.priority.compareTo(a.priority));
+    candidates.sort((a, b) {
+      final bScore = _weightedPriority(b, actionMultipliers);
+      final aScore = _weightedPriority(a, actionMultipliers);
+      return bScore.compareTo(aScore);
+    });
     return candidates.first;
+  }
+
+  double _weightedPriority(
+    GuidedRewriteRecommendation recommendation,
+    Map<String, double> actionMultipliers,
+  ) {
+    return recommendation.priority *
+        (actionMultipliers[recommendation.action.feedbackSlug] ?? 1.0);
   }
 
   bool _needsMoreTension(

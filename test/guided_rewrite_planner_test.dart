@@ -97,6 +97,26 @@ void main() {
 
       expect(recommendation, isNull);
     });
+
+    test('uses learned action multipliers to break competing signals', () {
+      const planner = GuidedRewritePlanner();
+      final recommendation = planner.recommend(
+        selection:
+            '—¿Lo viste? —No. Diane sabía que la investigación era importante porque desde hacía años había aprendido a no confiar.',
+        book: _book(),
+        novelStatus: _status(),
+        continuityFindings: const [],
+        memory: _memory(),
+        storyState: _storyState(),
+        actionMultipliers: const {
+          'guided-rewrite.reduce-exposition': 0.7,
+          'guided-rewrite.naturalize-dialogue': 1.25,
+        },
+      );
+
+      expect(recommendation, isNotNull);
+      expect(recommendation!.action, GuidedRewriteAction.naturalizeDialogue);
+    });
   });
 }
 
