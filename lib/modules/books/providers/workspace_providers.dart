@@ -699,6 +699,226 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  Future<Note?> convertCreativeCardToNote(String cardId) async {
+    final workspace = state.value;
+    if (workspace == null) return null;
+
+    final card = _creativeCardById(workspace, cardId);
+    if (card == null) return null;
+
+    final now = DateTime.now();
+    final note = Note(
+      id: generateEntityId('note'),
+      bookId: card.bookId,
+      title: card.title.trim().isEmpty ? null : card.title.trim(),
+      content: card.body.trim(),
+      kind: _noteKindForCreativeCard(card),
+      status: NoteStatus.inbox,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final updatedCard = card.copyWith(
+      status: CreativeCardStatus.converted,
+      linkedNoteIds: _appendUnique(card.linkedNoteIds, note.id),
+      convertedTo: CreativeCardConversion(
+        kind: CreativeCardConversionKind.note,
+        targetId: note.id,
+      ),
+      updatedAt: now,
+    );
+
+    await _persist(
+      workspace.copyWith(
+        notes: [...workspace.notes, note],
+        creativeCards:
+            _replaceCreativeCard(workspace.creativeCards, updatedCard),
+        books: _touchActiveBook(workspace.books, card.bookId, now),
+        selectedNoteId: note.id,
+        clearSelectedCharacterId: true,
+        clearSelectedScenarioId: true,
+        editorMode: WorkspaceEditorMode.note,
+      ),
+    );
+    return note;
+  }
+
+  Future<Character?> convertCreativeCardToCharacter(String cardId) async {
+    final workspace = state.value;
+    if (workspace == null) return null;
+
+    final card = _creativeCardById(workspace, cardId);
+    if (card == null) return null;
+
+    final now = DateTime.now();
+    final character = Character(
+      id: generateEntityId('character'),
+      bookId: card.bookId,
+      name: card.title.trim().isEmpty
+          ? 'Personaje sin nombre'
+          : card.title.trim(),
+      notes: card.body.trim(),
+      createdAt: now,
+      updatedAt: now,
+    );
+    final updatedCard = card.copyWith(
+      status: CreativeCardStatus.converted,
+      linkedCharacterIds: _appendUnique(card.linkedCharacterIds, character.id),
+      convertedTo: CreativeCardConversion(
+        kind: CreativeCardConversionKind.character,
+        targetId: character.id,
+      ),
+      updatedAt: now,
+    );
+
+    await _persist(
+      workspace.copyWith(
+        characters: [...workspace.characters, character],
+        creativeCards:
+            _replaceCreativeCard(workspace.creativeCards, updatedCard),
+        books: _touchActiveBook(workspace.books, card.bookId, now),
+        selectedCharacterId: character.id,
+        clearSelectedScenarioId: true,
+        editorMode: WorkspaceEditorMode.character,
+      ),
+    );
+    return character;
+  }
+
+  Future<Scenario?> convertCreativeCardToScenario(String cardId) async {
+    final workspace = state.value;
+    if (workspace == null) return null;
+
+    final card = _creativeCardById(workspace, cardId);
+    if (card == null) return null;
+
+    final now = DateTime.now();
+    final scenario = Scenario(
+      id: generateEntityId('scenario'),
+      bookId: card.bookId,
+      name: card.title.trim().isEmpty
+          ? 'Escenario sin nombre'
+          : card.title.trim(),
+      notes: card.body.trim(),
+      createdAt: now,
+      updatedAt: now,
+    );
+    final updatedCard = card.copyWith(
+      status: CreativeCardStatus.converted,
+      linkedScenarioIds: _appendUnique(card.linkedScenarioIds, scenario.id),
+      convertedTo: CreativeCardConversion(
+        kind: CreativeCardConversionKind.scenario,
+        targetId: scenario.id,
+      ),
+      updatedAt: now,
+    );
+
+    await _persist(
+      workspace.copyWith(
+        scenarios: [...workspace.scenarios, scenario],
+        creativeCards:
+            _replaceCreativeCard(workspace.creativeCards, updatedCard),
+        books: _touchActiveBook(workspace.books, card.bookId, now),
+        selectedScenarioId: scenario.id,
+        clearSelectedCharacterId: true,
+        editorMode: WorkspaceEditorMode.scenario,
+      ),
+    );
+    return scenario;
+  }
+
+  Future<Document?> convertCreativeCardToDocument(String cardId) async {
+    final workspace = state.value;
+    if (workspace == null) return null;
+
+    final card = _creativeCardById(workspace, cardId);
+    if (card == null) return null;
+
+    final now = DateTime.now();
+    final content = card.body.trim();
+    final bookDocuments = workspace.documents
+        .where((document) => document.bookId == card.bookId)
+        .toList();
+    final nextOrderIndex = bookDocuments.isEmpty
+        ? 0
+        : bookDocuments
+                .map((document) => document.orderIndex)
+                .reduce((a, b) => a > b ? a : b) +
+            1;
+    final document = Document(
+      id: generateEntityId('document'),
+      bookId: card.bookId,
+      title: card.title.trim().isEmpty ? 'Boceto' : card.title.trim(),
+      kind: DocumentKind.scratch,
+      orderIndex: nextOrderIndex,
+      content: content,
+      wordCount: _wordCount(content),
+      createdAt: now,
+      updatedAt: now,
+    );
+    final updatedCard = card.copyWith(
+      status: CreativeCardStatus.converted,
+      linkedDocumentIds: _appendUnique(card.linkedDocumentIds, document.id),
+      convertedTo: CreativeCardConversion(
+        kind: CreativeCardConversionKind.document,
+        targetId: document.id,
+      ),
+      updatedAt: now,
+    );
+
+    await _persist(
+      workspace.copyWith(
+        documents: [...workspace.documents, document],
+        creativeCards:
+            _replaceCreativeCard(workspace.creativeCards, updatedCard),
+        books: _touchActiveBook(workspace.books, card.bookId, now),
+        selectedDocumentId: document.id,
+        clearSelectedNoteId: true,
+        clearSelectedCharacterId: true,
+        clearSelectedScenarioId: true,
+        editorMode: WorkspaceEditorMode.document,
+      ),
+    );
+    return document;
+  }
+
+  CreativeCard? _creativeCardById(
+    NarrativeWorkspace workspace,
+    String cardId,
+  ) {
+    for (final card in workspace.creativeCards) {
+      if (card.id == cardId) return card;
+    }
+    return null;
+  }
+
+  List<CreativeCard> _replaceCreativeCard(
+    List<CreativeCard> cards,
+    CreativeCard replacement,
+  ) {
+    return cards.map((card) {
+      if (card.id != replacement.id) return card;
+      return replacement;
+    }).toList();
+  }
+
+  List<String> _appendUnique(List<String> values, String value) {
+    if (values.contains(value)) return values;
+    return [...values, value];
+  }
+
+  NoteKind _noteKindForCreativeCard(CreativeCard card) {
+    return switch (card.type) {
+      CreativeCardType.character => NoteKind.character,
+      CreativeCardType.scenario => NoteKind.scenario,
+      CreativeCardType.research => NoteKind.research,
+      CreativeCardType.idea ||
+      CreativeCardType.sketch ||
+      CreativeCardType.image ||
+      CreativeCardType.question =>
+        NoteKind.idea,
+    };
+  }
+
   bool _stringListsEqual(List<String> a, List<String> b) {
     if (a.length != b.length) return false;
     for (var index = 0; index < a.length; index++) {
