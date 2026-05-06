@@ -4,8 +4,23 @@ import 'package:musa/modules/books/models/app_settings.dart';
 import 'package:musa/modules/books/models/book.dart';
 import 'package:musa/modules/books/models/narrative_workspace.dart';
 import 'package:musa/modules/books/providers/workspace_providers.dart';
+import 'package:musa/modules/books/services/narrative_workspace_repository.dart';
 import 'package:musa/modules/creative/models/creative_card.dart';
 import 'package:musa/modules/creative/providers/creative_providers.dart';
+
+class _MemoryWorkspaceRepository implements NarrativeWorkspaceRepository {
+  _MemoryWorkspaceRepository(this.workspace);
+
+  NarrativeWorkspace workspace;
+
+  @override
+  Future<NarrativeWorkspace> loadWorkspace() async => workspace;
+
+  @override
+  Future<void> saveWorkspace(NarrativeWorkspace workspace) async {
+    this.workspace = workspace;
+  }
+}
 
 void main() {
   group('NarrativeWorkspace creative cards', () {
@@ -104,11 +119,7 @@ void main() {
     test('activeCreativeCardsProvider returns active book cards only',
         () async {
       final now = DateTime.utc(2026, 5, 7);
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      container.read(narrativeWorkspaceProvider.notifier).state =
-          AsyncData(NarrativeWorkspace(
+      final repository = _MemoryWorkspaceRepository(NarrativeWorkspace(
         appSettings: const AppSettings(activeBookId: 'book-1'),
         books: [
           Book(id: 'book-1', title: 'Uno', createdAt: now, updatedAt: now),
@@ -131,6 +142,14 @@ void main() {
           ),
         ],
       ));
+      final container = ProviderContainer(
+        overrides: [
+          narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(narrativeWorkspaceProvider.notifier).bootstrap();
 
       expect(
         container.read(activeCreativeCardsProvider).map((card) => card.id),
