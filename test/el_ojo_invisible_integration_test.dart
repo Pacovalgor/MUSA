@@ -10,8 +10,10 @@ import 'package:musa/editor/models/chapter_analysis.dart';
 import 'package:musa/editor/services/chapter_analysis_service.dart';
 import 'package:musa/modules/books/models/book.dart';
 import 'package:musa/modules/books/models/narrative_copilot.dart';
+import 'package:musa/modules/books/models/novel_status.dart';
 import 'package:musa/modules/books/services/narrative_document_classifier.dart';
 import 'package:musa/modules/books/services/narrative_memory_updater.dart';
+import 'package:musa/modules/books/services/novel_status_service.dart';
 import 'package:musa/modules/books/services/story_state_updater.dart';
 import 'package:musa/modules/manuscript/models/document.dart';
 import 'package:musa/muses/editorial_signals.dart';
@@ -238,7 +240,13 @@ const _kTitles = [
 ];
 
 const _kChapters = [
-  _kCap01, _kCap02, _kCap03, _kCap04, _kCap05, _kCap06, _kCap07,
+  _kCap01,
+  _kCap02,
+  _kCap03,
+  _kCap04,
+  _kCap05,
+  _kCap06,
+  _kCap07,
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -251,7 +259,8 @@ StoryState _analyzeBook({
   BookNarrativeProfile profile = const BookNarrativeProfile(
     primaryGenre: BookPrimaryGenre.thriller,
     targetPace: TargetPace.urgent,
-    readerPromise: 'Una periodista en San Francisco sigue un símbolo que conecta crímenes y desapariciones.',
+    readerPromise:
+        'Una periodista en San Francisco sigue un símbolo que conecta crímenes y desapariciones.',
     dominantPriority: DominantPriority.tension,
   ),
 }) {
@@ -263,16 +272,20 @@ StoryState _analyzeBook({
     updatedAt: _now,
     narrativeProfile: profile,
   );
-  final documents = chapters.asMap().entries.map((e) => Document(
-    id: 'cap-${e.key + 1}',
-    bookId: book.id,
-    title: _kTitles[e.key],
-    orderIndex: e.key,
-    content: e.value,
-    wordCount: e.value.split(RegExp(r'\s+')).length,
-    createdAt: _now,
-    updatedAt: _now,
-  )).toList();
+  final documents = chapters
+      .asMap()
+      .entries
+      .map((e) => Document(
+            id: 'cap-${e.key + 1}',
+            bookId: book.id,
+            title: _kTitles[e.key],
+            orderIndex: e.key,
+            content: e.value,
+            wordCount: e.value.split(RegExp(r'\s+')).length,
+            createdAt: _now,
+            updatedAt: _now,
+          ))
+      .toList();
   final memory = const NarrativeMemoryUpdater().update(
     bookId: book.id,
     documents: documents,
@@ -301,7 +314,8 @@ void main() {
       final content = _kChapters[i];
       test('Capítulo ${i + 1}: "$title" → SCENE', () {
         final result = classifier.classifyRaw(content, title: title);
-        print('[$title] kind=${result.kind.name} confidence=${result.confidence.toStringAsFixed(2)}');
+        print(
+            '[$title] kind=${result.kind.name} confidence=${result.confidence.toStringAsFixed(2)}');
         expect(result.kind, equals(NarrativeDocumentKind.scene),
             reason: '"$title" no debe clasificarse como ${result.kind.name}');
         expect(result.confidence, greaterThan(0.35),
@@ -311,9 +325,11 @@ void main() {
 
     test('Ningún capítulo se clasifica como técnico o investigación', () {
       for (var i = 0; i < _kChapters.length; i++) {
-        final result = classifier.classifyRaw(_kChapters[i], title: _kTitles[i]);
+        final result =
+            classifier.classifyRaw(_kChapters[i], title: _kTitles[i]);
         expect(result.kind, isNot(equals(NarrativeDocumentKind.technical)),
-            reason: '"${_kTitles[i]}" fue clasificado como técnico — bug de falso positivo');
+            reason:
+                '"${_kTitles[i]}" fue clasificado como técnico — bug de falso positivo');
         expect(result.kind, isNot(equals(NarrativeDocumentKind.research)),
             reason: '"${_kTitles[i]}" fue clasificado como investigación');
       }
@@ -321,16 +337,23 @@ void main() {
   });
 
   // ── 2. Regresión: bug del clasificador en cap. 7 ───────────────────────────
-  group('Regresión: clasificador no confunde capítulo 7 con documento técnico', () {
+  group('Regresión: clasificador no confunde capítulo 7 con documento técnico',
+      () {
     test('título "El callejón de Tenderloin" no activa tokens técnicos', () {
-      final result = classifier.classifyRaw(_kCap07, title: '07 El callejón de Tenderloin');
+      final result = classifier.classifyRaw(_kCap07,
+          title: '07 El callejón de Tenderloin');
       expect(result.kind, equals(NarrativeDocumentKind.scene),
-          reason: 'Regresión: el capítulo 7 volvió a clasificarse como técnico');
+          reason:
+              'Regresión: el capítulo 7 volvió a clasificarse como técnico');
     });
 
     test('el token "api" solo activa con espacios, no como substring', () {
-      final sinApi = classifier.classifyRaw('Entré al callejón. Estaba en la Mission a las 22:30.', title: 'Escena');
-      final conApi = classifier.classifyRaw('Conecté a la api del servidor. El backend respondió.', title: 'Técnico');
+      final sinApi = classifier.classifyRaw(
+          'Entré al callejón. Estaba en la Mission a las 22:30.',
+          title: 'Escena');
+      final conApi = classifier.classifyRaw(
+          'Conecté a la api del servidor. El backend respondió.',
+          title: 'Técnico');
       expect(sinApi.kind, equals(NarrativeDocumentKind.scene));
       expect(conApi.kind, equals(NarrativeDocumentKind.technical));
     });
@@ -340,11 +363,14 @@ void main() {
   group('Señales editoriales: perfil correcto por capítulo', () {
     test('Cap 01 (escena de crimen): alto diálogo, alta acción, preguntas', () {
       final s = buildEditorialSignals(_kCap01);
-      print('[Cap01] diálogo=${s.dialogueMarksCount} acción=${s.actionVerbCount} preguntas=${s.questionCount}');
+      print(
+          '[Cap01] diálogo=${s.dialogueMarksCount} acción=${s.actionVerbCount} preguntas=${s.questionCount}');
       expect(s.hasDialogue, isTrue, reason: 'Cap 01 tiene diálogo —');
       expect(s.hasAction, isTrue, reason: 'Cap 01 tiene verbos de acción');
-      expect(s.questionCount, greaterThanOrEqualTo(3), reason: 'Hay preguntas en la conversación con el testigo');
-      expect(s.physicalActionScore, greaterThan(0), reason: 'Movimientos físicos: me detuve, me acerqué...');
+      expect(s.questionCount, greaterThanOrEqualTo(3),
+          reason: 'Hay preguntas en la conversación con el testigo');
+      expect(s.physicalActionScore, greaterThan(0),
+          reason: 'Movimientos físicos: me detuve, me acerqué...');
     });
 
     test('Cap 01: diálogo con guiones — genera dialogueActionScore > 0', () {
@@ -354,20 +380,25 @@ void main() {
 
     test('Cap 03 (obsesión símbolo): pocas frases largas, introspección', () {
       final s = buildEditorialSignals(_kCap03);
-      print('[Cap03] avgLen=${s.avgSentenceLength.toStringAsFixed(1)} longSent=${s.longSentenceCount}');
+      print(
+          '[Cap03] avgLen=${s.avgSentenceLength.toStringAsFixed(1)} longSent=${s.longSentenceCount}');
       expect(s.sentenceCount, greaterThan(10));
       expect(s.hasDialogue, isTrue, reason: 'Tiene diálogo con Julia y Diane');
     });
 
-    test('Cap 04 (búsquedas nocturnas): diversidad léxica razonable (> 0.55)', () {
+    test('Cap 04 (búsquedas nocturnas): diversidad léxica razonable (> 0.55)',
+        () {
       final s = buildEditorialSignals(_kCap04);
-      print('[Cap04] lexicalDiversity=${s.lexicalDiversity.toStringAsFixed(2)}');
+      print(
+          '[Cap04] lexicalDiversity=${s.lexicalDiversity.toStringAsFixed(2)}');
       // 0.59 observado — texto de búsquedas repite "símbolo", "busco", "nada"
       expect(s.lexicalDiversity, greaterThan(0.55),
-          reason: 'Las búsquedas en internet introducen vocabulario variado, aunque repite términos clave');
+          reason:
+              'Las búsquedas en internet introducen vocabulario variado, aunque repite términos clave');
     });
 
-    test('Cap 06 (bar + Diane): el mayor ratio de diálogo de los 7 capítulos', () {
+    test('Cap 06 (bar + Diane): el mayor ratio de diálogo de los 7 capítulos',
+        () {
       final signals = _kChapters.map(buildEditorialSignals).toList();
       final cap06Marks = signals[5].dialogueMarksCount;
       print('[Cap06] dialogueMarks=$cap06Marks');
@@ -375,20 +406,24 @@ void main() {
       expect(cap06Marks, greaterThan(signals[2].dialogueMarksCount),
           reason: 'Bar en cap06 tiene más diálogo que cap03 (obsesión)');
       expect(cap06Marks, greaterThan(signals[3].dialogueMarksCount),
-          reason: 'Bar en cap06 tiene más diálogo que cap04 (búsquedas solitarias)');
+          reason:
+              'Bar en cap06 tiene más diálogo que cap04 (búsquedas solitarias)');
     });
 
-    test('Cap 05 (mensaje anónimo): pregunta crucial ¿Quién eres? detectada', () {
+    test('Cap 05 (mensaje anónimo): pregunta crucial ¿Quién eres? detectada',
+        () {
       final s = buildEditorialSignals(_kCap05);
       expect(s.questionCount, greaterThanOrEqualTo(2),
-          reason: 'Cap 05 contiene "¿Quién eres?", "¿Y la víctima?", "¿Cómo murió?"...');
+          reason:
+              'Cap 05 contiene "¿Quién eres?", "¿Y la víctima?", "¿Cómo murió?"...');
     });
 
     test('shortSentenceStreak alto en cap01 (escena fragmentada)', () {
       final s = buildEditorialSignals(_kCap01);
       print('[Cap01] shortSentenceStreak=${s.shortSentenceStreak}');
       expect(s.shortSentenceStreak, greaterThanOrEqualTo(2),
-          reason: 'Cap 01 tiene frases muy cortas: "Sangre en el suelo. Un móvil caído."');
+          reason:
+              'Cap 01 tiene frases muy cortas: "Sangre en el suelo. Un móvil caído."');
     });
   });
 
@@ -398,39 +433,46 @@ void main() {
       final state = _analyzeBook();
       print('[Full] act=${state.currentAct} tension=${state.globalTension}');
       expect(state.currentAct, StoryAct.actII,
-          reason: 'Con 7 capítulos de misterio acumulado debería estar en el segundo acto');
+          reason:
+              'Con 7 capítulos de misterio acumulado debería estar en el segundo acto');
     });
 
     test('la tensión global es mayor que 30 después de 7 capítulos', () {
       final state = _analyzeBook();
       expect(state.globalTension, greaterThan(30),
-          reason: 'Crimen, símbolo, amenaza anónima y desaparición acumulan tensión');
+          reason:
+              'Crimen, símbolo, amenaza anónima y desaparición acumulan tensión');
     });
 
     test('la tensión es positiva en todas las etapas del libro', () {
       final tension1 = _analyzeBook(texts: [_kCap01]).globalTension;
-      final tension3 = _analyzeBook(texts: [_kCap01, _kCap02, _kCap03]).globalTension;
+      final tension3 =
+          _analyzeBook(texts: [_kCap01, _kCap02, _kCap03]).globalTension;
       final tension7 = _analyzeBook().globalTension;
       print('[Progressión] t1=$tension1 t3=$tension3 t7=$tension7');
       // Nota: el sistema puede bajar la tensión en capítulos de pausa (bar, rutina).
       // Lo importante es que nunca quede en 0 y que el libro completo supere al cap. suelto.
-      expect(tension1, greaterThan(0), reason: 'Al menos 1 capítulo debe generar tensión');
+      expect(tension1, greaterThan(0),
+          reason: 'Al menos 1 capítulo debe generar tensión');
       expect(tension3, greaterThan(0));
       expect(tension7, greaterThan(0));
       // COMPORTAMIENTO OBSERVADO: t1=36 t3=40 t7=32
       // Los caps de pausa (bar, rutina) bajan la tensión promedio al añadirse.
       // El sistema promedia en vez de acumular — gap conocido para libros con ritmo variable.
       expect(tension7, greaterThan(20),
-          reason: '7 caps no deben dejar la tensión por los suelos aunque incluyan pausas');
+          reason:
+              '7 caps no deben dejar la tensión por los suelos aunque incluyan pausas');
     });
 
-    test('caps 3-5 (búsquedas sin consecuencia) generan nextBestMove no vacío', () {
+    test('caps 3-5 (búsquedas sin consecuencia) generan nextBestMove no vacío',
+        () {
       final state = _analyzeBook(
         texts: [_kCap03, _kCap04, _kCap05],
         profile: const BookNarrativeProfile(
           primaryGenre: BookPrimaryGenre.thriller,
           targetPace: TargetPace.urgent,
-          readerPromise: 'Una periodista sigue un símbolo que conecta crímenes.',
+          readerPromise:
+              'Una periodista sigue un símbolo que conecta crímenes.',
           dominantPriority: DominantPriority.tension,
         ),
       );
@@ -440,56 +482,156 @@ void main() {
       // BUG CONOCIDO: caps 3-5 de este libro no activan aún el diagnóstico de bucle
       // porque las frases de búsqueda no coinciden con los tokens actuales de detección.
       expect(state.nextBestMove, isNotEmpty,
-          reason: 'El copiloto siempre debe ofrecer un próximo paso, incluso sin patrón detectado');
+          reason:
+              'El copiloto siempre debe ofrecer un próximo paso, incluso sin patrón detectado');
       expect(state.currentAct, isNotNull);
     });
 
-    test('con solo cap01 la función del capítulo es introducción o confrontación', () {
+    test('estado de novela genera señales útiles para el thriller completo',
+        () {
+      final book = Book(
+        id: 'ojo-invisible',
+        title: 'El ojo invisible',
+        createdAt: _now,
+        updatedAt: _now,
+        narrativeProfile: const BookNarrativeProfile(
+          primaryGenre: BookPrimaryGenre.thriller,
+          targetPace: TargetPace.urgent,
+          readerPromise:
+              'Una periodista sigue un símbolo que conecta crímenes y desapariciones.',
+          dominantPriority: DominantPriority.tension,
+        ),
+      );
+      final documents = _kChapters.asMap().entries.map((entry) {
+        return Document(
+          id: 'cap-${entry.key + 1}',
+          bookId: book.id,
+          title: _kTitles[entry.key],
+          orderIndex: entry.key,
+          content: entry.value,
+          wordCount: entry.value.split(RegExp(r'\s+')).length,
+          createdAt: _now,
+          updatedAt: _now,
+        );
+      }).toList();
+      final memory = const NarrativeMemoryUpdater().update(
+        bookId: book.id,
+        documents: documents,
+        previous: null,
+        now: _now,
+      );
+      final storyState = const StoryStateUpdater().update(
+        book: book,
+        documents: documents,
+        memory: memory,
+        previous: null,
+        now: _now,
+      );
+      final report = const NovelStatusService().build(
+        book: book,
+        documents: documents,
+        memory: memory,
+        storyState: storyState,
+        now: _now,
+      );
+
+      expect(report.overallScore, inInclusiveRange(0, 100));
+      expect(report.healthLevel, isNot(NovelStatusHealth.critical));
+      expect(report.signals, isNotEmpty);
+      expect(report.nextActions, isNotEmpty);
+      expect(report.professionalComparisons, isNotEmpty);
+    });
+
+    test(
+        'con solo cap01 la función del capítulo es introducción o confrontación',
+        () {
       final state = _analyzeBook(texts: [_kCap01]);
       print('[Cap01] chapterFunction=${state.currentChapterFunction}');
       expect(
-        [CurrentChapterFunction.introduce, CurrentChapterFunction.confront, CurrentChapterFunction.complicate]
-            .contains(state.currentChapterFunction),
+        [
+          CurrentChapterFunction.introduce,
+          CurrentChapterFunction.confront,
+          CurrentChapterFunction.complicate
+        ].contains(state.currentChapterFunction),
         isTrue,
-        reason: 'El primer capítulo abre el caso — debe ser introducción o complicación temprana',
+        reason:
+            'El primer capítulo abre el caso — debe ser introducción o complicación temprana',
       );
     });
   });
 
   // ── 5. Preguntas abiertas acumuladas ───────────────────────────────────────
   group('Memoria narrativa: preguntas abiertas de El ojo invisible', () {
-    test('cap01 genera al menos una pregunta abierta (¿quién es la sombra?)', () {
+    test('cap01 genera al menos una pregunta abierta (¿quién es la sombra?)',
+        () {
       final docs = [
-        Document(id: 'd1', bookId: 'b', title: _kTitles[0], orderIndex: 0,
-            content: _kCap01, wordCount: _kCap01.split(' ').length, createdAt: _now, updatedAt: _now),
+        Document(
+            id: 'd1',
+            bookId: 'b',
+            title: _kTitles[0],
+            orderIndex: 0,
+            content: _kCap01,
+            wordCount: _kCap01.split(' ').length,
+            createdAt: _now,
+            updatedAt: _now),
       ];
       final memory = const NarrativeMemoryUpdater().update(
-        bookId: 'b', documents: docs, previous: null, now: _now,
+        bookId: 'b',
+        documents: docs,
+        previous: null,
+        now: _now,
       );
-      print('[Memory cap01] openQ=${memory.openQuestions} findings=${memory.researchFindings}');
+      print(
+          '[Memory cap01] openQ=${memory.openQuestions} findings=${memory.researchFindings}');
       // Cap 01 termina sin respuesta al crimen — debe generar preguntas
-      expect(memory.openQuestions.isNotEmpty || memory.persistentConcepts.isNotEmpty, isTrue,
-          reason: 'Un capítulo de misterio debe generar incógnitas o conceptos persistentes');
+      expect(
+          memory.openQuestions.isNotEmpty ||
+              memory.persistentConcepts.isNotEmpty,
+          isTrue,
+          reason:
+              'Un capítulo de misterio debe generar incógnitas o conceptos persistentes');
     });
 
     test('caps 1-7 acumulan más conceptos persistentes que solo cap01', () {
       final docs1 = [
-        Document(id: 'd1', bookId: 'b', title: _kTitles[0], orderIndex: 0,
-            content: _kCap01, wordCount: _kCap01.split(' ').length, createdAt: _now, updatedAt: _now),
+        Document(
+            id: 'd1',
+            bookId: 'b',
+            title: _kTitles[0],
+            orderIndex: 0,
+            content: _kCap01,
+            wordCount: _kCap01.split(' ').length,
+            createdAt: _now,
+            updatedAt: _now),
       ];
-      final docs7 = _kChapters.asMap().entries.map((e) => Document(
-        id: 'd${e.key}', bookId: 'b', title: _kTitles[e.key], orderIndex: e.key,
-        content: e.value, wordCount: e.value.split(' ').length, createdAt: _now, updatedAt: _now,
-      )).toList();
+      final docs7 = _kChapters
+          .asMap()
+          .entries
+          .map((e) => Document(
+                id: 'd${e.key}',
+                bookId: 'b',
+                title: _kTitles[e.key],
+                orderIndex: e.key,
+                content: e.value,
+                wordCount: e.value.split(' ').length,
+                createdAt: _now,
+                updatedAt: _now,
+              ))
+          .toList();
 
-      final mem1 = const NarrativeMemoryUpdater().update(bookId: 'b', documents: docs1, previous: null, now: _now);
-      final mem7 = const NarrativeMemoryUpdater().update(bookId: 'b', documents: docs7, previous: null, now: _now);
+      final mem1 = const NarrativeMemoryUpdater()
+          .update(bookId: 'b', documents: docs1, previous: null, now: _now);
+      final mem7 = const NarrativeMemoryUpdater()
+          .update(bookId: 'b', documents: docs7, previous: null, now: _now);
 
-      final concepts1 = mem1.persistentConcepts.length + mem1.openQuestions.length;
-      final concepts7 = mem7.persistentConcepts.length + mem7.openQuestions.length;
+      final concepts1 =
+          mem1.persistentConcepts.length + mem1.openQuestions.length;
+      final concepts7 =
+          mem7.persistentConcepts.length + mem7.openQuestions.length;
       print('[Memory] 1cap: $concepts1 items | 7caps: $concepts7 items');
       expect(concepts7, greaterThanOrEqualTo(concepts1),
-          reason: 'Más capítulos deben generar igual o más conceptos acumulados');
+          reason:
+              'Más capítulos deben generar igual o más conceptos acumulados');
     });
   });
 
@@ -498,40 +640,56 @@ void main() {
     final context = NarrativeContext(
       bookTitle: 'El ojo invisible',
       documentTitle: 'Capítulo',
-      projectSummary: 'Thriller de investigación. Clara, becaria, sigue un símbolo que conecta crímenes.',
-      knownFacts: ['Ethan Kwan fue asesinado', 'Hay un símbolo ojo-triángulo en varios callejones'],
+      projectSummary:
+          'Thriller de investigación. Clara, becaria, sigue un símbolo que conecta crímenes.',
+      knownFacts: [
+        'Ethan Kwan fue asesinado',
+        'Hay un símbolo ojo-triángulo en varios callejones'
+      ],
       openQuestions: ['¿Quién dibujó el símbolo?', '¿Qué le pasó a Leo?'],
       tensionLevel: 'high',
     );
 
-    test('cap01 (escena de crimen, alta acción): autopilot sugiere TensionMusa o RhythmMusa', () {
+    test(
+        'cap01 (escena de crimen, alta acción): autopilot sugiere TensionMusa o RhythmMusa',
+        () {
       final rec = autopilot.recommend(selection: _kCap01, context: context);
-      print('[Autopilot Cap01] musa=${rec.primaryMusa.name} reason=${rec.reason}');
+      print(
+          '[Autopilot Cap01] musa=${rec.primaryMusa.name} reason=${rec.reason}');
       expect(
         rec.primaryMusa is TensionMusa || rec.primaryMusa is RhythmMusa,
         isTrue,
-        reason: 'Una escena de crimen con acción debe sugerir Tensión o Ritmo, no estilo/claridad',
+        reason:
+            'Una escena de crimen con acción debe sugerir Tensión o Ritmo, no estilo/claridad',
       );
     });
 
-    test('cap03 (obsesión, repetitivo): autopilot detecta necesidad de ritmo o tensión', () {
+    test(
+        'cap03 (obsesión, repetitivo): autopilot detecta necesidad de ritmo o tensión',
+        () {
       final rec = autopilot.recommend(selection: _kCap03, context: context);
-      print('[Autopilot Cap03] musa=${rec.primaryMusa.name} reason=${rec.reason}');
+      print(
+          '[Autopilot Cap03] musa=${rec.primaryMusa.name} reason=${rec.reason}');
       expect(rec.reason, isNotEmpty);
       expect(rec.confidence, greaterThan(0.0));
     });
 
-    test('cap06 (bar, diálogo social): autopilot devuelve una musa coherente con subtexto', () {
+    test(
+        'cap06 (bar, diálogo social): autopilot devuelve una musa coherente con subtexto',
+        () {
       final rec = autopilot.recommend(selection: _kCap06, context: context);
-      print('[Autopilot Cap06] musa=${rec.primaryMusa.name} reason=${rec.reason}');
+      print(
+          '[Autopilot Cap06] musa=${rec.primaryMusa.name} reason=${rec.reason}');
       expect(rec.musas, isNotEmpty);
       expect(rec.reason, isNotEmpty);
     });
 
     test('el autopilot nunca devuelve lista de musas vacía', () {
       for (var i = 0; i < _kChapters.length; i++) {
-        final rec = autopilot.recommend(selection: _kChapters[i], context: context);
-        expect(rec.musas, isNotEmpty, reason: 'Cap ${i + 1} no debe devolver lista de musas vacía');
+        final rec =
+            autopilot.recommend(selection: _kChapters[i], context: context);
+        expect(rec.musas, isNotEmpty,
+            reason: 'Cap ${i + 1} no debe devolver lista de musas vacía');
         expect(rec.confidence, greaterThanOrEqualTo(0.0));
       }
     });
@@ -549,8 +707,10 @@ void main() {
         linkedCharacterIds: [],
         linkedScenarioIds: [],
       );
-      print('[ChapAnalysis Cap01] moment=${analysis.dominantNarrativeMoment.title} fn=${analysis.chapterFunction.name}');
-      print('[ChapAnalysis Cap01] chars=${analysis.mainCharacters.map((c) => c.name).toList()}');
+      print(
+          '[ChapAnalysis Cap01] moment=${analysis.dominantNarrativeMoment.title} fn=${analysis.chapterFunction.name}');
+      print(
+          '[ChapAnalysis Cap01] chars=${analysis.mainCharacters.map((c) => c.name).toList()}');
       expect(
         analysis.mainCharacters.isNotEmpty ||
             analysis.dominantNarrativeMoment.title.isNotEmpty,
@@ -558,27 +718,39 @@ void main() {
       );
     });
 
-    test('cap01 función es discovery, escalation o setup (no development genérico)', () {
+    test(
+        'cap01 función es discovery, escalation o setup (no development genérico)',
+        () {
       final analysis = service.analyze(
         chapterText: _kCap01,
-        characters: [], scenarios: [],
-        linkedCharacterIds: [], linkedScenarioIds: [],
+        characters: [],
+        scenarios: [],
+        linkedCharacterIds: [],
+        linkedScenarioIds: [],
       );
       expect(
-        [ChapterFunction.discovery, ChapterFunction.escalation, ChapterFunction.setup, ChapterFunction.introduction]
-            .contains(analysis.chapterFunction),
+        [
+          ChapterFunction.discovery,
+          ChapterFunction.escalation,
+          ChapterFunction.setup,
+          ChapterFunction.introduction
+        ].contains(analysis.chapterFunction),
         isTrue,
-        reason: 'Un capítulo de apertura de thriller no debe clasificarse como "development" genérico',
+        reason:
+            'Un capítulo de apertura de thriller no debe clasificarse como "development" genérico',
       );
     });
 
     test('cap06 tiene el momento dominante más orientado a pausa/subtexto', () {
       final analysis = service.analyze(
         chapterText: _kCap06,
-        characters: [], scenarios: [],
-        linkedCharacterIds: [], linkedScenarioIds: [],
+        characters: [],
+        scenarios: [],
+        linkedCharacterIds: [],
+        linkedScenarioIds: [],
       );
-      print('[ChapAnalysis Cap06] moment=${analysis.dominantNarrativeMoment.title} fn=${analysis.chapterFunction.name}');
+      print(
+          '[ChapAnalysis Cap06] moment=${analysis.dominantNarrativeMoment.title} fn=${analysis.chapterFunction.name}');
       expect(analysis.dominantNarrativeMoment.title, isNotEmpty);
       expect(analysis.chapterFunction.name, isNotEmpty);
     });
@@ -586,22 +758,27 @@ void main() {
     test('cap07 detecta un escenario (aunque lo nombre genéricamente)', () {
       final analysis = service.analyze(
         chapterText: _kCap07,
-        characters: [], scenarios: [],
-        linkedCharacterIds: [], linkedScenarioIds: [],
+        characters: [],
+        scenarios: [],
+        linkedCharacterIds: [],
+        linkedScenarioIds: [],
       );
-      print('[ChapAnalysis Cap07] scenario=${analysis.mainScenario?.name} moment=${analysis.dominantNarrativeMoment.title}');
+      print(
+          '[ChapAnalysis Cap07] scenario=${analysis.mainScenario?.name} moment=${analysis.dominantNarrativeMoment.title}');
       // GAP CONOCIDO: el servicio detecta "Calle o avenida" en vez de "Tenderloin".
       // El topónimo "Tenderloin" no está en la lista de escenarios reconocidos —
       // habría que añadirlo o mejorar la detección de nombres propios de barrio.
       expect(analysis.mainScenario, isNotNull,
-          reason: 'Cap 07 ocurre en un callejón — debe detectar algún escenario');
+          reason:
+              'Cap 07 ocurre en un callejón — debe detectar algún escenario');
       expect(analysis.mainScenario!.name, isNotEmpty);
       expect(analysis.dominantNarrativeMoment.title, isNotEmpty);
     });
   });
 
   // ── 8. Robustez: texto con encoding roto (cap05 original) ─────────────────
-  group('Robustez: clasificador y señales no fallan con texto mal codificado', () {
+  group('Robustez: clasificador y señales no fallan con texto mal codificado',
+      () {
     const brokenText = 'Me despert\u00e9 con la espalda r\u00edgida. '
         'El port\u00e1til segu\u00eda encendido. '
         'Una notificaci\u00f3n en la cuenta an\u00f3nima. '
@@ -621,16 +798,22 @@ void main() {
       );
     });
 
-    test('clasificador aún detecta señales narrativas en texto con encoding parcial', () {
-      final result = classifier.classifyRaw(brokenText, title: '05 Ecos en la red');
-      print('[Encoding] kind=${result.kind.name} confidence=${result.confidence.toStringAsFixed(2)}');
+    test(
+        'clasificador aún detecta señales narrativas en texto con encoding parcial',
+        () {
+      final result =
+          classifier.classifyRaw(brokenText, title: '05 Ecos en la red');
+      print(
+          '[Encoding] kind=${result.kind.name} confidence=${result.confidence.toStringAsFixed(2)}');
       expect(result.kind, isNot(equals(NarrativeDocumentKind.technical)));
     });
   });
 
   // ── 9. Documento de investigación real (blog OC) no contamina copiloto ────
-  group('Documento de investigación: no contamina el estado narrativo previo', () {
-    test('pegar contenido del blog OC en el libro no borra el estado acumulado', () {
+  group('Documento de investigación: no contamina el estado narrativo previo',
+      () {
+    test('pegar contenido del blog OC en el libro no borra el estado acumulado',
+        () {
       const blogOC = '''
         Lenguaje de muros. Las ciudades hablan con símbolos. Triángulos, ojos, flechas.
         Oakland: el primer eco. Documento de investigación sobre semiótica urbana.
@@ -654,9 +837,11 @@ void main() {
 
       print('[BlogOC] act=${state.currentAct} tension=${state.globalTension}');
       expect(state.currentAct, equals(StoryAct.actII),
-          reason: 'El blog OC (documento de investigación) no debe regresionar el acto');
+          reason:
+              'El blog OC (documento de investigación) no debe regresionar el acto');
       expect(state.globalTension, greaterThan(40),
-          reason: 'La tensión acumulada de 3 caps narrativos no debe borrarse por un doc de investigación');
+          reason:
+              'La tensión acumulada de 3 caps narrativos no debe borrarse por un doc de investigación');
     });
   });
 }

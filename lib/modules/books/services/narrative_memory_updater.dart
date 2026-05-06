@@ -53,6 +53,10 @@ class NarrativeMemoryUpdater {
       systemConstraints: contextualMemory.systemConstraints,
       researchFindings: contextualMemory.researchFindings,
       persistentConcepts: contextualMemory.persistentConcepts,
+      readerPromises: _collectReaderPromises(recentText),
+      unresolvedPromises: _collectUnresolvedPromises(recentText),
+      toneSignals: _collectToneSignals(recentText),
+      scenePatternWarnings: _collectScenePatternWarnings(recentText),
       updatedAt: now,
     );
   }
@@ -78,6 +82,88 @@ class NarrativeMemoryUpdater {
       if (results.length == 5) break;
     }
     return results;
+  }
+
+  List<String> _collectReaderPromises(String text) {
+    final results = <String>[];
+    for (final sentence in _sentences(text)) {
+      final lowered = sentence.toLowerCase();
+      final hasExplicitPromise =
+          lowered.contains('promesa') || lowered.contains('promete');
+      final hasPromiseShape = (lowered.contains('descubrir') ||
+              lowered.contains('resolver') ||
+              lowered.contains('revelar') ||
+              lowered.contains('encontrar')) &&
+          (lowered.contains('quién') ||
+              lowered.contains('quien') ||
+              lowered.contains('antes') ||
+              lowered.contains('verdad'));
+      if (!hasExplicitPromise && !hasPromiseShape) continue;
+      final compacted = _compact(sentence);
+      if (!results.contains(compacted)) results.add(compacted);
+      if (results.length == 5) break;
+    }
+    return results;
+  }
+
+  List<String> _collectUnresolvedPromises(String text) {
+    final results = <String>[];
+    for (final sentence in _sentences(text)) {
+      final lowered = sentence.toLowerCase();
+      final isQuestion = sentence.contains('?') || sentence.contains('¿');
+      final isOpenPromise = lowered.contains('seguía abierta') ||
+          lowered.contains('sigue abierta') ||
+          lowered.contains('sin resolver') ||
+          lowered.contains('pendiente');
+      if (!isQuestion && !isOpenPromise) continue;
+      final compacted = _compact(sentence);
+      if (!results.contains(compacted)) results.add(compacted);
+      if (results.length == 5) break;
+    }
+    return results;
+  }
+
+  List<String> _collectToneSignals(String text) {
+    const toneTokens = <String>[
+      'sombrío',
+      'sombria',
+      'oscuro',
+      'miedo',
+      'amenaza',
+      'sombra',
+      'melancólico',
+      'íntimo',
+      'épico',
+      'urgente',
+      'irónico',
+    ];
+    final lowered = text.toLowerCase();
+    final results = <String>[];
+    for (final token in toneTokens) {
+      if (!lowered.contains(token)) continue;
+      final normalized = token == 'sombria' ? 'sombrío' : token;
+      if (!results.contains(normalized)) results.add(normalized);
+      if (results.length == 5) break;
+    }
+    return results;
+  }
+
+  List<String> _collectScenePatternWarnings(String text) {
+    final lowered = text.toLowerCase();
+    final investigationMatches =
+        RegExp(r'\b(investig|pista|busca|búsqueda|buscar)\w*')
+            .allMatches(lowered)
+            .length;
+    final hasConsequence = TextNormalizer.stemmedAnyContainsWithSynonyms(
+      lowered,
+      TextAnalysisLexicons.progressDefaultTokens,
+      TextAnalysisLexicons.synonymMap,
+    );
+    if (investigationMatches >= 3 &&
+        (!hasConsequence || lowered.contains('sin consecuencia'))) {
+      return const ['investigación sin consecuencia'];
+    }
+    return const [];
   }
 
   List<String> _collectByKeywords(String text, List<String> keywords) {

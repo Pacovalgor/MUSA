@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
 import '../../modules/books/models/narrative_copilot.dart';
+import '../../modules/books/models/novel_status.dart';
 import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/manuscript/models/document.dart';
 import '../../modules/manuscript/providers/document_providers.dart';
@@ -72,6 +73,7 @@ class _BookEditorState extends ConsumerState<BookEditor> {
     final scenarios = ref.watch(scenariosProvider);
     final workspace = ref.watch(narrativeWorkspaceProvider).value;
     final storyState = workspace?.activeStoryState;
+    final novelStatus = ref.watch(activeNovelStatusProvider);
 
     if (book == null) {
       return const Center(child: Text('No hay libro activo'));
@@ -199,10 +201,13 @@ class _BookEditorState extends ConsumerState<BookEditor> {
               ),
               const SizedBox(height: 28),
               _Section(
-                title: 'Estado narrativo',
+                title: 'Estado de la novela',
                 subtitle:
-                    'Lectura ligera del libro actual. Se actualiza al guardar, cerrar o analizar capítulo.',
-                child: _StoryStateSummary(storyState: storyState),
+                    'Salud narrativa, memoria viva y comparación con el perfil profesional.',
+                child: _NovelStatusPanel(
+                  report: novelStatus,
+                  storyState: storyState,
+                ),
               ),
               const SizedBox(height: 28),
               _Section(
@@ -616,6 +621,270 @@ class _InlineTextField extends StatelessWidget {
             color: Colors.black87,
             height: 1.45,
           ),
+    );
+  }
+}
+
+class _NovelStatusPanel extends StatelessWidget {
+  const _NovelStatusPanel({
+    required this.report,
+    required this.storyState,
+  });
+
+  final NovelStatusReport? report;
+  final StoryState? storyState;
+
+  @override
+  Widget build(BuildContext context) {
+    if (report == null) {
+      return const _NarrativeEmptyText(
+        'Aún no hay memoria narrativa calculada. Se calculará al guardar o analizar un capítulo.',
+      );
+    }
+
+    final criticalSignals = report!.signals.take(3).toList();
+    final actions = report!.nextActions.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F7F5),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: _healthColor(report!.healthLevel),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _healthLabel(report!.healthLevel),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  Text(
+                    '${report!.overallScore}/100',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _MetricPill(
+                    label: 'Tensión',
+                    value: '${report!.tensionScore}',
+                  ),
+                  _MetricPill(
+                    label: 'Ritmo',
+                    value: '${report!.rhythmScore}',
+                  ),
+                  _MetricPill(
+                    label: 'Promesa',
+                    value: '${report!.promiseScore}',
+                  ),
+                  _MetricPill(
+                    label: 'Memoria',
+                    value: '${report!.memoryScore}',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (criticalSignals.isNotEmpty)
+          Column(
+            children: criticalSignals
+                .map(
+                  (signal) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _NovelStatusSignalRow(signal: signal),
+                  ),
+                )
+                .toList(),
+          ),
+        if (actions.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Acciones siguientes',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
+          _NarrativeBulletList(items: actions),
+        ],
+        if (report!.professionalComparisons.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _ProfessionalComparisonList(
+            comparisons: report!.professionalComparisons.take(3).toList(),
+          ),
+        ],
+        const SizedBox(height: 14),
+        _StoryStateSummary(storyState: storyState),
+      ],
+    );
+  }
+
+  Color _healthColor(NovelStatusHealth health) {
+    return switch (health) {
+      NovelStatusHealth.critical => const Color(0xFFB42318),
+      NovelStatusHealth.watch => const Color(0xFFB54708),
+      NovelStatusHealth.stable => const Color(0xFF027A48),
+      NovelStatusHealth.strong => const Color(0xFF175CD3),
+    };
+  }
+
+  String _healthLabel(NovelStatusHealth health) {
+    return switch (health) {
+      NovelStatusHealth.critical => 'Necesita atención',
+      NovelStatusHealth.watch => 'En vigilancia',
+      NovelStatusHealth.stable => 'Estable',
+      NovelStatusHealth.strong => 'Fuerte',
+    };
+  }
+}
+
+class _NovelStatusSignalRow extends StatelessWidget {
+  const _NovelStatusSignalRow({required this.signal});
+
+  final NovelStatusSignal signal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                _areaLabel(signal.area),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.black38,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  signal.title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            signal.detail,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black54,
+                  height: 1.45,
+                ),
+          ),
+          if (signal.evidence.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              signal.evidence,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.black38,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _areaLabel(NovelStatusArea area) {
+    return switch (area) {
+      NovelStatusArea.tension => 'TENSIÓN',
+      NovelStatusArea.rhythm => 'RITMO',
+      NovelStatusArea.promise => 'PROMESA',
+      NovelStatusArea.memory => 'MEMORIA',
+      NovelStatusArea.professional => 'CORPUS',
+    };
+  }
+}
+
+class _ProfessionalComparisonList extends StatelessWidget {
+  const _ProfessionalComparisonList({required this.comparisons});
+
+  final List<ProfessionalMetricComparison> comparisons;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Comparación profesional',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.black87,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 8),
+        ...comparisons.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item.metric,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.black54,
+                        ),
+                  ),
+                ),
+                Text(
+                  item.differenceLabel,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

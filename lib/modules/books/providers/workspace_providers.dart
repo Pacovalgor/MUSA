@@ -19,15 +19,18 @@ import '../models/book.dart';
 import '../models/musa_settings.dart';
 import '../models/narrative_copilot.dart';
 import '../models/narrative_workspace.dart';
+import '../models/novel_status.dart';
 import '../models/typography_settings.dart';
 import '../models/workspace_snapshot.dart';
 import '../models/writing_settings.dart';
 import '../services/narrative_memory_updater.dart';
 import '../services/narrative_workspace_repository.dart';
+import '../services/novel_status_service.dart';
 import '../services/story_state_updater.dart';
 
 /// Repository used to load and persist the canonical workspace aggregate.
-final narrativeWorkspaceRepositoryProvider = Provider<NarrativeWorkspaceRepository>((ref) {
+final narrativeWorkspaceRepositoryProvider =
+    Provider<NarrativeWorkspaceRepository>((ref) {
   return const LocalWorkspaceStorage();
 });
 
@@ -41,7 +44,8 @@ enum WorkspacePersistenceStatus {
 }
 
 /// Exposes the current status of the workspace persistence.
-final workspacePersistenceProvider = StateProvider<WorkspacePersistenceStatus>((ref) => WorkspacePersistenceStatus.idle);
+final workspacePersistenceProvider = StateProvider<WorkspacePersistenceStatus>(
+    (ref) => WorkspacePersistenceStatus.idle);
 
 final projectDocumentPickerProvider = Provider<ProjectDocumentPicker>((ref) {
   return const ProjectDocumentPicker();
@@ -66,11 +70,13 @@ final recentProjectsProvider = FutureProvider<List<RecentProject>>((ref) async {
 });
 
 /// Owns the full workspace state and all write operations against it.
-class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorkspace>> {
+class NarrativeWorkspaceNotifier
+    extends StateNotifier<AsyncValue<NarrativeWorkspace>> {
   NarrativeWorkspaceNotifier(
     this._ref,
     this._repository, {
-    NarrativeMemoryUpdater narrativeMemoryUpdater = const NarrativeMemoryUpdater(),
+    NarrativeMemoryUpdater narrativeMemoryUpdater =
+        const NarrativeMemoryUpdater(),
     StoryStateUpdater storyStateUpdater = const StoryStateUpdater(),
   })  : _narrativeMemoryUpdater = narrativeMemoryUpdater,
         _storyStateUpdater = storyStateUpdater,
@@ -96,15 +102,19 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
   Future<void> _persist(NarrativeWorkspace workspace) async {
     state = AsyncValue.data(workspace);
 
-    _ref.read(workspacePersistenceProvider.notifier).state = WorkspacePersistenceStatus.saving;
+    _ref.read(workspacePersistenceProvider.notifier).state =
+        WorkspacePersistenceStatus.saving;
 
     try {
       await _repository.saveWorkspace(workspace);
-      _ref.read(workspacePersistenceProvider.notifier).state = WorkspacePersistenceStatus.saved;
+      _ref.read(workspacePersistenceProvider.notifier).state =
+          WorkspacePersistenceStatus.saved;
     } catch (error) {
       debugPrint('[WORKSPACE_PERSIST_ERROR] $error');
 
-      final status = error is ProjectFileConflictException ? WorkspacePersistenceStatus.conflict : WorkspacePersistenceStatus.error;
+      final status = error is ProjectFileConflictException
+          ? WorkspacePersistenceStatus.conflict
+          : WorkspacePersistenceStatus.error;
 
       _ref.read(workspacePersistenceProvider.notifier).state = status;
 
@@ -179,7 +189,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
   Future<void> selectDocument(String documentId) async {
     final workspace = state.value;
     if (workspace == null) return;
-    final isAlreadyActive = workspace.selectedDocumentId == documentId && workspace.editorMode == WorkspaceEditorMode.document;
+    final isAlreadyActive = workspace.selectedDocumentId == documentId &&
+        workspace.editorMode == WorkspaceEditorMode.document;
     if (isAlreadyActive) return;
     await _persist(
       workspace.copyWith(
@@ -196,7 +207,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
   Future<void> selectNote(String noteId) async {
     final workspace = state.value;
     if (workspace == null) return;
-    final isAlreadyActive = workspace.selectedNoteId == noteId && workspace.editorMode == WorkspaceEditorMode.note;
+    final isAlreadyActive = workspace.selectedNoteId == noteId &&
+        workspace.editorMode == WorkspaceEditorMode.note;
     if (isAlreadyActive) return;
     await _persist(
       workspace.copyWith(
@@ -212,7 +224,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
   Future<void> focusNoteInInspector(String noteId) async {
     final workspace = state.value;
     if (workspace == null) return;
-    if (workspace.selectedNoteId == noteId && workspace.editorMode != WorkspaceEditorMode.note) {
+    if (workspace.selectedNoteId == noteId &&
+        workspace.editorMode != WorkspaceEditorMode.note) {
       return;
     }
 
@@ -238,7 +251,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
   Future<void> selectCharacter(String characterId) async {
     final workspace = state.value;
     if (workspace == null) return;
-    final isAlreadyActive = workspace.selectedCharacterId == characterId && workspace.editorMode == WorkspaceEditorMode.character;
+    final isAlreadyActive = workspace.selectedCharacterId == characterId &&
+        workspace.editorMode == WorkspaceEditorMode.character;
     if (isAlreadyActive) return;
     await _persist(
       workspace.copyWith(
@@ -253,7 +267,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
   Future<void> selectScenario(String scenarioId) async {
     final workspace = state.value;
     if (workspace == null) return;
-    final isAlreadyActive = workspace.selectedScenarioId == scenarioId && workspace.editorMode == WorkspaceEditorMode.scenario;
+    final isAlreadyActive = workspace.selectedScenarioId == scenarioId &&
+        workspace.editorMode == WorkspaceEditorMode.scenario;
     if (isAlreadyActive) return;
     await _persist(
       workspace.copyWith(
@@ -275,10 +290,13 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
       return;
     }
 
-    final bookDocuments = workspace.documents.where((document) => document.bookId == bookId).toList()
+    final bookDocuments = workspace.documents
+        .where((document) => document.bookId == bookId)
+        .toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
-    final selectedDocumentId = bookDocuments.isEmpty ? null : bookDocuments.first.id;
+    final selectedDocumentId =
+        bookDocuments.isEmpty ? null : bookDocuments.first.id;
 
     await _persist(
       workspace.copyWith(
@@ -389,16 +407,20 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
     if (targetBook == null) return;
 
     final now = DateTime.now();
-    final documents = workspace.documents.where((document) => document.bookId == targetBook.id).toList()
+    final documents = workspace.documents
+        .where((document) => document.bookId == targetBook.id)
+        .toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
-    final previousMemory = workspace.narrativeMemories.cast<NarrativeMemory?>().firstWhere(
-          (memory) => memory?.bookId == targetBook.id,
-          orElse: () => null,
-        );
-    final previousStoryState = workspace.storyStates.cast<StoryState?>().firstWhere(
-          (storyState) => storyState?.bookId == targetBook.id,
-          orElse: () => null,
-        );
+    final previousMemory =
+        workspace.narrativeMemories.cast<NarrativeMemory?>().firstWhere(
+              (memory) => memory?.bookId == targetBook.id,
+              orElse: () => null,
+            );
+    final previousStoryState =
+        workspace.storyStates.cast<StoryState?>().firstWhere(
+              (storyState) => storyState?.bookId == targetBook.id,
+              orElse: () => null,
+            );
 
     final memory = _narrativeMemoryUpdater.update(
       bookId: targetBook.id,
@@ -431,12 +453,15 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
     );
   }
 
-  Future<void> reorderActiveBookDocuments(List<String> orderedDocumentIds) async {
+  Future<void> reorderActiveBookDocuments(
+      List<String> orderedDocumentIds) async {
     final workspace = state.value;
     final activeBookId = workspace?.activeBook?.id;
     if (workspace == null || activeBookId == null) return;
 
-    final activeDocuments = workspace.documents.where((document) => document.bookId == activeBookId).toList()
+    final activeDocuments = workspace.documents
+        .where((document) => document.bookId == activeBookId)
+        .toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
     if (activeDocuments.length != orderedDocumentIds.length) return;
@@ -445,7 +470,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
 
     final now = DateTime.now();
     final positionById = <String, int>{
-      for (var i = 0; i < orderedDocumentIds.length; i++) orderedDocumentIds[i]: i,
+      for (var i = 0; i < orderedDocumentIds.length; i++)
+        orderedDocumentIds[i]: i,
     };
 
     final updatedDocuments = workspace.documents.map((document) {
@@ -667,7 +693,9 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
         selectedNoteId: newNote.id,
         clearSelectedCharacterId: true,
         clearSelectedScenarioId: true,
-        editorMode: openBehavior == NoteOpenBehavior.inspector ? workspace.editorMode : WorkspaceEditorMode.note,
+        editorMode: openBehavior == NoteOpenBehavior.inspector
+            ? workspace.editorMode
+            : WorkspaceEditorMode.note,
       ),
     );
   }
@@ -687,8 +715,10 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
       final resolution = resolutionById[note.id];
       if (resolution == null) return note;
 
-      final nextSnapshot = resolution.resolvedTextSnapshot ?? note.anchorTextSnapshot;
-      final nextStart = resolution.resolvedStartOffset ?? note.anchorStartOffset;
+      final nextSnapshot =
+          resolution.resolvedTextSnapshot ?? note.anchorTextSnapshot;
+      final nextStart =
+          resolution.resolvedStartOffset ?? note.anchorStartOffset;
       final nextEnd = resolution.resolvedEndOffset ?? note.anchorEndOffset;
       final nextState = resolution.state;
 
@@ -752,29 +782,34 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
       createdAt: now,
       updatedAt: now,
     );
-    final updatedDocuments = linkToSelectedDocument && workspace.selectedDocumentId != null
-        ? workspace.documents.map((document) {
-            if (document.id != workspace.selectedDocumentId) {
-              return document;
-            }
-            if (document.characterIds.contains(newCharacter.id)) {
-              return document;
-            }
-            return document.copyWith(
-              characterIds: [...document.characterIds, newCharacter.id],
-              updatedAt: now,
-            );
-          }).toList()
-        : workspace.documents;
+    final updatedDocuments =
+        linkToSelectedDocument && workspace.selectedDocumentId != null
+            ? workspace.documents.map((document) {
+                if (document.id != workspace.selectedDocumentId) {
+                  return document;
+                }
+                if (document.characterIds.contains(newCharacter.id)) {
+                  return document;
+                }
+                return document.copyWith(
+                  characterIds: [...document.characterIds, newCharacter.id],
+                  updatedAt: now,
+                );
+              }).toList()
+            : workspace.documents;
 
     await _persist(
       workspace.copyWith(
         characters: [...workspace.characters, newCharacter],
         documents: updatedDocuments,
         books: _touchActiveBook(workspace.books, activeBook.id, now),
-        selectedCharacterId: selectAfterCreate ? newCharacter.id : workspace.selectedCharacterId,
-        clearSelectedScenarioId: selectAfterCreate && workspace.selectedScenarioId != null,
-        editorMode: selectAfterCreate ? WorkspaceEditorMode.character : workspace.editorMode,
+        selectedCharacterId:
+            selectAfterCreate ? newCharacter.id : workspace.selectedCharacterId,
+        clearSelectedScenarioId:
+            selectAfterCreate && workspace.selectedScenarioId != null,
+        editorMode: selectAfterCreate
+            ? WorkspaceEditorMode.character
+            : workspace.editorMode,
       ),
     );
 
@@ -897,7 +932,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
       if (next == null || next.isEmpty || currentValue.trim().isEmpty) return;
       final normalizedCurrent = currentValue.trim().toLowerCase();
       final normalizedNext = next.trim().toLowerCase();
-      if (normalizedCurrent.contains(normalizedNext) || normalizedNext.contains(normalizedCurrent)) {
+      if (normalizedCurrent.contains(normalizedNext) ||
+          normalizedNext.contains(normalizedCurrent)) {
         return;
       }
       additions.add('$label: $next');
@@ -976,29 +1012,34 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
       updatedAt: now,
     );
 
-    final updatedDocuments = linkToSelectedDocument && workspace.selectedDocumentId != null
-        ? workspace.documents.map((document) {
-            if (document.id != workspace.selectedDocumentId) {
-              return document;
-            }
-            if (document.scenarioIds.contains(newScenario.id)) {
-              return document;
-            }
-            return document.copyWith(
-              scenarioIds: [...document.scenarioIds, newScenario.id],
-              updatedAt: now,
-            );
-          }).toList()
-        : workspace.documents;
+    final updatedDocuments =
+        linkToSelectedDocument && workspace.selectedDocumentId != null
+            ? workspace.documents.map((document) {
+                if (document.id != workspace.selectedDocumentId) {
+                  return document;
+                }
+                if (document.scenarioIds.contains(newScenario.id)) {
+                  return document;
+                }
+                return document.copyWith(
+                  scenarioIds: [...document.scenarioIds, newScenario.id],
+                  updatedAt: now,
+                );
+              }).toList()
+            : workspace.documents;
 
     await _persist(
       workspace.copyWith(
         scenarios: [...workspace.scenarios, newScenario],
         documents: updatedDocuments,
         books: _touchActiveBook(workspace.books, activeBook.id, now),
-        selectedScenarioId: selectAfterCreate ? newScenario.id : workspace.selectedScenarioId,
-        clearSelectedCharacterId: selectAfterCreate && workspace.selectedCharacterId != null,
-        editorMode: selectAfterCreate ? WorkspaceEditorMode.scenario : workspace.editorMode,
+        selectedScenarioId:
+            selectAfterCreate ? newScenario.id : workspace.selectedScenarioId,
+        clearSelectedCharacterId:
+            selectAfterCreate && workspace.selectedCharacterId != null,
+        editorMode: selectAfterCreate
+            ? WorkspaceEditorMode.scenario
+            : workspace.editorMode,
       ),
     );
 
@@ -1115,7 +1156,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
       if (next == null || next.isEmpty || currentValue.trim().isEmpty) return;
       final normalizedCurrent = currentValue.trim().toLowerCase();
       final normalizedNext = next.trim().toLowerCase();
-      if (normalizedCurrent.contains(normalizedNext) || normalizedNext.contains(normalizedCurrent)) {
+      if (normalizedCurrent.contains(normalizedNext) ||
+          normalizedNext.contains(normalizedCurrent)) {
         return;
       }
       additions.add('$label: $next');
@@ -1137,19 +1179,25 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
     if (workspace == null) return;
 
     final now = DateTime.now();
-    final remainingCharacters = workspace.characters.where((item) => item.id != characterId).toList();
+    final remainingCharacters =
+        workspace.characters.where((item) => item.id != characterId).toList();
     final updatedDocuments = workspace.documents.map((document) {
       if (!document.characterIds.contains(characterId)) return document;
       return document.copyWith(
-        characterIds: document.characterIds.where((id) => id != characterId).toList(),
+        characterIds:
+            document.characterIds.where((id) => id != characterId).toList(),
         updatedAt: now,
       );
     }).toList();
     final activeBookId = workspace.activeBook?.id;
-    final activeBookCharacters = remainingCharacters.where((item) => item.bookId == activeBookId).toList()
+    final activeBookCharacters = remainingCharacters
+        .where((item) => item.bookId == activeBookId)
+        .toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     final wasSelected = workspace.selectedCharacterId == characterId;
-    final nextCharacterId = wasSelected && activeBookCharacters.isNotEmpty ? activeBookCharacters.first.id : null;
+    final nextCharacterId = wasSelected && activeBookCharacters.isNotEmpty
+        ? activeBookCharacters.first.id
+        : null;
 
     await _persist(
       workspace.copyWith(
@@ -1158,8 +1206,11 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
         books: _touchActiveBook(workspace.books, activeBookId, now),
         selectedCharacterId: nextCharacterId,
         clearSelectedCharacterId: wasSelected && nextCharacterId == null,
-        editorMode:
-            wasSelected ? (workspace.selectedNote != null ? WorkspaceEditorMode.note : WorkspaceEditorMode.document) : workspace.editorMode,
+        editorMode: wasSelected
+            ? (workspace.selectedNote != null
+                ? WorkspaceEditorMode.note
+                : WorkspaceEditorMode.document)
+            : workspace.editorMode,
       ),
     );
   }
@@ -1188,19 +1239,25 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
     if (workspace == null) return;
 
     final now = DateTime.now();
-    final remainingScenarios = workspace.scenarios.where((item) => item.id != scenarioId).toList();
+    final remainingScenarios =
+        workspace.scenarios.where((item) => item.id != scenarioId).toList();
     final updatedDocuments = workspace.documents.map((document) {
       if (!document.scenarioIds.contains(scenarioId)) return document;
       return document.copyWith(
-        scenarioIds: document.scenarioIds.where((id) => id != scenarioId).toList(),
+        scenarioIds:
+            document.scenarioIds.where((id) => id != scenarioId).toList(),
         updatedAt: now,
       );
     }).toList();
     final activeBookId = workspace.activeBook?.id;
-    final activeBookScenarios = remainingScenarios.where((item) => item.bookId == activeBookId).toList()
+    final activeBookScenarios = remainingScenarios
+        .where((item) => item.bookId == activeBookId)
+        .toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     final wasSelected = workspace.selectedScenarioId == scenarioId;
-    final nextScenarioId = wasSelected && activeBookScenarios.isNotEmpty ? activeBookScenarios.first.id : null;
+    final nextScenarioId = wasSelected && activeBookScenarios.isNotEmpty
+        ? activeBookScenarios.first.id
+        : null;
 
     await _persist(
       workspace.copyWith(
@@ -1209,7 +1266,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
         books: _touchActiveBook(workspace.books, activeBookId, now),
         selectedScenarioId: nextScenarioId,
         clearSelectedScenarioId: wasSelected && nextScenarioId == null,
-        editorMode: wasSelected ? WorkspaceEditorMode.document : workspace.editorMode,
+        editorMode:
+            wasSelected ? WorkspaceEditorMode.document : workspace.editorMode,
       ),
     );
   }
@@ -1220,15 +1278,20 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
     if (workspace == null || activeBookId == null) return;
 
     final now = DateTime.now();
-    final remaining = workspace.documents.where((doc) => doc.id != documentId).toList();
+    final remaining =
+        workspace.documents.where((doc) => doc.id != documentId).toList();
 
     // Reindex documents for the active book to keep orderIndex contiguous
-    final bookDocs = remaining.where((doc) => doc.bookId == activeBookId).toList()
+    final bookDocs = remaining
+        .where((doc) => doc.bookId == activeBookId)
+        .toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
     final reindexed = <Document>[];
     for (var i = 0; i < bookDocs.length; i++) {
       final doc = bookDocs[i];
-      reindexed.add(doc.orderIndex != i ? doc.copyWith(orderIndex: i, updatedAt: now) : doc);
+      reindexed.add(doc.orderIndex != i
+          ? doc.copyWith(orderIndex: i, updatedAt: now)
+          : doc);
     }
     final updatedDocuments = [
       ...remaining.where((doc) => doc.bookId != activeBookId),
@@ -1236,13 +1299,15 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
     ];
 
     final wasSelected = workspace.selectedDocumentId == documentId;
-    final nextDocumentId = wasSelected && reindexed.isNotEmpty ? reindexed.first.id : null;
+    final nextDocumentId =
+        wasSelected && reindexed.isNotEmpty ? reindexed.first.id : null;
 
     await _persist(
       workspace.copyWith(
         documents: updatedDocuments,
         books: _touchActiveBook(workspace.books, activeBookId, now),
-        selectedDocumentId: wasSelected ? nextDocumentId : workspace.selectedDocumentId,
+        selectedDocumentId:
+            wasSelected ? nextDocumentId : workspace.selectedDocumentId,
         clearSelectedDocumentId: wasSelected && nextDocumentId == null,
       ),
     );
@@ -1320,7 +1385,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
       if (!document.characterIds.contains(characterId)) return document;
       changed = true;
       return document.copyWith(
-        characterIds: document.characterIds.where((id) => id != characterId).toList(),
+        characterIds:
+            document.characterIds.where((id) => id != characterId).toList(),
         updatedAt: now,
       );
     }).toList();
@@ -1349,7 +1415,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
       if (!document.scenarioIds.contains(scenarioId)) return document;
       changed = true;
       return document.copyWith(
-        scenarioIds: document.scenarioIds.where((id) => id != scenarioId).toList(),
+        scenarioIds:
+            document.scenarioIds.where((id) => id != scenarioId).toList(),
         updatedAt: now,
       );
     }).toList();
@@ -1475,14 +1542,21 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
 
     final now = DateTime.now();
     final activeBookId = workspace.activeBook?.id;
-    final remainingNotes = workspace.notes.where((note) => note.id != noteId).toList();
-    final activeBookNotes = remainingNotes.where((note) => note.bookId == activeBookId).toList()
+    final remainingNotes =
+        workspace.notes.where((note) => note.id != noteId).toList();
+    final activeBookNotes = remainingNotes
+        .where((note) => note.bookId == activeBookId)
+        .toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    final activeBookDocuments = workspace.documents.where((document) => document.bookId == activeBookId).toList()
+    final activeBookDocuments = workspace.documents
+        .where((document) => document.bookId == activeBookId)
+        .toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
     final wasSelected = workspace.selectedNoteId == noteId;
-    final nextNoteId = wasSelected && activeBookNotes.isNotEmpty ? activeBookNotes.first.id : null;
+    final nextNoteId = wasSelected && activeBookNotes.isNotEmpty
+        ? activeBookNotes.first.id
+        : null;
     final nextDocumentId = activeBookDocuments.isNotEmpty
         ? (workspace.selectedDocumentId != null &&
                 activeBookDocuments.any(
@@ -1500,7 +1574,11 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
         clearSelectedNoteId: wasSelected && nextNoteId == null,
         selectedDocumentId: nextDocumentId,
         clearSelectedDocumentId: nextDocumentId == null,
-        editorMode: wasSelected ? (nextNoteId != null ? WorkspaceEditorMode.note : WorkspaceEditorMode.document) : workspace.editorMode,
+        editorMode: wasSelected
+            ? (nextNoteId != null
+                ? WorkspaceEditorMode.note
+                : WorkspaceEditorMode.document)
+            : workspace.editorMode,
       ),
     );
   }
@@ -1554,11 +1632,14 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
       workspace.copyWith(
         documents: [...workspace.documents, newDocument],
         books: _touchActiveBook(workspace.books, activeBook.id, now),
-        selectedDocumentId: selectAfterCreate ? newDocument.id : workspace.selectedDocumentId,
+        selectedDocumentId:
+            selectAfterCreate ? newDocument.id : workspace.selectedDocumentId,
         clearSelectedNoteId: selectAfterCreate,
         clearSelectedCharacterId: selectAfterCreate,
         clearSelectedScenarioId: selectAfterCreate,
-        editorMode: selectAfterCreate ? WorkspaceEditorMode.document : workspace.editorMode,
+        editorMode: selectAfterCreate
+            ? WorkspaceEditorMode.document
+            : workspace.editorMode,
       ),
     );
   }
@@ -1615,7 +1696,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
 
     await _persist(
       workspace.copyWith(
-        appSettings: workspace.appSettings.copyWith(writingSettings: writingSettings),
+        appSettings:
+            workspace.appSettings.copyWith(writingSettings: writingSettings),
       ),
     );
   }
@@ -1687,7 +1769,8 @@ class NarrativeWorkspaceNotifier extends StateNotifier<AsyncValue<NarrativeWorks
   }
 }
 
-final narrativeWorkspaceProvider = StateNotifierProvider<NarrativeWorkspaceNotifier, AsyncValue<NarrativeWorkspace>>((ref) {
+final narrativeWorkspaceProvider = StateNotifierProvider<
+    NarrativeWorkspaceNotifier, AsyncValue<NarrativeWorkspace>>((ref) {
   final repository = ref.watch(narrativeWorkspaceRepositoryProvider);
   return NarrativeWorkspaceNotifier(ref, repository);
 });
@@ -1702,9 +1785,27 @@ final activeBookProvider = Provider<Book?>((ref) {
   return ref.watch(narrativeWorkspaceProvider).value?.activeBook;
 });
 
+final novelStatusServiceProvider = Provider<NovelStatusService>((ref) {
+  return const NovelStatusService();
+});
+
+final activeNovelStatusProvider = Provider<NovelStatusReport?>((ref) {
+  final workspace = ref.watch(narrativeWorkspaceProvider).value;
+  final book = workspace?.activeBook;
+  if (workspace == null || book == null) return null;
+  return ref.watch(novelStatusServiceProvider).build(
+        book: book,
+        documents: workspace.activeBookDocuments,
+        memory: workspace.activeNarrativeMemory,
+        storyState: workspace.activeStoryState,
+        now: DateTime.now(),
+      );
+});
+
 /// Global settings snapshot consumed across theme and editing surfaces.
 final appSettingsProvider = Provider<AppSettings>((ref) {
-  return ref.watch(narrativeWorkspaceProvider).value?.appSettings ?? const AppSettings();
+  return ref.watch(narrativeWorkspaceProvider).value?.appSettings ??
+      const AppSettings();
 });
 
 /// Musa-specific preferences extracted from app settings.
@@ -1724,5 +1825,6 @@ final writingSettingsProvider = Provider<WritingSettings>((ref) {
 
 /// Active editor mode for the current workspace selection.
 final editorModeProvider = Provider<WorkspaceEditorMode>((ref) {
-  return ref.watch(narrativeWorkspaceProvider).value?.editorMode ?? WorkspaceEditorMode.document;
+  return ref.watch(narrativeWorkspaceProvider).value?.editorMode ??
+      WorkspaceEditorMode.document;
 });

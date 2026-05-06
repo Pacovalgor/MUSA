@@ -28,6 +28,10 @@
   - ✅ **Corpus profesional ampliado**: `ProfessionalCorpusCalibration` pasa a 15 referencias locales derivadas, con 5 libros por perfil (`fantasy`, `thriller`, `historical`).
   - ✅ **Métricas derivadas, no texto fuente**: se registran señales agregadas por género (`avgSentenceLength`, diálogo, preguntas, términos dramáticos y diversidad léxica) sin guardar prose, fragmentos de libros ni EPUBs en el repositorio.
   - ✅ **Tests golden de calibración**: `professional_corpus_calibration_test.dart` valida referencias, métricas y ausencia de `sampleText` para preservar privacidad/copyright.
+- **V1.8 (2026-05-06)**:
+  - ✅ **Memoria narrativa ampliada**: `NarrativeMemory` persiste promesas de lectura, promesas abiertas, señales de tono y avisos de patrón repetido por libro, con compatibilidad para proyectos `.musa` antiguos.
+  - ✅ **Estado de la novela derivado**: `NovelStatusService` calcula salud narrativa, tensión, ritmo, promesa, memoria viva y comparación profesional sin llamar al modelo local ni persistir reportes derivados.
+  - ✅ **Vista en Libro activo**: `book_editor.dart` muestra semáforo, métricas, señales críticas, acciones siguientes y comparación con corpus profesional en la sección “Estado de la novela”.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -37,6 +41,7 @@
 - **Auditabilidad**: Se han añadido fixtures literarios y de apoyo en `test/fixtures/` junto con un test de auditoría (`test/narrative_gating_audit_test.dart`) para garantizar la robustez del gating estructural. Las pruebas reproducibles actuales muestran que el gating estructural distingue bien entre el fixture narrativo auditado, el fixture de apoyo auditado y un caso ambiguo conservador, aunque la cobertura sigue siendo limitada.
 - El aprendizaje de Musas debe mantenerse local-first y conservador: no ajustar selección hasta tener muestra mínima, y registrar feedback sobre la Musa fuente de la sugerencia final.
 - La calibración de libros profesionales debe permanecer como criterio editorial general, separada del aprendizaje personal de Paco, y solo debe guardar señales derivadas agregadas.
+- Los reportes globales de salud narrativa deben ser derivados y recalculables; solo la memoria narrativa estable debe persistirse en el `.musa`.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

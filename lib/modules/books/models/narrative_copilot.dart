@@ -137,6 +137,10 @@ class NarrativeMemory {
   final List<String> systemConstraints;
   final List<String> researchFindings;
   final List<String> persistentConcepts;
+  final List<String> readerPromises;
+  final List<String> unresolvedPromises;
+  final List<String> toneSignals;
+  final List<String> scenePatternWarnings;
   final DateTime updatedAt;
 
   const NarrativeMemory({
@@ -150,6 +154,10 @@ class NarrativeMemory {
     this.systemConstraints = const [],
     this.researchFindings = const [],
     this.persistentConcepts = const [],
+    this.readerPromises = const [],
+    this.unresolvedPromises = const [],
+    this.toneSignals = const [],
+    this.scenePatternWarnings = const [],
     required this.updatedAt,
   });
 
@@ -168,6 +176,10 @@ class NarrativeMemory {
         'systemConstraints': systemConstraints,
         'researchFindings': researchFindings,
         'persistentConcepts': persistentConcepts,
+        'readerPromises': readerPromises,
+        'unresolvedPromises': unresolvedPromises,
+        'toneSignals': toneSignals,
+        'scenePatternWarnings': scenePatternWarnings,
         'updatedAt': updatedAt.toIso8601String(),
       };
 
@@ -191,6 +203,14 @@ class NarrativeMemory {
           List<String>.from(json['researchFindings'] as List? ?? const []),
       persistentConcepts:
           List<String>.from(json['persistentConcepts'] as List? ?? const []),
+      readerPromises:
+          List<String>.from(json['readerPromises'] as List? ?? const []),
+      unresolvedPromises:
+          List<String>.from(json['unresolvedPromises'] as List? ?? const []),
+      toneSignals: List<String>.from(json['toneSignals'] as List? ?? const []),
+      scenePatternWarnings: List<String>.from(
+        json['scenePatternWarnings'] as List? ?? const [],
+      ),
       updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
