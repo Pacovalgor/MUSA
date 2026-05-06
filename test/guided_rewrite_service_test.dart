@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:musa/modules/musa/models/guided_rewrite.dart';
 import 'package:musa/modules/musa/services/guided_rewrite_service.dart';
+import 'package:musa/modules/musa/services/guided_rewrite_safety_service.dart';
 
 void main() {
   group('GuidedRewriteService', () {
@@ -18,6 +19,7 @@ void main() {
       expect(result.suggestedText, isNot(contains('Clara')));
       expect(
           result.safetyNotes, contains(GuidedRewriteSafetyNote.preserveFacts));
+      expect(result.safetyAudit.level, GuidedRewriteSafetyLevel.safe);
       expect(result.action, GuidedRewriteAction.raiseTension);
     });
 
@@ -74,6 +76,39 @@ void main() {
 
       expect(result.suggestedText, '');
       expect(result.safetyNotes, contains(GuidedRewriteSafetyNote.noExpansion));
+      expect(result.safetyAudit.level, GuidedRewriteSafetyLevel.safe);
+    });
+
+    test('attaches safety audit produced by the safety service', () {
+      const service = GuidedRewriteService(
+        safetyService: _WarningSafetyService(),
+      );
+      final result = service.rewrite(
+        selection: 'Diane abrió la puerta.',
+        action: GuidedRewriteAction.raiseTension,
+      );
+
+      expect(result.safetyAudit.level, GuidedRewriteSafetyLevel.warning);
+      expect(
+        result.safetyAudit.warnings,
+        contains(GuidedRewriteSafetyWarning.newNames),
+      );
     });
   });
+}
+
+class _WarningSafetyService implements GuidedRewriteSafetyService {
+  const _WarningSafetyService();
+
+  @override
+  GuidedRewriteSafetyAudit audit({
+    required String originalText,
+    required String suggestedText,
+  }) {
+    return const GuidedRewriteSafetyAudit(
+      level: GuidedRewriteSafetyLevel.warning,
+      warnings: [GuidedRewriteSafetyWarning.newNames],
+      evidence: 'Nombres nuevos: Clara',
+    );
+  }
 }

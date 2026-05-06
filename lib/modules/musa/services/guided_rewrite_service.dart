@@ -1,7 +1,12 @@
 import '../models/guided_rewrite.dart';
+import 'guided_rewrite_safety_service.dart';
 
 class GuidedRewriteService {
-  const GuidedRewriteService();
+  const GuidedRewriteService({
+    this.safetyService = const GuidedRewriteSafetyService(),
+  });
+
+  final GuidedRewriteSafetyService safetyService;
 
   GuidedRewriteResult rewrite({
     required String selection,
@@ -19,6 +24,10 @@ class GuidedRewriteService {
         ],
         editorComment:
             'No hay texto suficiente para proponer una reescritura controlada.',
+        safetyAudit: safetyService.audit(
+          originalText: selection,
+          suggestedText: '',
+        ),
       );
     }
 
@@ -40,6 +49,10 @@ class GuidedRewriteService {
         GuidedRewriteSafetyNote.noPlotResolution,
       ],
       editorComment: _editorComment(action),
+      safetyAudit: safetyService.audit(
+        originalText: selection,
+        suggestedText: suggestedText,
+      ),
     );
   }
 

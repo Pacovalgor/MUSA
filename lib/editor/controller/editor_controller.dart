@@ -509,7 +509,7 @@ class EditorController extends StateNotifier<EditorState> {
         id: 'guided-${action.name}-${DateTime.now().millisecondsSinceEpoch}',
         originalText: result.originalText,
         suggestedText: result.suggestedText,
-        editorComment: result.editorComment,
+        editorComment: _guidedRewriteEditorComment(result),
         sourceMusaId: 'guided-rewrite',
       ),
       showOverlay: false,
@@ -524,6 +524,23 @@ class EditorController extends StateNotifier<EditorState> {
       clearChapterAnalysis: true,
       isComparisonMode: true,
     );
+  }
+
+  String _guidedRewriteEditorComment(GuidedRewriteResult result) {
+    if (result.safetyAudit.level == GuidedRewriteSafetyLevel.safe) {
+      return result.editorComment;
+    }
+
+    final warnings = result.safetyAudit.warnings.map((warning) {
+      return switch (warning) {
+        GuidedRewriteSafetyWarning.newNames => 'posibles nombres nuevos',
+        GuidedRewriteSafetyWarning.overExpanded => 'expansión excesiva',
+        GuidedRewriteSafetyWarning.droppedTerms => 'posibles términos perdidos',
+      };
+    }).join(', ');
+    final evidence = result.safetyAudit.evidence.trim();
+    final suffix = evidence.isEmpty ? warnings : '$warnings: $evidence';
+    return '${result.editorComment} Revisión de seguridad: $suffix.';
   }
 
   Future<void> runChapterAnalysis() async {

@@ -13,6 +13,26 @@ enum GuidedRewriteSafetyNote {
   noExpansion,
 }
 
+enum GuidedRewriteSafetyLevel { safe, warning }
+
+enum GuidedRewriteSafetyWarning {
+  newNames,
+  overExpanded,
+  droppedTerms,
+}
+
+class GuidedRewriteSafetyAudit {
+  const GuidedRewriteSafetyAudit({
+    required this.level,
+    required this.warnings,
+    this.evidence = '',
+  });
+
+  final GuidedRewriteSafetyLevel level;
+  final List<GuidedRewriteSafetyWarning> warnings;
+  final String evidence;
+}
+
 class GuidedRewriteResult {
   const GuidedRewriteResult({
     required this.action,
@@ -20,6 +40,10 @@ class GuidedRewriteResult {
     required this.suggestedText,
     required this.safetyNotes,
     required this.editorComment,
+    this.safetyAudit = const GuidedRewriteSafetyAudit(
+      level: GuidedRewriteSafetyLevel.safe,
+      warnings: [],
+    ),
   });
 
   final GuidedRewriteAction action;
@@ -27,6 +51,7 @@ class GuidedRewriteResult {
   final String suggestedText;
   final List<GuidedRewriteSafetyNote> safetyNotes;
   final String editorComment;
+  final GuidedRewriteSafetyAudit safetyAudit;
 }
 
 class GuidedRewriteRecommendation {

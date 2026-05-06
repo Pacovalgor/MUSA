@@ -45,6 +45,10 @@
   - ✅ **Planificador contextual de reescritura**: `GuidedRewritePlanner` recomienda una acción guiada según fragmento, estado de novela, memoria narrativa, continuidad y género.
   - ✅ **Prioridad conservadora**: exposición acumulada, diálogo sin respiración, promesas abiertas y baja tensión compiten por prioridad; si no hay señal clara no fuerza recomendación.
   - ✅ **Recomendación visible en editor**: el menú contextual destaca “Recomendado” con razón breve, pero mantiene el flujo revisable de comparar antes de aplicar.
+- **V2.0 fase 3 (2026-05-06)**:
+  - ✅ **Auditoría de seguridad para reescrituras**: `GuidedRewriteSafetyService` detecta nombres nuevos, expansión excesiva y pérdida de términos clave entre original y propuesta.
+  - ✅ **Resultado enriquecido**: `GuidedRewriteResult` incorpora `safetyAudit`, y `GuidedRewriteService` lo calcula en cada propuesta mediante inyección testeable.
+  - ✅ **Revisión visible**: si la auditoría marca advertencias, el editor las añade a la nota editorial y la vista de comparación muestra esa nota junto al diff.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -58,6 +62,7 @@
 - Los hallazgos de continuidad V1.9 deben permanecer derivados/recalculables; no se persisten hasta que exista un flujo explícito de revisión/aceptación por Paco.
 - La reescritura guiada V2.0 fase 1 debe permanecer controlada y revisable: no aplica cambios directamente, no llama al modelo local y entra siempre por comparación antes de tocar el manuscrito.
 - Las recomendaciones de reescritura V2.0 fase 2 son derivadas y no persistidas; deben ayudar a elegir herramienta, no sustituir criterio editorial ni aplicar cambios automáticos.
+- La auditoría de seguridad V2.0 fase 3 es informativa, no bloqueante; debe alertar antes de aplicar, pero la decisión final sigue siendo del usuario.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).
