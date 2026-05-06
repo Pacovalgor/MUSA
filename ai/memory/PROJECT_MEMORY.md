@@ -69,6 +69,10 @@
   - ✅ **Mapa editorial por capítulos**: `ChapterEditorialMapService` calcula prioridad local de tensión, ritmo, promesa o consecuencia por capítulo narrativo.
   - ✅ **Comparación profesional por tramo**: cada capítulo muestra si su ritmo está alineado, más lento o más cortado que el corpus profesional del género.
   - ✅ **Vista en Libro activo**: `book_editor.dart` añade el mapa editorial derivado junto al estado de novela, sin persistir reportes.
+- **V3.0 (2026-05-06)**:
+  - ✅ **Dirección editorial unificada**: `EditorialDirectorService` fusiona estado de novela, auditoría editorial, mapa por capítulos, memoria y estado narrativo en misiones priorizadas.
+  - ✅ **Orden de intervención estable**: contradicciones críticas ganan a ritmo/capítulo; promesas olvidadas se elevan antes de recomendaciones locales.
+  - ✅ **Vista ejecutiva en Libro activo**: `book_editor.dart` muestra preparación, intervención, revisión o avance con máximo 3 misiones accionables.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -88,6 +92,7 @@
 - V2.1 deja lista la integración con modelo local pero no fuerza su uso en UI; cualquier activación debe mantener fallback determinista y auditoría previa.
 - V2.2 mantiene el auditor editorial como derivado/recalculable; no guardar reportes hasta que exista flujo explícito de revisión o exportación.
 - V2.3 mantiene el mapa editorial por capítulos como derivado/recalculable; no guardar recomendaciones por capítulo hasta que exista flujo explícito de revisión editorial.
+- V3.0 mantiene la dirección editorial como derivada/recalculable; no aplicar misiones automáticamente ni persistirlas como tareas hasta que exista revisión explícita del usuario.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

@@ -10,6 +10,7 @@ import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/continuity/models/continuity_audit.dart';
 import '../../modules/continuity/providers/continuity_providers.dart';
 import '../../modules/editorial/models/chapter_editorial_map.dart';
+import '../../modules/editorial/models/editorial_director.dart';
 import '../../modules/editorial/providers/editorial_audit_providers.dart';
 import '../../modules/manuscript/models/document.dart';
 import '../../modules/manuscript/providers/document_providers.dart';
@@ -80,6 +81,7 @@ class _BookEditorState extends ConsumerState<BookEditor> {
     final novelStatus = ref.watch(activeNovelStatusProvider);
     final continuityFindings = ref.watch(activeContinuityFindingsProvider);
     final chapterMap = ref.watch(activeChapterEditorialMapProvider);
+    final editorialDirector = ref.watch(activeEditorialDirectorProvider);
 
     if (book == null) {
       return const Center(child: Text('No hay libro activo'));
@@ -214,6 +216,13 @@ class _BookEditorState extends ConsumerState<BookEditor> {
                   report: novelStatus,
                   storyState: storyState,
                 ),
+              ),
+              const SizedBox(height: 28),
+              _Section(
+                title: 'Dirección editorial',
+                subtitle:
+                    'La prioridad más importante ahora mismo según memoria, riesgos y capítulos.',
+                child: _EditorialDirectorPanel(report: editorialDirector),
               ),
               const SizedBox(height: 28),
               _Section(
@@ -906,6 +915,183 @@ class _ProfessionalComparisonList extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _EditorialDirectorPanel extends StatelessWidget {
+  const _EditorialDirectorPanel({required this.report});
+
+  final EditorialDirectorReport? report;
+
+  @override
+  Widget build(BuildContext context) {
+    if (report == null || report!.missions.isEmpty) {
+      return const _NarrativeEmptyText(
+        'Aún no hay suficientes señales para proponer una dirección editorial.',
+      );
+    }
+
+    final missions = report!.missions.take(3).toList();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7F5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+            color: _readinessColor(report!.readiness).withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: _readinessColor(report!.readiness),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _readinessLabel(report!.readiness),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            report!.summary,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black54,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 14),
+          ...missions.map(
+            (mission) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _EditorialDirectorMissionRow(mission: mission),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _readinessColor(EditorialDirectorReadiness readiness) {
+    return switch (readiness) {
+      EditorialDirectorReadiness.setup => const Color(0xFF175CD3),
+      EditorialDirectorReadiness.intervention => const Color(0xFFB42318),
+      EditorialDirectorReadiness.revision => const Color(0xFFB54708),
+      EditorialDirectorReadiness.advance => const Color(0xFF027A48),
+    };
+  }
+
+  String _readinessLabel(EditorialDirectorReadiness readiness) {
+    return switch (readiness) {
+      EditorialDirectorReadiness.setup => 'Preparar base',
+      EditorialDirectorReadiness.intervention => 'Intervenir antes de avanzar',
+      EditorialDirectorReadiness.revision => 'Revisión prioritaria',
+      EditorialDirectorReadiness.advance => 'Avanzar con seguimiento',
+    };
+  }
+}
+
+class _EditorialDirectorMissionRow extends StatelessWidget {
+  const _EditorialDirectorMissionRow({required this.mission});
+
+  final EditorialDirectorMission mission;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _priorityColor(mission.priority).withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                _priorityLabel(mission.priority),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _priorityColor(mission.priority),
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  mission.title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            mission.detail,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black54,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            mission.action,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black87,
+                  height: 1.45,
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+          if (mission.evidence.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              mission.evidence,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.black38,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Color _priorityColor(EditorialDirectorPriority priority) {
+    return switch (priority) {
+      EditorialDirectorPriority.critical => const Color(0xFFB42318),
+      EditorialDirectorPriority.high => const Color(0xFFB54708),
+      EditorialDirectorPriority.normal => const Color(0xFF175CD3),
+    };
+  }
+
+  String _priorityLabel(EditorialDirectorPriority priority) {
+    return switch (priority) {
+      EditorialDirectorPriority.critical => 'CRÍTICO',
+      EditorialDirectorPriority.high => 'ALTA',
+      EditorialDirectorPriority.normal => 'NORMAL',
+    };
   }
 }
 

@@ -18,3 +18,4 @@
 - Se registra V2.1 en memoria estable: capa preparada para reescritura guiada con modelo local, prompts estrictos, auditoría y fallback determinista.
 - Se registra V2.2 en memoria estable: auditor editorial derivado con ledger de promesas, pagos, olvidos y contradicciones críticas.
 - Se registra V2.3 en memoria estable: mapa editorial derivado por capítulos con prioridad local y comparación profesional de ritmo.
+- Se registra V3.0 en memoria estable: dirección editorial unificada con misiones priorizadas en Libro activo.
