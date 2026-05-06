@@ -65,6 +65,10 @@
   - ✅ **Auditor editorial derivado**: `EditorialAuditService` construye un ledger de promesas leídas, pagadas, abiertas y olvidadas sin persistir reportes.
   - ✅ **Continuidad elevada a auditoría editorial**: contradicciones críticas del auditor de continuidad se reflejan como hallazgos editoriales críticos.
   - ✅ **Provider listo para UI**: `activeEditorialAuditProvider` entrega el reporte del libro activo combinando memoria narrativa, documentos y continuidad.
+- **V2.3 (2026-05-06)**:
+  - ✅ **Mapa editorial por capítulos**: `ChapterEditorialMapService` calcula prioridad local de tensión, ritmo, promesa o consecuencia por capítulo narrativo.
+  - ✅ **Comparación profesional por tramo**: cada capítulo muestra si su ritmo está alineado, más lento o más cortado que el corpus profesional del género.
+  - ✅ **Vista en Libro activo**: `book_editor.dart` añade el mapa editorial derivado junto al estado de novela, sin persistir reportes.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -83,6 +87,7 @@
 - El cierre V2.0 usa el aprendizaje solo para ordenar recomendaciones cuando hay señales competidoras; no debe ocultar acciones manuales ni aplicar cambios automáticamente.
 - V2.1 deja lista la integración con modelo local pero no fuerza su uso en UI; cualquier activación debe mantener fallback determinista y auditoría previa.
 - V2.2 mantiene el auditor editorial como derivado/recalculable; no guardar reportes hasta que exista flujo explícito de revisión o exportación.
+- V2.3 mantiene el mapa editorial por capítulos como derivado/recalculable; no guardar recomendaciones por capítulo hasta que exista flujo explícito de revisión editorial.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

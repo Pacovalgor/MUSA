@@ -9,6 +9,8 @@ import '../../modules/books/models/novel_status.dart';
 import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/continuity/models/continuity_audit.dart';
 import '../../modules/continuity/providers/continuity_providers.dart';
+import '../../modules/editorial/models/chapter_editorial_map.dart';
+import '../../modules/editorial/providers/editorial_audit_providers.dart';
 import '../../modules/manuscript/models/document.dart';
 import '../../modules/manuscript/providers/document_providers.dart';
 import '../../modules/notes/providers/note_providers.dart';
@@ -77,6 +79,7 @@ class _BookEditorState extends ConsumerState<BookEditor> {
     final storyState = workspace?.activeStoryState;
     final novelStatus = ref.watch(activeNovelStatusProvider);
     final continuityFindings = ref.watch(activeContinuityFindingsProvider);
+    final chapterMap = ref.watch(activeChapterEditorialMapProvider);
 
     if (book == null) {
       return const Center(child: Text('No hay libro activo'));
@@ -224,6 +227,13 @@ class _BookEditorState extends ConsumerState<BookEditor> {
                 title: 'Siguiente mejor movimiento',
                 subtitle: 'Una recomendación breve para empujar la novela.',
                 child: _NextBestMoveBlock(storyState: storyState),
+              ),
+              const SizedBox(height: 28),
+              _Section(
+                title: 'Mapa editorial por capítulos',
+                subtitle:
+                    'Prioridad local de tensión, ritmo, promesa o consecuencia por tramo.',
+                child: _ChapterEditorialMapPanel(report: chapterMap),
               ),
               const SizedBox(height: 28),
               _Section(
@@ -1117,6 +1127,163 @@ class _NextBestMoveBlock extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _ChapterEditorialMapPanel extends StatelessWidget {
+  const _ChapterEditorialMapPanel({required this.report});
+
+  final ChapterEditorialMapReport? report;
+
+  @override
+  Widget build(BuildContext context) {
+    final chapters = report?.chapters ?? const [];
+    if (chapters.isEmpty) {
+      return const _NarrativeEmptyText(
+        'Aún no hay capítulos narrativos suficientes para construir el mapa editorial.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...chapters.take(6).map(
+              (chapter) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _ChapterEditorialMapRow(chapter: chapter),
+              ),
+            ),
+        if (report!.summaryActions.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Prioridades del tramo',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
+          _NarrativeBulletList(items: report!.summaryActions.take(3).toList()),
+        ],
+      ],
+    );
+  }
+}
+
+class _ChapterEditorialMapRow extends StatelessWidget {
+  const _ChapterEditorialMapRow({required this.chapter});
+
+  final ChapterEditorialMapItem chapter;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+            color: _needColor(chapter.primaryNeed).withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: _needColor(chapter.primaryNeed),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _stageLabel(chapter.stage),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.black38,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  chapter.title,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              Text(
+                _needLabel(chapter.primaryNeed),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _MetricPill(label: 'Tensión', value: '${chapter.tensionScore}'),
+              _MetricPill(label: 'Ritmo', value: '${chapter.rhythmScore}'),
+              _MetricPill(label: 'Promesa', value: '${chapter.promiseScore}'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            chapter.nextAction,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black54,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${chapter.professionalRhythmLabel} · ${chapter.evidence}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.black38,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _needColor(ChapterEditorialNeed need) {
+    return switch (need) {
+      ChapterEditorialNeed.tension => const Color(0xFFB42318),
+      ChapterEditorialNeed.rhythm => const Color(0xFFB54708),
+      ChapterEditorialNeed.promise => const Color(0xFF7A5AF8),
+      ChapterEditorialNeed.consequence => const Color(0xFF175CD3),
+      ChapterEditorialNeed.stable => const Color(0xFF027A48),
+    };
+  }
+
+  String _stageLabel(ChapterEditorialStage stage) {
+    return switch (stage) {
+      ChapterEditorialStage.opening => 'APERTURA',
+      ChapterEditorialStage.middle => 'NUDO',
+      ChapterEditorialStage.closing => 'CIERRE',
+    };
+  }
+
+  String _needLabel(ChapterEditorialNeed need) {
+    return switch (need) {
+      ChapterEditorialNeed.tension => 'TENSIÓN',
+      ChapterEditorialNeed.rhythm => 'RITMO',
+      ChapterEditorialNeed.promise => 'PROMESA',
+      ChapterEditorialNeed.consequence => 'CONSECUENCIA',
+      ChapterEditorialNeed.stable => 'ESTABLE',
+    };
   }
 }
 
