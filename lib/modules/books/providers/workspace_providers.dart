@@ -579,15 +579,35 @@ class NarrativeWorkspaceNotifier
     if (workspace == null) return;
 
     final now = DateTime.now();
+    String? bookId;
+    var changed = false;
     final updatedCards = workspace.creativeCards.map((item) {
       if (item.id != card.id) return item;
-      return card.copyWith(updatedAt: now);
+      bookId = item.bookId;
+      changed = true;
+      return item.copyWith(
+        title: card.title,
+        body: card.body,
+        type: card.type,
+        status: card.status,
+        tags: card.tags,
+        attachments: card.attachments,
+        source: card.source,
+        linkedCharacterIds: card.linkedCharacterIds,
+        linkedScenarioIds: card.linkedScenarioIds,
+        linkedDocumentIds: card.linkedDocumentIds,
+        linkedNoteIds: card.linkedNoteIds,
+        convertedTo: card.convertedTo,
+        clearConvertedTo: card.convertedTo == null,
+        updatedAt: now,
+      );
     }).toList();
+    if (!changed) return;
 
     await _persist(
       workspace.copyWith(
         creativeCards: updatedCards,
-        books: _touchActiveBook(workspace.books, card.bookId, now),
+        books: _touchActiveBook(workspace.books, bookId, now),
       ),
     );
   }
@@ -601,11 +621,15 @@ class NarrativeWorkspaceNotifier
 
     final now = DateTime.now();
     String? bookId;
+    var changed = false;
     final updatedCards = workspace.creativeCards.map((card) {
       if (card.id != cardId) return card;
+      if (card.status == status) return card;
       bookId = card.bookId;
+      changed = true;
       return card.copyWith(status: status, updatedAt: now);
     }).toList();
+    if (!changed) return;
 
     await _persist(
       workspace.copyWith(
@@ -634,17 +658,24 @@ class NarrativeWorkspaceNotifier
 
     final now = DateTime.now();
     String? bookId;
+    var changed = false;
     final updatedCards = workspace.creativeCards.map((card) {
       if (card.id != cardId) return card;
       bookId = card.bookId;
-      return card.copyWith(
+      final updated = card.copyWith(
         linkedCharacterIds: characterIds ?? card.linkedCharacterIds,
         linkedScenarioIds: scenarioIds ?? card.linkedScenarioIds,
         linkedDocumentIds: documentIds ?? card.linkedDocumentIds,
         linkedNoteIds: noteIds ?? card.linkedNoteIds,
         updatedAt: now,
       );
+      changed = updated.linkedCharacterIds != card.linkedCharacterIds ||
+          updated.linkedScenarioIds != card.linkedScenarioIds ||
+          updated.linkedDocumentIds != card.linkedDocumentIds ||
+          updated.linkedNoteIds != card.linkedNoteIds;
+      return changed ? updated : card;
     }).toList();
+    if (!changed) return;
 
     await _persist(
       workspace.copyWith(

@@ -254,5 +254,86 @@ void main() {
       expect(card.linkedDocumentIds, ['doc-1']);
       expect(card.linkedNoteIds, ['note-1']);
     });
+
+    test('workspace notifier ignores unknown creative card ids', () async {
+      final now = DateTime.utc(2026, 5, 7);
+      final card = CreativeCard(
+        id: 'creative-1',
+        bookId: 'book-1',
+        title: 'Idea',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final repository = _MemoryWorkspaceRepository(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(id: 'book-1', title: 'Libro', createdAt: now, updatedAt: now),
+        ],
+        creativeCards: [card],
+      ));
+      final container = ProviderContainer(
+        overrides: [
+          narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(narrativeWorkspaceProvider.notifier);
+      await notifier.bootstrap();
+      await notifier.moveCreativeCard(
+        cardId: 'missing',
+        status: CreativeCardStatus.archived,
+      );
+      await notifier.linkCreativeCard(
+        cardId: 'missing',
+        characterIds: const ['char-1'],
+      );
+
+      expect(repository.workspace.creativeCards.single.toJson(), card.toJson());
+      expect(repository.workspace.books.single.updatedAt, now);
+    });
+
+    test('workspace notifier preserves creative card book ownership on update',
+        () async {
+      final now = DateTime.utc(2026, 5, 7);
+      final repository = _MemoryWorkspaceRepository(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(id: 'book-1', title: 'Uno', createdAt: now, updatedAt: now),
+          Book(id: 'book-2', title: 'Dos', createdAt: now, updatedAt: now),
+        ],
+        creativeCards: [
+          CreativeCard(
+            id: 'creative-1',
+            bookId: 'book-1',
+            title: 'Idea',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+      ));
+      final container = ProviderContainer(
+        overrides: [
+          narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(narrativeWorkspaceProvider.notifier);
+      await notifier.bootstrap();
+      await notifier.updateCreativeCard(CreativeCard(
+        id: 'creative-1',
+        bookId: 'book-2',
+        title: 'Idea revisada',
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      final updated = repository.workspace.creativeCards.single;
+      expect(updated.bookId, 'book-1');
+      expect(updated.title, 'Idea revisada');
+      expect(repository.workspace.books.first.updatedAt, isNot(now));
+      expect(repository.workspace.books.last.updatedAt, now);
+    });
   });
 }
