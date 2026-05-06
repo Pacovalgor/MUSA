@@ -9,6 +9,7 @@ import '../../../shared/utils/id_generator.dart';
 import '../../characters/models/character.dart';
 import '../../characters/models/character_autofill_draft.dart';
 import '../../continuity/models/continuity_state.dart';
+import '../../creative/models/creative_card.dart';
 import '../../manuscript/models/document.dart';
 import '../../notes/models/note.dart';
 import '../../notes/models/voice_memo.dart';
@@ -531,6 +532,124 @@ class NarrativeWorkspaceNotifier
       workspace.copyWith(
         documents: updatedDocuments,
         books: _touchActiveBook(workspace.books, workspace.activeBook?.id, now),
+      ),
+    );
+  }
+
+  Future<CreativeCard?> createCreativeCard({
+    String title = '',
+    String body = '',
+    CreativeCardType type = CreativeCardType.idea,
+    CreativeCardStatus status = CreativeCardStatus.inbox,
+    List<String> tags = const [],
+    List<CreativeCardAttachment> attachments = const [],
+    CreativeCardSource source = CreativeCardSource.manual,
+  }) async {
+    final workspace = state.value;
+    final activeBook = workspace?.activeBook;
+    if (workspace == null || activeBook == null) return null;
+
+    final now = DateTime.now();
+    final card = CreativeCard(
+      id: generateEntityId('creative'),
+      bookId: activeBook.id,
+      title: title.trim(),
+      body: body.trim(),
+      type: type,
+      status: status,
+      tags:
+          tags.map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList(),
+      attachments: attachments,
+      source: source,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await _persist(
+      workspace.copyWith(
+        creativeCards: [...workspace.creativeCards, card],
+        books: _touchActiveBook(workspace.books, activeBook.id, now),
+      ),
+    );
+    return card;
+  }
+
+  Future<void> updateCreativeCard(CreativeCard card) async {
+    final workspace = state.value;
+    if (workspace == null) return;
+
+    final now = DateTime.now();
+    final updatedCards = workspace.creativeCards.map((item) {
+      if (item.id != card.id) return item;
+      return card.copyWith(updatedAt: now);
+    }).toList();
+
+    await _persist(
+      workspace.copyWith(
+        creativeCards: updatedCards,
+        books: _touchActiveBook(workspace.books, card.bookId, now),
+      ),
+    );
+  }
+
+  Future<void> moveCreativeCard({
+    required String cardId,
+    required CreativeCardStatus status,
+  }) async {
+    final workspace = state.value;
+    if (workspace == null) return;
+
+    final now = DateTime.now();
+    String? bookId;
+    final updatedCards = workspace.creativeCards.map((card) {
+      if (card.id != cardId) return card;
+      bookId = card.bookId;
+      return card.copyWith(status: status, updatedAt: now);
+    }).toList();
+
+    await _persist(
+      workspace.copyWith(
+        creativeCards: updatedCards,
+        books: _touchActiveBook(workspace.books, bookId, now),
+      ),
+    );
+  }
+
+  Future<void> archiveCreativeCard(String cardId) async {
+    await moveCreativeCard(
+      cardId: cardId,
+      status: CreativeCardStatus.archived,
+    );
+  }
+
+  Future<void> linkCreativeCard({
+    required String cardId,
+    List<String>? characterIds,
+    List<String>? scenarioIds,
+    List<String>? documentIds,
+    List<String>? noteIds,
+  }) async {
+    final workspace = state.value;
+    if (workspace == null) return;
+
+    final now = DateTime.now();
+    String? bookId;
+    final updatedCards = workspace.creativeCards.map((card) {
+      if (card.id != cardId) return card;
+      bookId = card.bookId;
+      return card.copyWith(
+        linkedCharacterIds: characterIds ?? card.linkedCharacterIds,
+        linkedScenarioIds: scenarioIds ?? card.linkedScenarioIds,
+        linkedDocumentIds: documentIds ?? card.linkedDocumentIds,
+        linkedNoteIds: noteIds ?? card.linkedNoteIds,
+        updatedAt: now,
+      );
+    }).toList();
+
+    await _persist(
+      workspace.copyWith(
+        creativeCards: updatedCards,
+        books: _touchActiveBook(workspace.books, bookId, now),
       ),
     );
   }

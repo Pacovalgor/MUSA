@@ -156,5 +156,103 @@ void main() {
         ['active'],
       );
     });
+
+    test(
+        'workspace notifier can create, update, move and archive creative cards',
+        () async {
+      final now = DateTime.utc(2026, 5, 7);
+      final repository = _MemoryWorkspaceRepository(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(id: 'book-1', title: 'Libro', createdAt: now, updatedAt: now),
+        ],
+      ));
+      final container = ProviderContainer(
+        overrides: [
+          narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(narrativeWorkspaceProvider.notifier);
+      await notifier.bootstrap();
+      final created = await notifier.createCreativeCard(
+        title: 'Puerta azul',
+        body: 'Aparece cuando Clara miente.',
+        type: CreativeCardType.idea,
+        tags: const ['clara'],
+      );
+
+      expect(created, isNotNull);
+      expect(
+        container.read(activeCreativeCardsProvider).single.title,
+        'Puerta azul',
+      );
+
+      await notifier.updateCreativeCard(
+        created!.copyWith(title: 'Puerta roja', body: 'Otra version.'),
+      );
+      expect(
+        container.read(activeCreativeCardsProvider).single.title,
+        'Puerta roja',
+      );
+
+      await notifier.moveCreativeCard(
+        cardId: created.id,
+        status: CreativeCardStatus.readyToUse,
+      );
+      expect(
+        container.read(activeCreativeCardsProvider).single.status,
+        CreativeCardStatus.readyToUse,
+      );
+
+      await notifier.archiveCreativeCard(created.id);
+      expect(
+        container.read(activeCreativeCardsProvider).single.status,
+        CreativeCardStatus.archived,
+      );
+    });
+
+    test('workspace notifier can link a creative card to existing entities',
+        () async {
+      final now = DateTime.utc(2026, 5, 7);
+      final repository = _MemoryWorkspaceRepository(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(id: 'book-1', title: 'Libro', createdAt: now, updatedAt: now),
+        ],
+        creativeCards: [
+          CreativeCard(
+            id: 'creative-1',
+            bookId: 'book-1',
+            title: 'Idea',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+      ));
+      final container = ProviderContainer(
+        overrides: [
+          narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(narrativeWorkspaceProvider.notifier);
+      await notifier.bootstrap();
+      await notifier.linkCreativeCard(
+        cardId: 'creative-1',
+        characterIds: const ['char-1'],
+        scenarioIds: const ['scn-1'],
+        documentIds: const ['doc-1'],
+        noteIds: const ['note-1'],
+      );
+
+      final card = container.read(activeCreativeCardsProvider).single;
+      expect(card.linkedCharacterIds, ['char-1']);
+      expect(card.linkedScenarioIds, ['scn-1']);
+      expect(card.linkedDocumentIds, ['doc-1']);
+      expect(card.linkedNoteIds, ['note-1']);
+    });
   });
 }
