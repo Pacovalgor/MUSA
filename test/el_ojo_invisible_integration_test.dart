@@ -15,6 +15,9 @@ import 'package:musa/modules/books/services/narrative_document_classifier.dart';
 import 'package:musa/modules/books/services/narrative_memory_updater.dart';
 import 'package:musa/modules/books/services/novel_status_service.dart';
 import 'package:musa/modules/books/services/story_state_updater.dart';
+import 'package:musa/modules/continuity/models/continuity_audit.dart';
+import 'package:musa/modules/continuity/models/continuity_state.dart';
+import 'package:musa/modules/continuity/services/continuity_audit_service.dart';
 import 'package:musa/modules/manuscript/models/document.dart';
 import 'package:musa/muses/editorial_signals.dart';
 import 'package:musa/muses/musa.dart';
@@ -540,6 +543,68 @@ void main() {
       expect(report.signals, isNotEmpty);
       expect(report.nextActions, isNotEmpty);
       expect(report.professionalComparisons, isNotEmpty);
+    });
+
+    test(
+        'auditor de continuidad detecta riesgos útiles en el thriller completo',
+        () {
+      final book = Book(
+        id: 'ojo-invisible',
+        title: 'El ojo invisible',
+        createdAt: _now,
+        updatedAt: _now,
+        narrativeProfile: const BookNarrativeProfile(
+          primaryGenre: BookPrimaryGenre.thriller,
+          targetPace: TargetPace.urgent,
+          readerPromise:
+              'Una periodista sigue un símbolo que conecta crímenes y desapariciones.',
+          dominantPriority: DominantPriority.tension,
+        ),
+      );
+      final documents = _kChapters.asMap().entries.map((entry) {
+        return Document(
+          id: 'cap-${entry.key + 1}',
+          bookId: book.id,
+          title: _kTitles[entry.key],
+          orderIndex: entry.key,
+          content: entry.value,
+          wordCount: entry.value.split(RegExp(r'\s+')).length,
+          createdAt: _now,
+          updatedAt: _now,
+        );
+      }).toList();
+      final memory = const NarrativeMemoryUpdater().update(
+        bookId: book.id,
+        documents: documents,
+        previous: null,
+        now: _now,
+      );
+      final storyState = const StoryStateUpdater().update(
+        book: book,
+        documents: documents,
+        memory: memory,
+        previous: null,
+        now: _now,
+      );
+      final findings = const ContinuityAuditService().audit(
+        book: book,
+        documents: documents,
+        memory: memory,
+        storyState: storyState,
+        continuityState: ContinuityState(bookId: book.id, lastUpdatedAt: _now),
+        characters: const [],
+        scenarios: const [],
+        now: _now,
+      );
+
+      expect(findings, isNotEmpty);
+      expect(
+        findings.any((finding) =>
+            finding.type == ContinuityFindingType.unresolvedPromise ||
+            finding.type == ContinuityFindingType.untrackedCharacter ||
+            finding.type == ContinuityFindingType.untrackedScenario),
+        isTrue,
+      );
     });
 
     test(

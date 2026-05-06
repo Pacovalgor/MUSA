@@ -32,6 +32,10 @@
   - ✅ **Memoria narrativa ampliada**: `NarrativeMemory` persiste promesas de lectura, promesas abiertas, señales de tono y avisos de patrón repetido por libro, con compatibilidad para proyectos `.musa` antiguos.
   - ✅ **Estado de la novela derivado**: `NovelStatusService` calcula salud narrativa, tensión, ritmo, promesa, memoria viva y comparación profesional sin llamar al modelo local ni persistir reportes derivados.
   - ✅ **Vista en Libro activo**: `book_editor.dart` muestra semáforo, métricas, señales críticas, acciones siguientes y comparación con corpus profesional en la sección “Estado de la novela”.
+- **V1.9 (2026-05-06)**:
+  - ✅ **Auditor de continuidad derivado**: `ContinuityAuditService` detecta promesas abiertas, contradicciones prohibidas, personajes sin ficha, escenarios sin ficha y patrones repetidos sin llamar al modelo local.
+  - ✅ **Panel de riesgos en Libro activo**: `book_editor.dart` muestra “Riesgos de continuidad” debajo del estado de la novela, con gravedad, evidencia y acción sugerida.
+  - ✅ **Cobertura de auditoría**: tests unitarios del auditor y prueba integrada con `El ojo invisible` garantizan hallazgos útiles sobre el libro completo.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -42,6 +46,7 @@
 - El aprendizaje de Musas debe mantenerse local-first y conservador: no ajustar selección hasta tener muestra mínima, y registrar feedback sobre la Musa fuente de la sugerencia final.
 - La calibración de libros profesionales debe permanecer como criterio editorial general, separada del aprendizaje personal de Paco, y solo debe guardar señales derivadas agregadas.
 - Los reportes globales de salud narrativa deben ser derivados y recalculables; solo la memoria narrativa estable debe persistirse en el `.musa`.
+- Los hallazgos de continuidad V1.9 deben permanecer derivados/recalculables; no se persisten hasta que exista un flujo explícito de revisión/aceptación por Paco.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

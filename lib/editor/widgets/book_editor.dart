@@ -7,6 +7,8 @@ import '../../core/constants.dart';
 import '../../modules/books/models/narrative_copilot.dart';
 import '../../modules/books/models/novel_status.dart';
 import '../../modules/books/providers/workspace_providers.dart';
+import '../../modules/continuity/models/continuity_audit.dart';
+import '../../modules/continuity/providers/continuity_providers.dart';
 import '../../modules/manuscript/models/document.dart';
 import '../../modules/manuscript/providers/document_providers.dart';
 import '../../modules/notes/providers/note_providers.dart';
@@ -74,6 +76,7 @@ class _BookEditorState extends ConsumerState<BookEditor> {
     final workspace = ref.watch(narrativeWorkspaceProvider).value;
     final storyState = workspace?.activeStoryState;
     final novelStatus = ref.watch(activeNovelStatusProvider);
+    final continuityFindings = ref.watch(activeContinuityFindingsProvider);
 
     if (book == null) {
       return const Center(child: Text('No hay libro activo'));
@@ -208,6 +211,13 @@ class _BookEditorState extends ConsumerState<BookEditor> {
                   report: novelStatus,
                   storyState: storyState,
                 ),
+              ),
+              const SizedBox(height: 28),
+              _Section(
+                title: 'Riesgos de continuidad',
+                subtitle:
+                    'Promesas, contradicciones y elementos que necesitan ficha o pago narrativo.',
+                child: _ContinuityAuditPanel(findings: continuityFindings),
               ),
               const SizedBox(height: 28),
               _Section(
@@ -886,6 +896,133 @@ class _ProfessionalComparisonList extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _ContinuityAuditPanel extends StatelessWidget {
+  const _ContinuityAuditPanel({required this.findings});
+
+  final List<ContinuityFinding> findings;
+
+  @override
+  Widget build(BuildContext context) {
+    if (findings.isEmpty) {
+      return const _NarrativeEmptyText(
+        'No hay riesgos de continuidad detectados en el libro activo.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: findings.take(4).map((finding) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _ContinuityFindingRow(finding: finding),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _ContinuityFindingRow extends StatelessWidget {
+  const _ContinuityFindingRow({required this.finding});
+
+  final ContinuityFinding finding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _severityColor(finding.severity).withValues(alpha: 0.24),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: _severityColor(finding.severity),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _findingTypeLabel(finding.type),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.black38,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  finding.title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            finding.detail,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black54,
+                  height: 1.45,
+                ),
+          ),
+          if (finding.evidence.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              finding.evidence,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.black38,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
+          if (finding.action.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              finding.action,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.black87,
+                    height: 1.45,
+                  ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Color _severityColor(ContinuityFindingSeverity severity) {
+    return switch (severity) {
+      ContinuityFindingSeverity.info => const Color(0xFF175CD3),
+      ContinuityFindingSeverity.warning => const Color(0xFFB54708),
+      ContinuityFindingSeverity.critical => const Color(0xFFB42318),
+    };
+  }
+
+  String _findingTypeLabel(ContinuityFindingType type) {
+    return switch (type) {
+      ContinuityFindingType.unresolvedPromise => 'PROMESA',
+      ContinuityFindingType.contradiction => 'CONTRADICCIÓN',
+      ContinuityFindingType.untrackedCharacter => 'PERSONAJE',
+      ContinuityFindingType.untrackedScenario => 'ESCENARIO',
+      ContinuityFindingType.repeatedPattern => 'PATRÓN',
+    };
   }
 }
 
