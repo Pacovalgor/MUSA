@@ -20,6 +20,10 @@
   - ✅ **Estado visible de aprendizaje**: `MusaSettingsDialog` muestra estado por Musa (`Aprendiendo`, `Estable`, `Afinada`, `En pausa`) con muestras, aceptación y descartes.
   - ✅ **Gating narrativo endurecido**: mejor separación entre escena, research, worldbuilding y técnico, con cobertura para `El ojo invisible`.
   - ✅ **Smoke FFI real validado**: `llama_processor_real_smoke_test.dart` puede ejecutarse con el modelo instalado en el contenedor macOS de MUSA.
+- **V1.6 (2026-05-06)**:
+  - ✅ **Calibración profesional separada**: `ProfessionalCorpusCalibration` usa perfiles derivados de los reportes de `Mithas y Karthay` (fantasy), `Tras la puerta` (thriller) y `Un lugar llamado libertad` (historical).
+  - ✅ **No mezcla corpus con feedback personal**: la calibración profesional ajusta multiplicadores base por género; `MusaEffectivenessTracker` sigue representando únicamente aceptaciones/rechazos del usuario.
+  - ✅ **Composición conservadora**: los multiplicadores profesionales y personales se combinan con límites para evitar sesgos bruscos en `MusaAutopilot`.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -28,6 +32,7 @@
 - Mantener coherencia con servicios IA locales y fallbacks explícitos para plataformas no soportadas.
 - **Auditabilidad**: Se han añadido fixtures literarios y de apoyo en `test/fixtures/` junto con un test de auditoría (`test/narrative_gating_audit_test.dart`) para garantizar la robustez del gating estructural. Las pruebas reproducibles actuales muestran que el gating estructural distingue bien entre el fixture narrativo auditado, el fixture de apoyo auditado y un caso ambiguo conservador, aunque la cobertura sigue siendo limitada.
 - El aprendizaje de Musas debe mantenerse local-first y conservador: no ajustar selección hasta tener muestra mínima, y registrar feedback sobre la Musa fuente de la sugerencia final.
+- La calibración de libros profesionales debe permanecer como criterio editorial general, separada del aprendizaje personal de Paco.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

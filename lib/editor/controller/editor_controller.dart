@@ -1712,6 +1712,7 @@ class EditorController extends StateNotifier<EditorState> {
         'scenarioIds': linkedScenarioIds,
         'scenariosSummary': scenarioSummary,
         'sourceType': editorMode.name,
+        'primaryGenre': book?.narrativeProfile.primaryGenre.name,
       },
     );
 
