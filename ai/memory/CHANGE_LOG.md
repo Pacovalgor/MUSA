@@ -7,4 +7,4 @@
 ## 2026-05-06
 - Se registra V1.5 en memoria estable: aprendizaje adaptativo de Musas conectado, atribución precisa de feedback por `sourceMusaId`, estado visible en ajustes, gating narrativo endurecido y smoke FFI real con modelo instalado en MUSA.
 - Se registra V1.6 en memoria estable: calibración profesional separada basada en los tres libros auditados, combinada de forma conservadora con el aprendizaje personal sin mezclar sus datos.
-EOF
+- Se registra V1.7 en memoria estable: ampliación del corpus profesional a 15 referencias locales derivadas, con métricas agregadas por género y tests para evitar almacenar texto fuente.

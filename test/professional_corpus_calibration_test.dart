@@ -19,6 +19,7 @@ void main() {
 
       expect(profile.referenceTitle, 'Tras la puerta');
       expect(profile.genre, 'thriller');
+      expect(profile.references, hasLength(5));
       expect(profile.scoreMultipliers['tension'], greaterThan(1.0));
     });
 
@@ -28,6 +29,20 @@ void main() {
 
       expect(fantasy.referenceTitle, 'Mithas y Karthay');
       expect(historical.referenceTitle, 'Un lugar llamado libertad');
+    });
+
+    test('stores derived corpus metrics without storing source prose', () {
+      final thriller = calibration.profileForGenre('thriller');
+      final fantasy = calibration.profileForGenre('fantasy');
+      final historical = calibration.profileForGenre('historical');
+
+      expect(thriller.metrics.dialogueMarksPerK, greaterThan(30));
+      expect(fantasy.metrics.dramaticTermsPerK, greaterThan(5));
+      expect(historical.metrics.avgSentenceLength, greaterThan(12));
+      expect(
+        thriller.references.every((reference) => reference.sampleText == null),
+        isTrue,
+      );
     });
 
     test('combines professional and personal multipliers conservatively', () {
