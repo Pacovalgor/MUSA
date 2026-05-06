@@ -36,6 +36,11 @@
   - ✅ **Auditor de continuidad derivado**: `ContinuityAuditService` detecta promesas abiertas, contradicciones prohibidas, personajes sin ficha, escenarios sin ficha y patrones repetidos sin llamar al modelo local.
   - ✅ **Panel de riesgos en Libro activo**: `book_editor.dart` muestra “Riesgos de continuidad” debajo del estado de la novela, con gravedad, evidencia y acción sugerida.
   - ✅ **Cobertura de auditoría**: tests unitarios del auditor y prueba integrada con `El ojo invisible` garantizan hallazgos útiles sobre el libro completo.
+- **V2.0 fase 1 (2026-05-06)**:
+  - ✅ **Reescritura guiada controlada**: `GuidedRewriteService` genera propuestas deterministas para subir tensión, aclarar, reducir exposición y naturalizar diálogo sin llamar al modelo local.
+  - ✅ **Contrato de seguridad editorial**: cada propuesta preserva hechos y voz, evita personajes nuevos y no resuelve trama ni promesas abiertas.
+  - ✅ **Flujo integrado en editor**: el menú de selección crea una propuesta revisable que reutiliza comparación/aplicar/descartar mediante `MusaSuggestion`.
+  - ✅ **Cobertura base**: `guided_rewrite_service_test.dart` valida que las acciones no inventan hechos, no contaminan diálogo y manejan selección vacía.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -47,6 +52,7 @@
 - La calibración de libros profesionales debe permanecer como criterio editorial general, separada del aprendizaje personal de Paco, y solo debe guardar señales derivadas agregadas.
 - Los reportes globales de salud narrativa deben ser derivados y recalculables; solo la memoria narrativa estable debe persistirse en el `.musa`.
 - Los hallazgos de continuidad V1.9 deben permanecer derivados/recalculables; no se persisten hasta que exista un flujo explícito de revisión/aceptación por Paco.
+- La reescritura guiada V2.0 fase 1 debe permanecer controlada y revisable: no aplica cambios directamente, no llama al modelo local y entra siempre por comparación antes de tocar el manuscrito.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

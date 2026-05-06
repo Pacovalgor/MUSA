@@ -9,6 +9,7 @@ import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/characters/providers/character_providers.dart';
 import '../../modules/characters/widgets/character_picker_sheet.dart';
 import '../../modules/manuscript/providers/document_providers.dart';
+import '../../modules/musa/models/guided_rewrite.dart';
 import '../../modules/scenarios/providers/scenario_providers.dart';
 import '../../modules/scenarios/widgets/scenario_picker_sheet.dart';
 import '../../muses/musa.dart';
@@ -305,6 +306,12 @@ class MusaEditorOverlay extends ConsumerWidget {
           case _SelectionMenuActionKind.linkScenario:
             await _handleLinkScenario(context, ref);
             break;
+          case _SelectionMenuActionKind.guidedRewrite:
+            final rewriteAction = action.rewriteAction;
+            if (rewriteAction != null) {
+              ref.read(editorProvider.notifier).runGuidedRewrite(rewriteAction);
+            }
+            break;
           case _SelectionMenuActionKind.musa:
             final musa = action.musa;
             if (musa != null) {
@@ -318,6 +325,48 @@ class MusaEditorOverlay extends ConsumerWidget {
           enabled: false,
           height: 34,
           child: _SelectionMenuSectionLabel('Texto'),
+        ),
+        const PopupMenuItem(
+          value: _SelectionMenuAction.guidedRewrite(
+            GuidedRewriteAction.raiseTension,
+          ),
+          child: _NarrativeMenuItem(
+            icon: Icons.bolt_outlined,
+            label: 'Subir tensión',
+          ),
+        ),
+        const PopupMenuItem(
+          value: _SelectionMenuAction.guidedRewrite(
+            GuidedRewriteAction.clarify,
+          ),
+          child: _NarrativeMenuItem(
+            icon: Icons.visibility_outlined,
+            label: 'Aclarar',
+          ),
+        ),
+        const PopupMenuItem(
+          value: _SelectionMenuAction.guidedRewrite(
+            GuidedRewriteAction.reduceExposition,
+          ),
+          child: _NarrativeMenuItem(
+            icon: Icons.compress_outlined,
+            label: 'Reducir exposición',
+          ),
+        ),
+        const PopupMenuItem(
+          value: _SelectionMenuAction.guidedRewrite(
+            GuidedRewriteAction.naturalizeDialogue,
+          ),
+          child: _NarrativeMenuItem(
+            icon: Icons.forum_outlined,
+            label: 'Diálogo natural',
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          enabled: false,
+          height: 34,
+          child: _SelectionMenuSectionLabel('Musas'),
         ),
         ...musas.map(
           (musa) => PopupMenuItem(
@@ -550,11 +599,12 @@ enum _SelectionMenuActionKind {
   createScenario,
   enrichScenario,
   linkScenario,
+  guidedRewrite,
   musa,
 }
 
 class _SelectionMenuAction {
-  const _SelectionMenuAction(this.kind, {this.musa});
+  const _SelectionMenuAction(this.kind, {this.musa, this.rewriteAction});
 
   const _SelectionMenuAction.createCharacter()
       : this(_SelectionMenuActionKind.createCharacter);
@@ -574,11 +624,15 @@ class _SelectionMenuAction {
   const _SelectionMenuAction.linkScenario()
       : this(_SelectionMenuActionKind.linkScenario);
 
+  const _SelectionMenuAction.guidedRewrite(GuidedRewriteAction action)
+      : this(_SelectionMenuActionKind.guidedRewrite, rewriteAction: action);
+
   const _SelectionMenuAction.musa(Musa musa)
       : this(_SelectionMenuActionKind.musa, musa: musa);
 
   final _SelectionMenuActionKind kind;
   final Musa? musa;
+  final GuidedRewriteAction? rewriteAction;
 }
 
 class _NarrativeMenuItem extends StatelessWidget {

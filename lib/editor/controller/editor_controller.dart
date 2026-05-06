@@ -37,6 +37,8 @@ import '../../muses/editorial_signals.dart';
 import 'musa_text_editing_controller.dart';
 import '../../modules/books/models/writing_settings.dart';
 import '../../modules/books/services/story_state_updater.dart';
+import '../../modules/musa/models/guided_rewrite.dart';
+import '../../modules/musa/services/guided_rewrite_service.dart';
 
 enum MusaGenerationPhase {
   idle,
@@ -182,6 +184,7 @@ class EditorState {
 /// Coordinates editor text, selection UI, analysis and Musa invocation flows.
 class EditorController extends StateNotifier<EditorState> {
   final Ref _ref;
+  final GuidedRewriteService _guidedRewriteService;
   final GlobalKey editorKey = GlobalKey();
   StreamSubscription? _aiSubscription;
   bool _isSyncingControllers = false;
@@ -190,8 +193,11 @@ class EditorController extends StateNotifier<EditorState> {
   Timer? _narrativeRefreshDebounce;
   Timer? _contentPersistDebounce;
 
-  EditorController(this._ref)
-      : super(EditorState(
+  EditorController(
+    this._ref, {
+    GuidedRewriteService guidedRewriteService = const GuidedRewriteService(),
+  })  : _guidedRewriteService = guidedRewriteService,
+        super(EditorState(
           controller: MusaTextEditingController(
             writingSettings: _ref.read(writingSettingsProvider),
           ),
@@ -483,6 +489,40 @@ class EditorController extends StateNotifier<EditorState> {
       generationPhase: MusaGenerationPhase.idle,
       clearActiveMusa: true,
       clearChapterAnalysis: true,
+    );
+  }
+
+  void runGuidedRewrite(GuidedRewriteAction action) {
+    final selectionContext = state.selectionContext;
+    if (selectionContext == null || state.isProcessing) {
+      return;
+    }
+
+    final result = _guidedRewriteService.rewrite(
+      selection: selectionContext.selectedText,
+      action: action,
+    );
+
+    _markSelectionActionUsed();
+    state = state.copyWith(
+      currentSuggestion: narrative.MusaSuggestion(
+        id: 'guided-${action.name}-${DateTime.now().millisecondsSinceEpoch}',
+        originalText: result.originalText,
+        suggestedText: result.suggestedText,
+        editorComment: result.editorComment,
+        sourceMusaId: 'guided-rewrite',
+      ),
+      showOverlay: false,
+      clearStreamingText: true,
+      generationPhase: MusaGenerationPhase.completed,
+      clearActiveMusa: true,
+      clearEditorialRecommendation: true,
+      clearActivePipeline: true,
+      clearMusaExecutionHistory: true,
+      pipelineStepIndex: 0,
+      clearFragmentAnalysis: true,
+      clearChapterAnalysis: true,
+      isComparisonMode: true,
     );
   }
 
