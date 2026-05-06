@@ -5,6 +5,19 @@ enum GuidedRewriteAction {
   naturalizeDialogue,
 }
 
+extension GuidedRewriteActionAttribution on GuidedRewriteAction {
+  String get feedbackSlug {
+    return switch (this) {
+      GuidedRewriteAction.raiseTension => 'guided-rewrite.raise-tension',
+      GuidedRewriteAction.clarify => 'guided-rewrite.clarify',
+      GuidedRewriteAction.reduceExposition =>
+        'guided-rewrite.reduce-exposition',
+      GuidedRewriteAction.naturalizeDialogue =>
+        'guided-rewrite.naturalize-dialogue',
+    };
+  }
+}
+
 enum GuidedRewriteSafetyNote {
   preserveFacts,
   preserveVoice,

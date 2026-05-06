@@ -49,6 +49,10 @@
   - ✅ **Auditoría de seguridad para reescrituras**: `GuidedRewriteSafetyService` detecta nombres nuevos, expansión excesiva y pérdida de términos clave entre original y propuesta.
   - ✅ **Resultado enriquecido**: `GuidedRewriteResult` incorpora `safetyAudit`, y `GuidedRewriteService` lo calcula en cada propuesta mediante inyección testeable.
   - ✅ **Revisión visible**: si la auditoría marca advertencias, el editor las añade a la nota editorial y la vista de comparación muestra esa nota junto al diff.
+- **V2.0 fase 4 (2026-05-06)**:
+  - ✅ **Atribución por acción guiada**: cada `GuidedRewriteAction` expone un `feedbackSlug` estable (`guided-rewrite.raise-tension`, `guided-rewrite.clarify`, etc.).
+  - ✅ **Aprendizaje accionable**: el editor registra las propuestas guiadas como mostradas y atribuye aceptación/rechazo a la acción concreta, no al bucket genérico `guided-rewrite`.
+  - ✅ **Base para personalización**: el tracker existente puede acumular preferencias de Paco por tipo de reescritura sin mezclarlo con las Musas clásicas.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -63,6 +67,7 @@
 - La reescritura guiada V2.0 fase 1 debe permanecer controlada y revisable: no aplica cambios directamente, no llama al modelo local y entra siempre por comparación antes de tocar el manuscrito.
 - Las recomendaciones de reescritura V2.0 fase 2 son derivadas y no persistidas; deben ayudar a elegir herramienta, no sustituir criterio editorial ni aplicar cambios automáticos.
 - La auditoría de seguridad V2.0 fase 3 es informativa, no bloqueante; debe alertar antes de aplicar, pero la decisión final sigue siendo del usuario.
+- Los slugs de aprendizaje de reescritura guiada V2.0 fase 4 son contrato estable de preferencias; no renombrarlos sin migración de estadísticas locales.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

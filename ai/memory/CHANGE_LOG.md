@@ -13,3 +13,4 @@
 - Se registra V2.0 fase 1 en memoria estable: reescritura guiada determinista desde el menú de selección, con propuestas comparables antes de aplicar y contrato de seguridad editorial.
 - Se registra V2.0 fase 2 en memoria estable: planificador contextual de reescritura guiada y recomendación destacada en el menú de selección.
 - Se registra V2.0 fase 3 en memoria estable: auditoría de seguridad para reescrituras guiadas, con advertencias visibles en la revisión de propuesta.
+- Se registra V2.0 fase 4 en memoria estable: atribución de aprendizaje por acción concreta de reescritura guiada.

@@ -502,6 +502,7 @@ class EditorController extends StateNotifier<EditorState> {
       selection: selectionContext.selectedText,
       action: action,
     );
+    final feedbackSlug = action.feedbackSlug;
 
     _markSelectionActionUsed();
     state = state.copyWith(
@@ -510,7 +511,7 @@ class EditorController extends StateNotifier<EditorState> {
         originalText: result.originalText,
         suggestedText: result.suggestedText,
         editorComment: _guidedRewriteEditorComment(result),
-        sourceMusaId: 'guided-rewrite',
+        sourceMusaId: feedbackSlug,
       ),
       showOverlay: false,
       clearStreamingText: true,
@@ -524,6 +525,7 @@ class EditorController extends StateNotifier<EditorState> {
       clearChapterAnalysis: true,
       isComparisonMode: true,
     );
+    _recordMusaSuggestionShown(feedbackSlug);
   }
 
   String _guidedRewriteEditorComment(GuidedRewriteResult result) {
