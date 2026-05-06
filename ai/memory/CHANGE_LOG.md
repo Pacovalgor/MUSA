@@ -16,3 +16,4 @@
 - Se registra V2.0 fase 4 en memoria estable: atribución de aprendizaje por acción concreta de reescritura guiada.
 - Se registra cierre V2.0 en memoria estable: aprendizaje visible de acciones guiadas y recomendaciones ordenadas por preferencias locales.
 - Se registra V2.1 en memoria estable: capa preparada para reescritura guiada con modelo local, prompts estrictos, auditoría y fallback determinista.
+- Se registra V2.2 en memoria estable: auditor editorial derivado con ledger de promesas, pagos, olvidos y contradicciones críticas.

@@ -61,6 +61,10 @@
   - ✅ **Capa preparada para modelo local**: `GuidedRewriteGenerationService` acepta un `GuidedRewriteModelClient` inyectable y cae a `GuidedRewriteService` si no está listo.
   - ✅ **Prompts con contrato estricto**: `GuidedRewritePromptBuilder` genera instrucciones por acción y exige devolver solo texto reescrito, sin explicación ni invención.
   - ✅ **Auditoría antes de mostrar**: la salida del modelo se limpia y pasa por `GuidedRewriteSafetyService`; si falla, se usa fallback determinista.
+- **V2.2 (2026-05-06)**:
+  - ✅ **Auditor editorial derivado**: `EditorialAuditService` construye un ledger de promesas leídas, pagadas, abiertas y olvidadas sin persistir reportes.
+  - ✅ **Continuidad elevada a auditoría editorial**: contradicciones críticas del auditor de continuidad se reflejan como hallazgos editoriales críticos.
+  - ✅ **Provider listo para UI**: `activeEditorialAuditProvider` entrega el reporte del libro activo combinando memoria narrativa, documentos y continuidad.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -78,6 +82,7 @@
 - Los slugs de aprendizaje de reescritura guiada V2.0 fase 4 son contrato estable de preferencias; no renombrarlos sin migración de estadísticas locales.
 - El cierre V2.0 usa el aprendizaje solo para ordenar recomendaciones cuando hay señales competidoras; no debe ocultar acciones manuales ni aplicar cambios automáticamente.
 - V2.1 deja lista la integración con modelo local pero no fuerza su uso en UI; cualquier activación debe mantener fallback determinista y auditoría previa.
+- V2.2 mantiene el auditor editorial como derivado/recalculable; no guardar reportes hasta que exista flujo explícito de revisión o exportación.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).
