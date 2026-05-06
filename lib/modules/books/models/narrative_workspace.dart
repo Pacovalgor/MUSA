@@ -2,6 +2,7 @@ import '../../characters/models/character.dart';
 import '../../characters/models/character_relation.dart';
 import '../../continuity/models/continuity_state.dart';
 import '../../continuity/models/timeline_event.dart';
+import '../../creative/models/creative_card.dart';
 import '../../manuscript/models/document.dart';
 import '../../manuscript/models/document_revision.dart';
 import '../../manuscript/models/scene_reference.dart';
@@ -31,6 +32,7 @@ class NarrativeWorkspace {
   final List<SceneReference> sceneReferences;
   final List<Note> notes;
   final List<VoiceMemo> voiceMemos;
+  final List<CreativeCard> creativeCards;
   final List<Character> characters;
   final List<CharacterRelation> characterRelations;
   final List<Scenario> scenarios;
@@ -59,6 +61,7 @@ class NarrativeWorkspace {
     this.sceneReferences = const [],
     this.notes = const [],
     this.voiceMemos = const [],
+    this.creativeCards = const [],
     this.characters = const [],
     this.characterRelations = const [],
     this.scenarios = const [],
@@ -118,6 +121,16 @@ class NarrativeWorkspace {
     final book = activeBook;
     if (book == null) return const [];
     final results = notes.where((note) => note.bookId == book.id).toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return results;
+  }
+
+  List<CreativeCard> get activeBookCreativeCards {
+    final book = activeBook;
+    if (book == null) return const [];
+    final results = creativeCards
+        .where((card) => card.bookId == book.id)
+        .toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return results;
   }
@@ -214,6 +227,7 @@ class NarrativeWorkspace {
     List<SceneReference>? sceneReferences,
     List<Note>? notes,
     List<VoiceMemo>? voiceMemos,
+    List<CreativeCard>? creativeCards,
     List<Character>? characters,
     List<CharacterRelation>? characterRelations,
     List<Scenario>? scenarios,
@@ -246,6 +260,7 @@ class NarrativeWorkspace {
       sceneReferences: sceneReferences ?? this.sceneReferences,
       notes: notes ?? this.notes,
       voiceMemos: voiceMemos ?? this.voiceMemos,
+      creativeCards: creativeCards ?? this.creativeCards,
       characters: characters ?? this.characters,
       characterRelations: characterRelations ?? this.characterRelations,
       scenarios: scenarios ?? this.scenarios,
@@ -285,6 +300,7 @@ class NarrativeWorkspace {
             sceneReferences.map((item) => item.toJson()).toList(),
         'notes': notes.map((item) => item.toJson()).toList(),
         'voiceMemos': voiceMemos.map((item) => item.toJson()).toList(),
+        'creativeCards': creativeCards.map((item) => item.toJson()).toList(),
         'characters': characters.map((item) => item.toJson()).toList(),
         'characterRelations':
             characterRelations.map((item) => item.toJson()).toList(),
@@ -335,6 +351,9 @@ class NarrativeWorkspace {
             .toList(),
         voiceMemos: (json['voiceMemos'] as List? ?? const [])
             .map((item) => VoiceMemo.fromJson(item as Map<String, dynamic>))
+            .toList(),
+        creativeCards: (json['creativeCards'] as List? ?? const [])
+            .map((item) => CreativeCard.fromJson(item as Map<String, dynamic>))
             .toList(),
         characters: (json['characters'] as List? ?? const [])
             .map((item) => Character.fromJson(item as Map<String, dynamic>))
