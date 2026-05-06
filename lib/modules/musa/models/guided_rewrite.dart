@@ -26,6 +26,8 @@ enum GuidedRewriteSafetyNote {
   noExpansion,
 }
 
+enum GuidedRewriteSource { deterministic, localModel }
+
 enum GuidedRewriteSafetyLevel { safe, warning }
 
 enum GuidedRewriteSafetyWarning {
@@ -53,6 +55,7 @@ class GuidedRewriteResult {
     required this.suggestedText,
     required this.safetyNotes,
     required this.editorComment,
+    this.source = GuidedRewriteSource.deterministic,
     this.safetyAudit = const GuidedRewriteSafetyAudit(
       level: GuidedRewriteSafetyLevel.safe,
       warnings: [],
@@ -64,6 +67,7 @@ class GuidedRewriteResult {
   final String suggestedText;
   final List<GuidedRewriteSafetyNote> safetyNotes;
   final String editorComment;
+  final GuidedRewriteSource source;
   final GuidedRewriteSafetyAudit safetyAudit;
 }
 
