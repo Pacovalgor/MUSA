@@ -46,5 +46,25 @@ void main() {
 
       expect(tracker.getThresholdMultiplier('rhythm'), 0.8);
     });
+
+    test('exposes readable learning status per musa', () async {
+      final tracker = MusaEffectivenessTracker();
+      await tracker.initialize();
+
+      for (var i = 0; i < MusaEffectivenessTracker.minimumSamples; i++) {
+        await tracker.recordSuggestionShown('tension');
+        await tracker.recordAcceptance('tension');
+      }
+
+      final status = tracker.getLearningStatus('tension');
+
+      expect(status.slug, 'tension');
+      expect(status.totalShown, MusaEffectivenessTracker.minimumSamples);
+      expect(status.timesAccepted, MusaEffectivenessTracker.minimumSamples);
+      expect(status.timesRejected, 0);
+      expect(status.acceptanceRate, 1.0);
+      expect(status.multiplier, 1.2);
+      expect(status.label, 'Afinada');
+    });
   });
 }

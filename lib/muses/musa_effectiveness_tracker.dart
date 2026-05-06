@@ -101,6 +101,36 @@ class MusaEffectivenessTracker {
     return _stats[musaSlug]?.totalShown ?? 0;
   }
 
+  MusaLearningStatus getLearningStatus(String musaSlug) {
+    final stats = _stats[musaSlug] ?? MusaEffectiveness(slug: musaSlug);
+    final multiplier = getThresholdMultiplier(musaSlug);
+    final hasEnoughData = stats.totalShown >= minimumSamples;
+    final label = hasEnoughData
+        ? switch (multiplier) {
+            > 1.0 => 'Afinada',
+            < 1.0 => 'En pausa',
+            _ => 'Estable',
+          }
+        : 'Aprendiendo';
+
+    return MusaLearningStatus(
+      slug: musaSlug,
+      totalShown: stats.totalShown,
+      timesAccepted: stats.timesAccepted,
+      timesRejected: stats.timesRejected,
+      acceptanceRate: stats.acceptanceRate,
+      multiplier: multiplier,
+      label: label,
+      hasEnoughData: hasEnoughData,
+    );
+  }
+
+  List<MusaLearningStatus> getLearningStatuses(Iterable<String> musaSlugs) {
+    return [
+      for (final slug in musaSlugs) getLearningStatus(slug),
+    ];
+  }
+
   /// Reset all stats (for testing/reset)
   Future<void> resetAll() async {
     _stats.clear();
@@ -134,4 +164,26 @@ class MusaEffectiveness {
         ..totalShown = json['totalShown'] as int? ?? 0
         ..timesAccepted = json['timesAccepted'] as int? ?? 0
         ..timesRejected = json['timesRejected'] as int? ?? 0;
+}
+
+class MusaLearningStatus {
+  const MusaLearningStatus({
+    required this.slug,
+    required this.totalShown,
+    required this.timesAccepted,
+    required this.timesRejected,
+    required this.acceptanceRate,
+    required this.multiplier,
+    required this.label,
+    required this.hasEnoughData,
+  });
+
+  final String slug;
+  final int totalShown;
+  final int timesAccepted;
+  final int timesRejected;
+  final double acceptanceRate;
+  final double multiplier;
+  final String label;
+  final bool hasEnoughData;
 }

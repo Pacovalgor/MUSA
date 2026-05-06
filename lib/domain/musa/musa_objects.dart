@@ -59,6 +59,7 @@ class MusaSuggestion extends MusaResponse {
   final String originalText;
   final String suggestedText;
   final String? editorComment;
+  final String? sourceMusaId;
   final DateTime timestamp;
 
   MusaSuggestion({
@@ -66,6 +67,7 @@ class MusaSuggestion extends MusaResponse {
     required this.originalText,
     required this.suggestedText,
     this.editorComment,
+    this.sourceMusaId,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 }

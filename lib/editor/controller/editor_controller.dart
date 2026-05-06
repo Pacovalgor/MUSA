@@ -1549,6 +1549,7 @@ class EditorController extends StateNotifier<EditorState> {
         id: finalSuggestion.id,
         originalText: originalSelection,
         suggestedText: finalSuggestion.suggestedText,
+        sourceMusaId: finalSuggestion.sourceMusaId,
         editorComment: _buildPipelineEditorComment(
             recommendation, state.musaExecutionHistory),
       ),
@@ -1556,14 +1557,16 @@ class EditorController extends StateNotifier<EditorState> {
       generationPhase: MusaGenerationPhase.completed,
       showOverlay: false,
     );
-    _recordMusaSuggestionShown(state.musaExecutionHistory);
+    _recordMusaSuggestionShown(finalSuggestion.sourceMusaId);
   }
 
-  void _recordMusaSuggestionShown(List<Musa> musas) {
-    final tracker = _ref.read(musaEffectivenessTrackerProvider);
-    for (final musaId in musas.map((musa) => musa.id).toSet()) {
-      unawaited(tracker.recordSuggestionShown(musaId));
+  void _recordMusaSuggestionShown(String? musaId) {
+    if (musaId == null) {
+      return;
     }
+
+    final tracker = _ref.read(musaEffectivenessTrackerProvider);
+    unawaited(tracker.recordSuggestionShown(musaId));
   }
 
   void _recordMusaFeedback({required bool accepted}) {
@@ -1572,14 +1575,17 @@ class EditorController extends StateNotifier<EditorState> {
       return;
     }
 
-    final tracker = _ref.read(musaEffectivenessTrackerProvider);
-    for (final musaId in state.musaExecutionHistory.map((musa) => musa.id).toSet()) {
-      unawaited(
-        accepted
-            ? tracker.recordAcceptance(musaId)
-            : tracker.recordRejection(musaId),
-      );
+    final musaId = state.currentSuggestion!.sourceMusaId;
+    if (musaId == null) {
+      return;
     }
+
+    final tracker = _ref.read(musaEffectivenessTrackerProvider);
+    unawaited(
+      accepted
+          ? tracker.recordAcceptance(musaId)
+          : tracker.recordRejection(musaId),
+    );
   }
 
   Future<narrative.MusaSuggestion?> _executeMusaStep({
@@ -1621,7 +1627,16 @@ class EditorController extends StateNotifier<EditorState> {
           );
         } else if (response is narrative.MusaSuggestion) {
           if (!completer.isCompleted) {
-            completer.complete(response);
+            completer.complete(
+              narrative.MusaSuggestion(
+                id: response.id,
+                originalText: response.originalText,
+                suggestedText: response.suggestedText,
+                editorComment: response.editorComment,
+                sourceMusaId: musa.id,
+                timestamp: response.timestamp,
+              ),
+            );
           }
         }
       },

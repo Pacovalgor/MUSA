@@ -14,6 +14,12 @@
   - ✅ **Feedback loops** en pipelines: `_shouldSkipMusaByFeedback()` analiza salida de Musa N antes de ejecutar N+1, evita procesamiento redundante (ej: ClarityMusa + RhythmMusa no corren ambas si Clarity ya solucionó ritmo)
   - 🔄 **Pipeline transparency** (parcial): `musaExecutionHistory` rastrea musas ejecutadas/saltadas; falta exposición UI mejorada
   - ⏳ **Adaptive thresholds**: pendiente para future iteration
+- **V1.5 (2026-05-06)**:
+  - ✅ **Aprendizaje adaptativo conectado**: `MusaEffectivenessTracker` aplica multiplicadores conservadores tras un mínimo de 5 muestras por Musa.
+  - ✅ **Atribución precisa de feedback**: las sugerencias editoriales conservan `sourceMusaId`; aceptación/rechazo se registra sobre la Musa que produjo la propuesta final, no sobre toda la pipeline.
+  - ✅ **Estado visible de aprendizaje**: `MusaSettingsDialog` muestra estado por Musa (`Aprendiendo`, `Estable`, `Afinada`, `En pausa`) con muestras, aceptación y descartes.
+  - ✅ **Gating narrativo endurecido**: mejor separación entre escena, research, worldbuilding y técnico, con cobertura para `El ojo invisible`.
+  - ✅ **Smoke FFI real validado**: `llama_processor_real_smoke_test.dart` puede ejecutarse con el modelo instalado en el contenedor macOS de MUSA.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -21,6 +27,7 @@
 - No declarar verificaciones no ejecutadas.
 - Mantener coherencia con servicios IA locales y fallbacks explícitos para plataformas no soportadas.
 - **Auditabilidad**: Se han añadido fixtures literarios y de apoyo en `test/fixtures/` junto con un test de auditoría (`test/narrative_gating_audit_test.dart`) para garantizar la robustez del gating estructural. Las pruebas reproducibles actuales muestran que el gating estructural distingue bien entre el fixture narrativo auditado, el fixture de apoyo auditado y un caso ambiguo conservador, aunque la cobertura sigue siendo limitada.
+- El aprendizaje de Musas debe mantenerse local-first y conservador: no ajustar selección hasta tener muestra mínima, y registrar feedback sobre la Musa fuente de la sugerencia final.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

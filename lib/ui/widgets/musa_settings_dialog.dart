@@ -7,6 +7,9 @@ import '../../modules/books/models/writing_settings.dart';
 import '../../modules/books/models/musa_settings.dart';
 import '../../modules/books/models/typography_settings.dart';
 import '../../modules/books/providers/workspace_providers.dart';
+import '../../muses/musa.dart';
+import '../../muses/musa_effectiveness_tracker.dart';
+import '../../muses/providers/musa_providers.dart';
 import 'musa_wordmark.dart';
 
 class MusaSettingsDialog extends ConsumerWidget {
@@ -20,6 +23,8 @@ class MusaSettingsDialog extends ConsumerWidget {
     final settings = ref.watch(musaSettingsProvider);
     final typography = ref.watch(typographySettingsProvider);
     final writingSettings = ref.watch(writingSettingsProvider);
+    final musas = ref.watch(availableMusesProvider);
+    final learningTracker = ref.watch(musaEffectivenessTrackerProvider);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 48, vertical: 28),
@@ -550,6 +555,11 @@ class MusaSettingsDialog extends ConsumerWidget {
                     _SectionCard(
                       title: 'Musas',
                       children: [
+                        _MusaLearningOverview(
+                          musas: musas,
+                          tracker: learningTracker,
+                        ),
+                        const SizedBox(height: 24),
                         _TwoColumnGrid(
                           children: [
                             _ChoiceField<StyleMusaIntensity>(
@@ -788,6 +798,207 @@ class _SectionCard extends StatelessWidget {
           const SizedBox(height: 18),
           ...children,
         ],
+      ),
+    );
+  }
+}
+
+class _MusaLearningOverview extends StatefulWidget {
+  const _MusaLearningOverview({
+    required this.musas,
+    required this.tracker,
+  });
+
+  final List<Musa> musas;
+  final MusaEffectivenessTracker tracker;
+
+  @override
+  State<_MusaLearningOverview> createState() => _MusaLearningOverviewState();
+}
+
+class _MusaLearningOverviewState extends State<_MusaLearningOverview> {
+  var _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatuses();
+  }
+
+  @override
+  void didUpdateWidget(covariant _MusaLearningOverview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tracker != widget.tracker) {
+      _loaded = false;
+      _loadStatuses();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _SettingsPalette.of(context);
+    final statuses = {
+      for (final musa in widget.musas)
+        musa.id: widget.tracker.getLearningStatus(musa.id),
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Aprendizaje',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: palette.textPrimary,
+              ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 14,
+          runSpacing: 14,
+          children: [
+            for (final musa in widget.musas)
+              _MusaLearningCard(
+                musa: musa,
+                status: _loaded
+                    ? statuses[musa.id]!
+                    : MusaLearningStatus(
+                        slug: musa.id,
+                        totalShown: 0,
+                        timesAccepted: 0,
+                        timesRejected: 0,
+                        acceptanceRate: 0.5,
+                        multiplier: 1.0,
+                        label: 'Aprendiendo',
+                        hasEnoughData: false,
+                      ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _loadStatuses() async {
+    await widget.tracker.initialize();
+    if (!mounted) return;
+    setState(() {
+      _loaded = true;
+    });
+  }
+}
+
+class _MusaLearningCard extends StatelessWidget {
+  const _MusaLearningCard({
+    required this.musa,
+    required this.status,
+  });
+
+  final Musa musa;
+  final MusaLearningStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _SettingsPalette.of(context);
+    final percent = (status.acceptanceRate * 100).round();
+
+    return Container(
+      width: 196,
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
+      decoration: BoxDecoration(
+        color: palette.softSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: palette.border.withValues(alpha: 0.82),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _iconForMusa(musa),
+                size: 16,
+                color: palette.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  musa.shortName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: palette.textPrimary,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            status.label,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: palette.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${status.totalShown} muestras · $percent% aceptadas',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.textSecondary,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${status.timesAccepted} aplicadas · ${status.timesRejected} descartadas',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.textTertiary,
+                ),
+          ),
+          const SizedBox(height: 10),
+          _LearningMeter(value: status.acceptanceRate),
+        ],
+      ),
+    );
+  }
+
+  IconData _iconForMusa(Musa musa) {
+    return switch (musa) {
+      StyleMusa() => Icons.auto_awesome,
+      TensionMusa() => Icons.bolt,
+      RhythmMusa() => Icons.multiline_chart,
+      ClarityMusa() => Icons.visibility,
+      _ => Icons.auto_awesome,
+    };
+  }
+}
+
+class _LearningMeter extends StatelessWidget {
+  const _LearningMeter({required this.value});
+
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _SettingsPalette.of(context);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        height: 5,
+        color: palette.border.withValues(alpha: 0.5),
+        alignment: Alignment.centerLeft,
+        child: FractionallySizedBox(
+          widthFactor: value.clamp(0.0, 1.0),
+          child: Container(color: palette.textSecondary),
+        ),
       ),
     );
   }
