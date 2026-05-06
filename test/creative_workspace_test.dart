@@ -1,8 +1,11 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:musa/modules/books/models/app_settings.dart';
 import 'package:musa/modules/books/models/book.dart';
 import 'package:musa/modules/books/models/narrative_workspace.dart';
+import 'package:musa/modules/books/providers/workspace_providers.dart';
 import 'package:musa/modules/creative/models/creative_card.dart';
+import 'package:musa/modules/creative/providers/creative_providers.dart';
 
 void main() {
   group('NarrativeWorkspace creative cards', () {
@@ -95,6 +98,43 @@ void main() {
       expect(
         workspace.activeBookCreativeCards.map((card) => card.id),
         ['newer', 'older'],
+      );
+    });
+
+    test('activeCreativeCardsProvider returns active book cards only',
+        () async {
+      final now = DateTime.utc(2026, 5, 7);
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      container.read(narrativeWorkspaceProvider.notifier).state =
+          AsyncData(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(id: 'book-1', title: 'Uno', createdAt: now, updatedAt: now),
+          Book(id: 'book-2', title: 'Dos', createdAt: now, updatedAt: now),
+        ],
+        creativeCards: [
+          CreativeCard(
+            id: 'active',
+            bookId: 'book-1',
+            title: 'Activa',
+            createdAt: now,
+            updatedAt: now,
+          ),
+          CreativeCard(
+            id: 'inactive',
+            bookId: 'book-2',
+            title: 'Inactiva',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+      ));
+
+      expect(
+        container.read(activeCreativeCardsProvider).map((card) => card.id),
+        ['active'],
       );
     });
   });
