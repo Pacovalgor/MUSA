@@ -46,6 +46,8 @@ class _CreativeCardDetailPanelState
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
   final _tagsController = TextEditingController();
+  final _attachmentTitleController = TextEditingController();
+  final _attachmentUriController = TextEditingController();
 
   CreativeCardType _type = CreativeCardType.idea;
   CreativeCardStatus _status = CreativeCardStatus.inbox;
@@ -70,6 +72,8 @@ class _CreativeCardDetailPanelState
     _titleController.dispose();
     _bodyController.dispose();
     _tagsController.dispose();
+    _attachmentTitleController.dispose();
+    _attachmentUriController.dispose();
     super.dispose();
   }
 
@@ -122,11 +126,51 @@ class _CreativeCardDetailPanelState
         );
   }
 
+  Future<void> _addLinkAttachment(CreativeCard card) async {
+    final uri = _attachmentUriController.text.trim();
+    if (uri.isEmpty) return;
+    final title = _attachmentTitleController.text.trim();
+    final attachment = CreativeCardAttachment(
+      id: 'creative_attachment_${DateTime.now().microsecondsSinceEpoch}',
+      kind: CreativeCardAttachmentKind.link,
+      uri: uri,
+      title: title,
+      createdAt: DateTime.now(),
+    );
+
+    await ref.read(narrativeWorkspaceProvider.notifier).updateCreativeCard(
+          card.copyWith(attachments: [...card.attachments, attachment]),
+        );
+    if (!mounted) return;
+    _attachmentTitleController.clear();
+    _attachmentUriController.clear();
+  }
+
+  Future<void> _removeAttachment(
+    CreativeCard card,
+    CreativeCardAttachment attachment,
+  ) async {
+    await ref.read(narrativeWorkspaceProvider.notifier).updateCreativeCard(
+          card.copyWith(
+            attachments: card.attachments
+                .where((item) => item.id != attachment.id)
+                .toList(),
+          ),
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
-    ref.watch(narrativeWorkspaceProvider);
+    final workspace = ref.watch(narrativeWorkspaceProvider).valueOrNull;
     final tokens = MusaTheme.tokensOf(context);
-    final selectedCard = widget.card;
+    final widgetCard = widget.card;
+    final selectedCard = widgetCard == null
+        ? null
+        : workspace?.creativeCards.cast<CreativeCard?>().firstWhere(
+                  (card) => card?.id == widgetCard.id,
+                  orElse: () => widgetCard,
+                ) ??
+            widgetCard;
     final isConverted = selectedCard?.status == CreativeCardStatus.converted;
 
     return DecoratedBox(
@@ -147,132 +191,216 @@ class _CreativeCardDetailPanelState
                       ),
                 ),
               )
-            : SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Detalle de tarjeta',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: tokens.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      key: const Key('creative-card-detail-title-field'),
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Título',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      key: const Key('creative-card-detail-body-field'),
-                      controller: _bodyController,
-                      minLines: 4,
-                      maxLines: 8,
-                      decoration: const InputDecoration(
-                        labelText: 'Cuerpo',
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      key: const Key('creative-card-detail-tags-field'),
-                      controller: _tagsController,
-                      decoration: const InputDecoration(
-                        labelText: 'Etiquetas',
-                        hintText: 'Separadas por coma',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    InputDecorator(
-                      key: const Key('creative-card-detail-type-field'),
-                      decoration: const InputDecoration(
-                        labelText: 'Tipo',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<CreativeCardType>(
-                          value: _type,
-                          isDense: true,
-                          isExpanded: true,
-                          items: CreativeCardType.values
-                              .map(
-                                (type) => DropdownMenuItem(
-                                  value: type,
-                                  child: Text(_typeLabels[type] ?? type.name),
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Detalle de tarjeta',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: tokens.textPrimary,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              )
-                              .toList(),
-                          onChanged: isConverted
-                              ? null
-                              : (value) {
-                                  if (value == null) return;
-                                  setState(() => _type = value);
-                                },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (isConverted)
-                      Text(
-                        _statusLabels[CreativeCardStatus.converted]!,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: tokens.successText,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      )
-                    else
-                      InputDecorator(
-                        key: const Key('creative-card-detail-status-field'),
-                        decoration: const InputDecoration(
-                          labelText: 'Estado',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<CreativeCardStatus>(
-                            value: _status,
-                            isDense: true,
-                            isExpanded: true,
-                            items: _editableStatuses
-                                .map(
-                                  (status) => DropdownMenuItem(
-                                    value: status,
-                                    child: Text(
-                                      _statusLabels[status] ?? status.name,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value == null) return;
-                              setState(() => _status = value);
-                            },
                           ),
-                        ),
-                      ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        key: const Key('creative-card-detail-save-button'),
-                        onPressed: () => _save(selectedCard),
-                        child: const Text('Guardar'),
+                          const SizedBox(height: 12),
+                          TextField(
+                            key: const Key('creative-card-detail-title-field'),
+                            controller: _titleController,
+                            decoration: const InputDecoration(
+                              labelText: 'Título',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            key: const Key('creative-card-detail-body-field'),
+                            controller: _bodyController,
+                            minLines: 4,
+                            maxLines: 8,
+                            decoration: const InputDecoration(
+                              labelText: 'Cuerpo',
+                              alignLabelWithHint: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            key: const Key('creative-card-detail-tags-field'),
+                            controller: _tagsController,
+                            decoration: const InputDecoration(
+                              labelText: 'Etiquetas',
+                              hintText: 'Separadas por coma',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Adjuntos',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(
+                                  color: tokens.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          for (final attachment in selectedCard.attachments)
+                            ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(
+                                attachment.title.isEmpty
+                                    ? _attachmentKindLabel(attachment.kind)
+                                    : attachment.title,
+                              ),
+                              subtitle: Text(attachment.uri),
+                              trailing: IconButton(
+                                key: Key(
+                                  'creative-card-remove-attachment-${attachment.id}',
+                                ),
+                                tooltip: 'Quitar adjunto',
+                                icon: const Icon(Icons.close, size: 16),
+                                onPressed: () {
+                                  _removeAttachment(selectedCard, attachment);
+                                },
+                              ),
+                            ),
+                          TextField(
+                            key: const Key(
+                                'creative-card-attachment-title-field'),
+                            controller: _attachmentTitleController,
+                            decoration: const InputDecoration(
+                              labelText: 'Título del enlace',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            key:
+                                const Key('creative-card-attachment-uri-field'),
+                            controller: _attachmentUriController,
+                            decoration: const InputDecoration(
+                              labelText: 'URL o ruta',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            key: const Key('creative-card-add-link-button'),
+                            onPressed: () => _addLinkAttachment(selectedCard),
+                            icon: const Icon(Icons.link, size: 16),
+                            label: const Text('Añadir enlace'),
+                          ),
+                          const SizedBox(height: 10),
+                          InputDecorator(
+                            key: const Key('creative-card-detail-type-field'),
+                            decoration: const InputDecoration(
+                              labelText: 'Tipo',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<CreativeCardType>(
+                                value: _type,
+                                isDense: true,
+                                isExpanded: true,
+                                items: CreativeCardType.values
+                                    .map(
+                                      (type) => DropdownMenuItem(
+                                        value: type,
+                                        child: Text(
+                                            _typeLabels[type] ?? type.name),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: isConverted
+                                    ? null
+                                    : (value) {
+                                        if (value == null) return;
+                                        setState(() => _type = value);
+                                      },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          if (isConverted)
+                            Text(
+                              _statusLabels[CreativeCardStatus.converted]!,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: tokens.successText,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            )
+                          else
+                            InputDecorator(
+                              key: const Key(
+                                  'creative-card-detail-status-field'),
+                              decoration: const InputDecoration(
+                                labelText: 'Estado',
+                                isDense: true,
+                                border: OutlineInputBorder(),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<CreativeCardStatus>(
+                                  value: _status,
+                                  isDense: true,
+                                  isExpanded: true,
+                                  items: _editableStatuses
+                                      .map(
+                                        (status) => DropdownMenuItem(
+                                          value: status,
+                                          child: Text(
+                                            _statusLabels[status] ??
+                                                status.name,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    setState(() => _status = value);
+                                  },
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      key: const Key('creative-card-detail-save-button'),
+                      onPressed: () => _save(selectedCard),
+                      child: const Text('Guardar'),
+                    ),
+                  ),
+                ],
               ),
       ),
     );
   }
+}
+
+String _attachmentKindLabel(CreativeCardAttachmentKind kind) {
+  return switch (kind) {
+    CreativeCardAttachmentKind.link => 'Enlace',
+    CreativeCardAttachmentKind.image => 'Imagen',
+  };
 }

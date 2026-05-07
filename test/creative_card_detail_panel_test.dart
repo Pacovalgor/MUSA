@@ -134,6 +134,68 @@ void main() {
     expect(stored.title, 'Puerta roja');
     expect(stored.status, CreativeCardStatus.readyToUse);
   });
+
+  testWidgets('detail panel adds and removes link attachments', (tester) async {
+    final repository = _MemoryWorkspaceRepository(_workspaceWithCard());
+    final card = repository.workspace.creativeCards.single;
+
+    await tester
+        .pumpWidget(_app(repository, CreativeCardDetailPanel(card: card)));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('creative-card-attachment-title-field')),
+      'Referencia',
+    );
+    await tester.enterText(
+      find.byKey(const Key('creative-card-attachment-uri-field')),
+      'https://example.com/door',
+    );
+    await tester.tap(find.byKey(const Key('creative-card-add-link-button')));
+    await tester.pumpAndSettle();
+
+    var stored = repository.workspace.creativeCards.single;
+    expect(stored.attachments, hasLength(1));
+    expect(stored.attachments.single.kind, CreativeCardAttachmentKind.link);
+    expect(stored.attachments.single.title, 'Referencia');
+    expect(stored.attachments.single.uri, 'https://example.com/door');
+
+    await tester.tap(
+      find.byKey(
+        Key('creative-card-remove-attachment-${stored.attachments.single.id}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    stored = repository.workspace.creativeCards.single;
+    expect(stored.attachments, isEmpty);
+  });
+
+  testWidgets('detail panel shows image attachment as reference text',
+      (tester) async {
+    final now = DateTime.utc(2026, 5, 7);
+    final repository = _MemoryWorkspaceRepository(
+      _workspaceWithCard(
+        attachments: [
+          CreativeCardAttachment(
+            id: 'image-1',
+            kind: CreativeCardAttachmentKind.image,
+            uri: '/tmp/reference.png',
+            title: 'Foto de referencia',
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
+    final card = repository.workspace.creativeCards.single;
+
+    await tester
+        .pumpWidget(_app(repository, CreativeCardDetailPanel(card: card)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Foto de referencia'), findsOneWidget);
+    expect(find.text('/tmp/reference.png'), findsOneWidget);
+  });
 }
 
 Widget _app(_MemoryWorkspaceRepository repository, Widget child) {
@@ -164,12 +226,29 @@ NarrativeWorkspace _workspaceWithCards(List<CreativeCard> cards) {
   );
 }
 
+NarrativeWorkspace _workspaceWithCard({
+  CreativeCardStatus status = CreativeCardStatus.inbox,
+  CreativeCardConversion? convertedTo,
+  List<CreativeCardAttachment> attachments = const [],
+}) {
+  return _workspaceWithCards([
+    _card(
+      'card-1',
+      'Puerta azul',
+      status,
+      convertedTo: convertedTo,
+      attachments: attachments,
+    ),
+  ]);
+}
+
 CreativeCard _card(
   String id,
   String title,
   CreativeCardStatus status, {
   CreativeCardType type = CreativeCardType.idea,
   CreativeCardConversion? convertedTo,
+  List<CreativeCardAttachment> attachments = const [],
 }) {
   final now = DateTime.utc(2026, 5, 7);
   return CreativeCard(
@@ -180,6 +259,7 @@ CreativeCard _card(
     type: type,
     status: status,
     tags: const ['inicial'],
+    attachments: attachments,
     convertedTo: convertedTo,
     createdAt: now,
     updatedAt: now,
