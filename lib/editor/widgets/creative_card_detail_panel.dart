@@ -2,17 +2,116 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
+import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/creative/models/creative_card.dart';
 
-class CreativeCardDetailPanel extends ConsumerWidget {
+const _editableStatuses = [
+  CreativeCardStatus.inbox,
+  CreativeCardStatus.exploring,
+  CreativeCardStatus.promising,
+  CreativeCardStatus.readyToUse,
+];
+
+const _typeLabels = {
+  CreativeCardType.idea: 'Idea',
+  CreativeCardType.sketch: 'Boceto',
+  CreativeCardType.character: 'Personaje',
+  CreativeCardType.scenario: 'Escenario',
+  CreativeCardType.image: 'Imagen',
+  CreativeCardType.research: 'Research',
+  CreativeCardType.question: 'Pregunta',
+};
+
+const _statusLabels = {
+  CreativeCardStatus.inbox: 'Inbox',
+  CreativeCardStatus.exploring: 'Explorando',
+  CreativeCardStatus.promising: 'Prometedora',
+  CreativeCardStatus.readyToUse: 'Lista',
+  CreativeCardStatus.converted: 'Convertida',
+  CreativeCardStatus.archived: 'Archivada',
+};
+
+class CreativeCardDetailPanel extends ConsumerStatefulWidget {
   const CreativeCardDetailPanel({super.key, required this.card});
 
   final CreativeCard? card;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CreativeCardDetailPanel> createState() =>
+      _CreativeCardDetailPanelState();
+}
+
+class _CreativeCardDetailPanelState
+    extends ConsumerState<CreativeCardDetailPanel> {
+  final _titleController = TextEditingController();
+  final _bodyController = TextEditingController();
+  final _tagsController = TextEditingController();
+
+  CreativeCardType _type = CreativeCardType.idea;
+  CreativeCardStatus _status = CreativeCardStatus.inbox;
+  String? _syncedCardId;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncCard(widget.card);
+  }
+
+  @override
+  void didUpdateWidget(covariant CreativeCardDetailPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncCard(widget.card);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _bodyController.dispose();
+    _tagsController.dispose();
+    super.dispose();
+  }
+
+  void _syncCard(CreativeCard? card) {
+    if (card?.id == _syncedCardId) return;
+
+    _syncedCardId = card?.id;
+    _titleController.text = card?.title ?? '';
+    _bodyController.text = card?.body ?? '';
+    _tagsController.text = card?.tags.join(', ') ?? '';
+    _type = card?.type ?? CreativeCardType.idea;
+
+    final cardStatus = card?.status ?? CreativeCardStatus.inbox;
+    _status = _editableStatuses.contains(cardStatus)
+        ? cardStatus
+        : CreativeCardStatus.inbox;
+  }
+
+  Future<void> _save(CreativeCard card) async {
+    final tags = _tagsController.text
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList(growable: false);
+    final status = card.status == CreativeCardStatus.converted
+        ? CreativeCardStatus.converted
+        : _status;
+
+    await ref.read(narrativeWorkspaceProvider.notifier).updateCreativeCard(
+          card.copyWith(
+            title: _titleController.text.trim(),
+            body: _bodyController.text.trim(),
+            tags: tags,
+            type: _type,
+            status: status,
+          ),
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(narrativeWorkspaceProvider);
     final tokens = MusaTheme.tokensOf(context);
-    final selectedCard = card;
+    final selectedCard = widget.card;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -46,15 +145,110 @@ class CreativeCardDetailPanel extends ConsumerWidget {
                     const SizedBox(height: 12),
                     TextField(
                       key: const Key('creative-card-detail-title-field'),
-                      controller: TextEditingController(
-                        text: selectedCard.title.trim().isEmpty
-                            ? 'Idea sin título'
-                            : selectedCard.title,
-                      ),
+                      controller: _titleController,
                       decoration: const InputDecoration(
                         labelText: 'Título',
                         isDense: true,
                         border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      key: const Key('creative-card-detail-body-field'),
+                      controller: _bodyController,
+                      minLines: 4,
+                      maxLines: 8,
+                      decoration: const InputDecoration(
+                        labelText: 'Cuerpo',
+                        alignLabelWithHint: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      key: const Key('creative-card-detail-tags-field'),
+                      controller: _tagsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Etiquetas',
+                        hintText: 'Separadas por coma',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    InputDecorator(
+                      key: const Key('creative-card-detail-type-field'),
+                      decoration: const InputDecoration(
+                        labelText: 'Tipo',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<CreativeCardType>(
+                          value: _type,
+                          isDense: true,
+                          isExpanded: true,
+                          items: CreativeCardType.values
+                              .map(
+                                (type) => DropdownMenuItem(
+                                  value: type,
+                                  child: Text(_typeLabels[type] ?? type.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => _type = value);
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (selectedCard.status == CreativeCardStatus.converted)
+                      Text(
+                        _statusLabels[CreativeCardStatus.converted]!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: tokens.successText,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      )
+                    else
+                      InputDecorator(
+                        key: const Key('creative-card-detail-status-field'),
+                        decoration: const InputDecoration(
+                          labelText: 'Estado',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<CreativeCardStatus>(
+                            value: _status,
+                            isDense: true,
+                            isExpanded: true,
+                            items: _editableStatuses
+                                .map(
+                                  (status) => DropdownMenuItem(
+                                    value: status,
+                                    child: Text(
+                                      _statusLabels[status] ?? status.name,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setState(() => _status = value);
+                            },
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        key: const Key('creative-card-detail-save-button'),
+                        onPressed: () => _save(selectedCard),
+                        child: const Text('Guardar'),
                       ),
                     ),
                   ],
