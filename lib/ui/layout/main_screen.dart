@@ -14,6 +14,7 @@ import '../../editor/controller/editor_controller.dart';
 import '../../editor/widgets/book_editor.dart';
 import '../../editor/widgets/chapter_insight_panel.dart';
 import '../../editor/widgets/character_editor.dart';
+import '../../editor/widgets/creative_board_editor.dart';
 import '../../editor/widgets/editor_overlay.dart';
 import '../../editor/widgets/fragment_insight_panel.dart';
 import '../../editor/widgets/musa_editor_field.dart';
@@ -121,9 +122,14 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
     final editorMode = ref.watch(editorModeProvider);
     final isEditorFocused = ref.watch(editorFocusProvider);
     final isBookMode = editorMode == workspace.WorkspaceEditorMode.book;
-    final isCharacterMode = editorMode == workspace.WorkspaceEditorMode.character;
+    final isCharacterMode =
+        editorMode == workspace.WorkspaceEditorMode.character;
     final isScenarioMode = editorMode == workspace.WorkspaceEditorMode.scenario;
-    final focusFadeEnabled = writingSettings.focusModeEnabled && isEditorFocused && !isCharacterMode && !isScenarioMode && !isBookMode;
+    final isCreativeMode = editorMode == workspace.WorkspaceEditorMode.creative;
+    final isAuxiliaryMode =
+        isCharacterMode || isScenarioMode || isBookMode || isCreativeMode;
+    final focusFadeEnabled =
+        writingSettings.focusModeEnabled && isEditorFocused && !isAuxiliaryMode;
     const sidebarKeepOpenDistance = _sidebarWidth * _edgeKeepOpenMultiplier;
     const inspectorKeepOpenDistance = _inspectorWidth * _edgeKeepOpenMultiplier;
 
@@ -139,7 +145,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                   ref.read(sidebarAutoOpenedProvider.notifier).state = true;
                 }
 
-                if (!showInspector && x >= screenWidth - MusaMainScreen._edgeRevealDistance) {
+                if (!showInspector &&
+                    x >= screenWidth - MusaMainScreen._edgeRevealDistance) {
                   ref.read(inspectorVisibilityProvider.notifier).state = true;
                   ref.read(inspectorAutoOpenedProvider.notifier).state = true;
                 }
@@ -195,25 +202,29 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                             showInspector,
                           ),
                           Expanded(
-                            child: isCharacterMode
-                                ? const CharacterEditor()
-                                : isScenarioMode
-                                    ? const ScenarioEditor()
-                                    : isBookMode
-                                        ? const BookEditor()
-                                        : const MusaEditor(),
+                            child: switch (editorMode) {
+                              workspace.WorkspaceEditorMode.character =>
+                                const CharacterEditor(),
+                              workspace.WorkspaceEditorMode.scenario =>
+                                const ScenarioEditor(),
+                              workspace.WorkspaceEditorMode.book =>
+                                const BookEditor(),
+                              workspace.WorkspaceEditorMode.creative =>
+                                const CreativeBoardEditor(),
+                              _ => const MusaEditor(),
+                            },
                           ),
                         ],
                       ),
-                      if (!isCharacterMode && !isScenarioMode && !isBookMode)
+                      if (!isAuxiliaryMode)
                         const Positioned(
                           top: 0,
                           left: 0,
                           child: MusaEditorOverlay(),
                         ),
-                      if (!isCharacterMode && !isScenarioMode && !isBookMode) const SuggestionReviewPanel(),
-                      if (!isCharacterMode && !isScenarioMode && !isBookMode) const FragmentInsightPanel(),
-                      if (!isCharacterMode && !isScenarioMode && !isBookMode) const ChapterInsightPanel(),
+                      if (!isAuxiliaryMode) const SuggestionReviewPanel(),
+                      if (!isAuxiliaryMode) const FragmentInsightPanel(),
+                      if (!isAuxiliaryMode) const ChapterInsightPanel(),
                     ],
                   ),
                 ),
@@ -320,30 +331,47 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
     final currentNote = ref.watch(currentNoteProvider);
     final selectedCharacter = ref.watch(selectedCharacterProvider);
     final selectedScenario = ref.watch(selectedScenarioProvider);
-    final isVisibleChapter = editorMode == workspace.WorkspaceEditorMode.document && currentDocument?.kind == DocumentKind.chapter;
-    final canAnalyzeChapter = isVisibleChapter && currentDocument!.content.trim().isNotEmpty;
-    final canPrintChapter = isVisibleChapter && currentDocument!.content.trim().isNotEmpty;
-    final canPrintBook = editorMode == workspace.WorkspaceEditorMode.book && activeBook != null;
+    final isVisibleChapter =
+        editorMode == workspace.WorkspaceEditorMode.document &&
+            currentDocument?.kind == DocumentKind.chapter;
+    final canAnalyzeChapter =
+        isVisibleChapter && currentDocument!.content.trim().isNotEmpty;
+    final canPrintChapter =
+        isVisibleChapter && currentDocument!.content.trim().isNotEmpty;
+    final canPrintBook =
+        editorMode == workspace.WorkspaceEditorMode.book && activeBook != null;
     final activeContext = switch (editorMode) {
-      workspace.WorkspaceEditorMode.book when activeBook != null => _TopBarContext(
+      workspace.WorkspaceEditorMode.book when activeBook != null =>
+        _TopBarContext(
           label: 'Libro',
           title: activeBook.title,
         ),
-      workspace.WorkspaceEditorMode.document when currentDocument != null => _TopBarContext(
-          label: currentDocument.kind == DocumentKind.chapter ? 'Capítulo' : 'Documento',
+      workspace.WorkspaceEditorMode.document when currentDocument != null =>
+        _TopBarContext(
+          label: currentDocument.kind == DocumentKind.chapter
+              ? 'Capítulo'
+              : 'Documento',
           title: currentDocument.title,
         ),
-      workspace.WorkspaceEditorMode.note when currentNote != null => _TopBarContext(
+      workspace.WorkspaceEditorMode.note when currentNote != null =>
+        _TopBarContext(
           label: 'Nota',
           title: currentNote.title ?? 'Nota sin título',
         ),
-      workspace.WorkspaceEditorMode.character when selectedCharacter != null => _TopBarContext(
+      workspace.WorkspaceEditorMode.character when selectedCharacter != null =>
+        _TopBarContext(
           label: 'Personaje',
           title: selectedCharacter.displayName,
         ),
-      workspace.WorkspaceEditorMode.scenario when selectedScenario != null => _TopBarContext(
+      workspace.WorkspaceEditorMode.scenario when selectedScenario != null =>
+        _TopBarContext(
           label: 'Escenario',
           title: selectedScenario.displayName,
+        ),
+      workspace.WorkspaceEditorMode.creative when activeBook != null =>
+        _TopBarContext(
+          label: 'Mesa creativa',
+          title: activeBook.title,
         ),
       _ => null,
     };
@@ -375,7 +403,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                 ),
                 onPressed: () {
                   final nextVisible = !sidebarVisible;
-                  ref.read(sidebarVisibilityProvider.notifier).state = nextVisible;
+                  ref.read(sidebarVisibilityProvider.notifier).state =
+                      nextVisible;
                   ref.read(sidebarAutoOpenedProvider.notifier).state = false;
                   _sidebarCloseTimer?.cancel();
                 },
@@ -390,7 +419,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
               ],
               if (editorState.previousText != null)
                 TextButton.icon(
-                  onPressed: () => ref.read(editorProvider.notifier).undoSuggestion(),
+                  onPressed: () =>
+                      ref.read(editorProvider.notifier).undoSuggestion(),
                   style: TextButton.styleFrom(
                     foregroundColor: tokens.textSecondary,
                   ),
@@ -417,14 +447,17 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                       : () {
                           FocusManager.instance.primaryFocus?.unfocus();
                           WidgetsBinding.instance.addPostFrameCallback((_) {
-                            ref.read(editorProvider.notifier).runChapterAnalysis();
+                            ref
+                                .read(editorProvider.notifier)
+                                .runChapterAnalysis();
                           });
                         },
                   style: TextButton.styleFrom(
                     foregroundColor: tokens.textPrimary,
                     splashFactory: NoSplash.splashFactory,
                   ).copyWith(
-                    overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                    overlayColor:
+                        WidgetStateProperty.resolveWith<Color?>((states) {
                       if (states.contains(WidgetState.hovered)) {
                         return tokens.hoverBackground;
                       }
@@ -441,7 +474,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
               ],
               if (canPrintChapter || canPrintBook) ...[
                 PopupMenuButton<_PrintMenuAction>(
-                  tooltip: canPrintChapter ? 'Imprimir capítulo' : 'Imprimir libro',
+                  tooltip:
+                      canPrintChapter ? 'Imprimir capítulo' : 'Imprimir libro',
                   color: tokens.canvasBackground,
                   surfaceTintColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
@@ -452,7 +486,9 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                     PopupMenuItem(
                       value: _PrintMenuAction.standard,
                       child: Text(
-                        canPrintChapter ? 'Imprimir capítulo' : 'Imprimir libro',
+                        canPrintChapter
+                            ? 'Imprimir capítulo'
+                            : 'Imprimir libro',
                       ),
                     ),
                     const PopupMenuItem(
@@ -470,7 +506,9 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                                 document: currentDocument,
                               );
                         } else {
-                          await ref.read(printServiceProvider).printChapterBooklet(
+                          await ref
+                              .read(printServiceProvider)
+                              .printChapterBooklet(
                                 book: activeBook!,
                                 document: currentDocument,
                               );
@@ -499,7 +537,9 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            details.isEmpty ? 'No se pudo abrir la impresion ahora mismo.' : 'No se pudo abrir la impresion: $details',
+                            details.isEmpty
+                                ? 'No se pudo abrir la impresion ahora mismo.'
+                                : 'No se pudo abrir la impresion: $details',
                           ),
                         ),
                       );
@@ -513,7 +553,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
                       disabledForegroundColor: tokens.textPrimary,
                       splashFactory: NoSplash.splashFactory,
                     ).copyWith(
-                      overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                      overlayColor:
+                          WidgetStateProperty.resolveWith<Color?>((states) {
                         if (states.contains(WidgetState.hovered)) {
                           return tokens.hoverBackground;
                         }
@@ -559,13 +600,16 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
               const SizedBox(width: 4),
               IconButton(
                 icon: Icon(
-                  inspectorVisible ? Icons.view_sidebar : Icons.view_sidebar_outlined,
+                  inspectorVisible
+                      ? Icons.view_sidebar
+                      : Icons.view_sidebar_outlined,
                   size: 20,
                   color: tokens.textMuted,
                 ),
                 onPressed: () {
                   final nextVisible = !inspectorVisible;
-                  ref.read(inspectorVisibilityProvider.notifier).state = nextVisible;
+                  ref.read(inspectorVisibilityProvider.notifier).state =
+                      nextVisible;
                   ref.read(inspectorAutoOpenedProvider.notifier).state = false;
                   _inspectorCloseTimer?.cancel();
                 },
@@ -585,7 +629,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
     if (activeId == null) return const SizedBox.shrink();
 
     final state = modelState.installStates[activeId];
-    if (state == ModelInstallState.downloading || state == ModelInstallState.verifying) {
+    if (state == ModelInstallState.downloading ||
+        state == ModelInstallState.verifying) {
       final progress = modelState.downloadProgress[activeId] ?? 0.0;
       return Padding(
         padding: const EdgeInsets.only(right: 12),
@@ -601,11 +646,13 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
               )),
         ),
       );
-    } else if (state == ModelInstallState.failed || state == ModelInstallState.cancelled) {
+    } else if (state == ModelInstallState.failed ||
+        state == ModelInstallState.cancelled) {
       return Padding(
         padding: const EdgeInsets.only(right: 12),
         child: Tooltip(
-          message: 'La instalación del motor IA falló. Reintenta desde Ajustes.',
+          message:
+              'La instalación del motor IA falló. Reintenta desde Ajustes.',
           child: Icon(
             Icons.cloud_off,
             size: 16,
@@ -624,8 +671,11 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
   ) {
     final tokens = MusaTheme.tokensOf(context);
     final activeProjectPath = ref.watch(activeProjectPathProvider).valueOrNull;
-    final recentProjects = ref.watch(recentProjectsProvider).valueOrNull ?? const [];
-    final projectLabel = activeProjectPath == null || activeProjectPath.isEmpty ? 'Proyecto' : p.basename(activeProjectPath);
+    final recentProjects =
+        ref.watch(recentProjectsProvider).valueOrNull ?? const [];
+    final projectLabel = activeProjectPath == null || activeProjectPath.isEmpty
+        ? 'Proyecto'
+        : p.basename(activeProjectPath);
 
     return PopupMenuButton<_ProjectMenuSelection>(
       tooltip: 'Proyecto',
@@ -716,7 +766,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
             fileBytes = await file?.readAsBytes();
           }
           if (fileBytes == null) return;
-          debugPrint('[OPEN_PROJECT] main_screen: Got ${fileBytes.length} bytes from picker');
+          debugPrint(
+              '[OPEN_PROJECT] main_screen: Got ${fileBytes.length} bytes from picker');
           await notifier.openProjectFile(fileBytes);
           _throwIfWorkspaceError(ref);
           ref.invalidate(activeProjectPathProvider);
@@ -751,7 +802,9 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
           if (path == null) return;
           if (!mounted) return;
           _showProjectMessage(
-            Platform.isMacOS ? 'Proyecto exportado: ${p.basename(path)}' : 'Proyecto guardado: ${p.basename(path)}',
+            Platform.isMacOS
+                ? 'Proyecto exportado: ${p.basename(path)}'
+                : 'Proyecto guardado: ${p.basename(path)}',
           );
           break;
         case _ProjectMenuAction.create:
@@ -785,7 +838,8 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
             );
             return;
           }
-          debugPrint('[OPEN_PROJECT] main_screen: Recent project ${fileBytes.length} bytes from $path');
+          debugPrint(
+              '[OPEN_PROJECT] main_screen: Recent project ${fileBytes.length} bytes from $path');
           await notifier.openProjectFile(fileBytes);
           _throwIfWorkspaceError(ref);
           ref.invalidate(activeProjectPathProvider);
@@ -806,7 +860,9 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
       if (!mounted) return;
       final details = error.toString().trim();
       _showProjectMessage(
-        details.isEmpty ? 'No se pudo completar la operación del proyecto.' : 'No se pudo completar la operación: $details',
+        details.isEmpty
+            ? 'No se pudo completar la operación del proyecto.'
+            : 'No se pudo completar la operación: $details',
       );
     }
   }
@@ -819,7 +875,9 @@ class _MusaMainScreenState extends ConsumerState<MusaMainScreen> {
   }
 
   String _projectSuggestedName(String? activeBookTitle) {
-    final cleaned = (activeBookTitle ?? 'Musa').trim().replaceAll(RegExp(r'[\\/:*?"<>|]+'), '-');
+    final cleaned = (activeBookTitle ?? 'Musa')
+        .trim()
+        .replaceAll(RegExp(r'[\\/:*?"<>|]+'), '-');
     final baseName = cleaned.isEmpty ? 'Musa' : cleaned;
     return '$baseName${MusaProjectDocument.extension}';
   }

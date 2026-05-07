@@ -269,9 +269,6 @@ class _MusaSidebarState extends ConsumerState<MusaSidebar> {
     if (workspace.hasError) {
       return const Center(child: Text('No se pudo cargar el libro'));
     }
-    if (documents.isEmpty) {
-      return const Center(child: Text('No hay documentos todavía'));
-    }
     final workspaceValue = ref.watch(narrativeWorkspaceProvider).value;
     final characterAutofill = ref.watch(characterAutofillProvider);
     final currentDocumentId = workspaceValue?.selectedDocumentId;
@@ -317,6 +314,20 @@ class _MusaSidebarState extends ConsumerState<MusaSidebar> {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        _buildItem(
+          context,
+          'Mesa creativa',
+          subtitle: 'Tarjetas no canónicas',
+          isSelected: editorMode == WorkspaceEditorMode.creative,
+          onTap: activeBook == null
+              ? null
+              : () => ref
+                  .read(narrativeWorkspaceProvider.notifier)
+                  .openCreativeBoard(),
+        ),
+        const SizedBox(height: 8),
+        _buildSeparator(),
+        const SizedBox(height: 12),
         _buildSectionHeader(
           context,
           'CAPÍTULOS',
@@ -324,6 +335,8 @@ class _MusaSidebarState extends ConsumerState<MusaSidebar> {
               ? null
               : () => _handleCreateDocument(context, ref),
         ),
+        if (documents.isEmpty)
+          _buildEmptyLabel(context, 'No hay documentos todavía'),
         ...documents.map(
           (document) {
             final isSelected = editorMode == WorkspaceEditorMode.document &&
@@ -1106,7 +1119,9 @@ class _MusaSidebarState extends ConsumerState<MusaSidebar> {
           'Se eliminará "${document.title}". Esta acción no se puede deshacer.',
     );
     if (!confirmed || !context.mounted) return;
-    await ref.read(narrativeWorkspaceProvider.notifier).deleteDocument(document.id);
+    await ref
+        .read(narrativeWorkspaceProvider.notifier)
+        .deleteDocument(document.id);
   }
 
   Future<void> _handleCreateNote(BuildContext context, WidgetRef ref) async {

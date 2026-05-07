@@ -21,7 +21,7 @@ import 'narrative_copilot.dart';
 import 'workspace_snapshot.dart';
 
 /// Identifies which editorial surface is currently active in the workspace.
-enum WorkspaceEditorMode { book, document, note, character, scenario }
+enum WorkspaceEditorMode { book, document, note, character, scenario, creative }
 
 /// Canonical in-memory representation of the user's full local writing workspace.
 class NarrativeWorkspace {

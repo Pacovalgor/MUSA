@@ -327,6 +327,18 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  Future<void> openCreativeBoard() async {
+    final workspace = state.value;
+    if (workspace == null || workspace.activeBook == null) return;
+    if (workspace.editorMode == WorkspaceEditorMode.creative) return;
+
+    await _persist(
+      workspace.copyWith(
+        editorMode: WorkspaceEditorMode.creative,
+      ),
+    );
+  }
+
   Future<void> updateBookTitle(String bookId, String title) async {
     final workspace = state.value;
     if (workspace == null) return;
