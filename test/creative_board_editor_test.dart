@@ -67,6 +67,16 @@ void main() {
     expect(repository.workspace.editorMode, WorkspaceEditorMode.creative);
   });
 
+  testWidgets('empty active book hides the card detail panel', (tester) async {
+    final repository = _MemoryWorkspaceRepository(_workspaceWithCards());
+
+    await tester.pumpWidget(_app(repository, const CreativeBoardEditor()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No hay tarjetas visibles'), findsOneWidget);
+    expect(find.text('Selecciona una tarjeta'), findsNothing);
+  });
+
   testWidgets('creating a card persists it to the active book', (tester) async {
     final repository = _MemoryWorkspaceRepository(_workspaceWithCards());
 
@@ -187,6 +197,7 @@ void main() {
     final repository = _MemoryWorkspaceRepository(
       _workspaceWithCards([
         _card('card-1', 'Idea para archivar', CreativeCardStatus.inbox),
+        _card('card-2', 'Idea visible', CreativeCardStatus.exploring),
       ]),
     );
 
@@ -203,6 +214,7 @@ void main() {
         .archiveCreativeCard('card-1');
     await tester.pumpAndSettle();
 
+    expect(find.text('Idea visible'), findsOneWidget);
     expect(find.text('Selecciona una tarjeta'), findsOneWidget);
   });
 }

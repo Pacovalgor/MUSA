@@ -76,32 +76,33 @@ class _CreativeBoardEditorState extends ConsumerState<CreativeBoardEditor> {
                         body:
                             'Selecciona o crea un libro para usar la mesa creativa.',
                       )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: cards.isEmpty
-                                ? const _BoardMessage(
-                                    icon: Icons.dashboard_customize_outlined,
-                                    title: 'No hay tarjetas visibles',
-                                    body:
-                                        'Crea una tarjeta para capturar ideas, bocetos o preguntas sin llevarlas a memoria narrativa.',
-                                  )
-                                : _BoardColumns(
-                                    cards: cards,
-                                    selectedCardId: _selectedCardId,
-                                    onSelectCard: (cardId) {
-                                      setState(() => _selectedCardId = cardId);
-                                    },
-                                  ),
+                    : cards.isEmpty
+                        ? const _BoardMessage(
+                            icon: Icons.dashboard_customize_outlined,
+                            title: 'No hay tarjetas visibles',
+                            body:
+                                'Crea una tarjeta para capturar ideas, bocetos o preguntas sin llevarlas a memoria narrativa.',
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: _BoardColumns(
+                                  cards: cards,
+                                  selectedCardId: _selectedCardId,
+                                  onSelectCard: (cardId) {
+                                    setState(() => _selectedCardId = cardId);
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              SizedBox(
+                                width: 360,
+                                child:
+                                    CreativeCardDetailPanel(card: selectedCard),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 14),
-                          SizedBox(
-                            width: 360,
-                            child: CreativeCardDetailPanel(card: selectedCard),
-                          ),
-                        ],
-                      ),
               ),
             ],
           ),
