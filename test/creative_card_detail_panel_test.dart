@@ -157,8 +157,16 @@ void main() {
     var stored = repository.workspace.creativeCards.single;
     expect(stored.attachments, hasLength(1));
     expect(stored.attachments.single.kind, CreativeCardAttachmentKind.link);
+    expect(
+      stored.attachments.single.id,
+      startsWith('creative_attachment_'),
+    );
     expect(stored.attachments.single.title, 'Referencia');
     expect(stored.attachments.single.uri, 'https://example.com/door');
+    expect(
+      stored.attachments.single.createdAt.isAfter(DateTime.utc(2026, 1, 1)),
+      isTrue,
+    );
 
     await tester.tap(
       find.byKey(
@@ -169,6 +177,24 @@ void main() {
 
     stored = repository.workspace.creativeCards.single;
     expect(stored.attachments, isEmpty);
+  });
+
+  testWidgets('detail panel ignores empty link attachment uri', (tester) async {
+    final repository = _MemoryWorkspaceRepository(_workspaceWithCard());
+    final card = repository.workspace.creativeCards.single;
+
+    await tester
+        .pumpWidget(_app(repository, CreativeCardDetailPanel(card: card)));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('creative-card-attachment-title-field')),
+      'Referencia sin enlace',
+    );
+    await tester.tap(find.byKey(const Key('creative-card-add-link-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.workspace.creativeCards.single.attachments, isEmpty);
   });
 
   testWidgets('detail panel shows image attachment as reference text',
