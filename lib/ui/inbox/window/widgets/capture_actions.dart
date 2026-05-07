@@ -15,9 +15,28 @@ class CaptureActions {
     if (storage == null) return;
 
     final body = (editedBody ?? c.body);
+    await ref.read(narrativeWorkspaceProvider.notifier).addNoteFromInbox(
+          body: body,
+          url: c.url,
+          capturedAt: c.capturedAt,
+          deviceLabel: c.deviceLabel,
+        );
+    await storage.markProcessed(File(record.path));
+    bumpInboxRefreshTick(ref);
+  }
+
+  static Future<void> acceptAsCreativeCard(
+      WidgetRef ref, InboxCaptureRecord record,
+      {String? editedBody}) async {
+    final c = record.capture;
+    if (c == null) return;
+    final storage = ref.read(inboxStorageProvider);
+    if (storage == null) return;
+
+    final body = editedBody ?? c.body;
     await ref
         .read(narrativeWorkspaceProvider.notifier)
-        .addNoteFromInbox(
+        .addCreativeCardFromInbox(
           body: body,
           url: c.url,
           capturedAt: c.capturedAt,

@@ -27,6 +27,49 @@ class _MemoryWorkspaceRepository implements NarrativeWorkspaceRepository {
 }
 
 void main() {
+  group('Inbox creative cards', () {
+    test('creates an inbox creative card with link attachment', () async {
+      final capturedAt = DateTime.utc(2026, 5, 7, 9, 30);
+      final container = await _containerWithWorkspace(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(
+            id: 'book-1',
+            title: 'Libro',
+            createdAt: capturedAt,
+            updatedAt: capturedAt,
+          ),
+        ],
+      ));
+      addTearDown(container.dispose);
+
+      final card = await container
+          .read(narrativeWorkspaceProvider.notifier)
+          .addCreativeCardFromInbox(
+            body: '  Primera idea\n\nDetalle de investigacion.  ',
+            url: ' https://example.com/research ',
+            capturedAt: capturedAt,
+            deviceLabel: ' iPhone de Paco ',
+          );
+
+      expect(card, isNotNull);
+      expect(card!.source, CreativeCardSource.inbox);
+      expect(card.title, 'Primera idea');
+      expect(card.body, 'Primera idea\n\nDetalle de investigacion.');
+      expect(card.type, CreativeCardType.research);
+      expect(card.createdAt, capturedAt);
+
+      final stored = container.read(activeCreativeCardsProvider).single;
+      expect(stored.id, card.id);
+      expect(stored.source, CreativeCardSource.inbox);
+      expect(stored.attachments, hasLength(1));
+      expect(stored.attachments.single.kind, CreativeCardAttachmentKind.link);
+      expect(stored.attachments.single.uri, 'https://example.com/research');
+      expect(stored.attachments.single.title, 'iPhone de Paco');
+      expect(stored.attachments.single.createdAt, capturedAt);
+    });
+  });
+
   group('Creative card conversions', () {
     test('converts a card to a note and marks the card converted', () async {
       final container = await _containerWithCard();
@@ -307,6 +350,19 @@ Future<ProviderContainer> _containerWithCard({
           ),
     ],
   ));
+  final container = ProviderContainer(
+    overrides: [
+      narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),
+    ],
+  );
+  await container.read(narrativeWorkspaceProvider.notifier).bootstrap();
+  return container;
+}
+
+Future<ProviderContainer> _containerWithWorkspace(
+  NarrativeWorkspace workspace,
+) async {
+  final repository = _MemoryWorkspaceRepository(workspace);
   final container = ProviderContainer(
     overrides: [
       narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),

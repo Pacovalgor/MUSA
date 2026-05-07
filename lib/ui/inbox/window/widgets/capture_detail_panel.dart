@@ -8,8 +8,7 @@ class CaptureDetailPanel extends ConsumerStatefulWidget {
   final InboxCaptureRecord record;
 
   @override
-  ConsumerState<CaptureDetailPanel> createState() =>
-      _CaptureDetailPanelState();
+  ConsumerState<CaptureDetailPanel> createState() => _CaptureDetailPanelState();
 }
 
 class _CaptureDetailPanelState extends ConsumerState<CaptureDetailPanel> {
@@ -49,7 +48,9 @@ class _CaptureDetailPanelState extends ConsumerState<CaptureDetailPanel> {
           children: [
             const Text('⚠️ Captura ilegible',
                 style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w700, color: Colors.red)),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.red)),
             const SizedBox(height: 12),
             if (widget.record.parseError != null)
               Text(widget.record.parseError!,
@@ -60,12 +61,12 @@ class _CaptureDetailPanelState extends ConsumerState<CaptureDetailPanel> {
                 padding: const EdgeInsets.all(8),
                 color: Colors.grey.shade100,
                 child: SelectableText(widget.record.rawContent!,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11)),
+                    style:
+                        const TextStyle(fontFamily: 'monospace', fontSize: 11)),
               ),
             const SizedBox(height: 16),
             OutlinedButton(
-              onPressed: () =>
-                  CaptureActions.discard(ref, widget.record),
+              onPressed: () => CaptureActions.discard(ref, widget.record),
               child: const Text('Descartar'),
             ),
           ],
@@ -110,7 +111,7 @@ class _CaptureDetailPanelState extends ConsumerState<CaptureDetailPanel> {
           _DetailActionsHook(
             record: widget.record,
             editing: _editing,
-            editedBody: _editController.text,
+            editController: _editController,
             onToggleEdit: () => setState(() => _editing = !_editing),
             onCancelEdit: () => setState(() {
               _editController.text = c.body;
@@ -127,13 +128,13 @@ class _DetailActionsHook extends ConsumerWidget {
   const _DetailActionsHook({
     required this.record,
     required this.editing,
-    required this.editedBody,
+    required this.editController,
     required this.onToggleEdit,
     required this.onCancelEdit,
   });
   final InboxCaptureRecord record;
   final bool editing;
-  final String editedBody;
+  final TextEditingController editController;
   final VoidCallback onToggleEdit;
   final VoidCallback onCancelEdit;
 
@@ -146,6 +147,10 @@ class _DetailActionsHook extends ConsumerWidget {
           FilledButton(
             onPressed: () => CaptureActions.accept(ref, record),
             child: const Text('Aceptar como nota'),
+          ),
+          OutlinedButton(
+            onPressed: () => CaptureActions.acceptAsCreativeCard(ref, record),
+            child: const Text('Enviar a mesa'),
           ),
           OutlinedButton(
             onPressed: onToggleEdit,
@@ -162,10 +167,25 @@ class _DetailActionsHook extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () async {
-              await CaptureActions.accept(ref, record, editedBody: editedBody);
+              await CaptureActions.accept(
+                ref,
+                record,
+                editedBody: editController.text,
+              );
               onCancelEdit();
             },
             child: const Text('Guardar y aceptar'),
+          ),
+          FilledButton.tonal(
+            onPressed: () async {
+              await CaptureActions.acceptAsCreativeCard(
+                ref,
+                record,
+                editedBody: editController.text,
+              );
+              onCancelEdit();
+            },
+            child: const Text('Enviar a mesa'),
           ),
         ],
       ],

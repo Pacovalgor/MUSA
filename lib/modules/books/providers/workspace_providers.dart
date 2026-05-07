@@ -1021,6 +1021,22 @@ class NarrativeWorkspaceNotifier
     return a.kind == b.kind && a.targetId == b.targetId;
   }
 
+  String _creativeInboxTitle({
+    required String body,
+    required String fallbackUrl,
+  }) {
+    for (final raw in body.split('\n')) {
+      final line = raw.trim();
+      if (line.isNotEmpty) return _truncateCreativeInboxTitle(line);
+    }
+    if (fallbackUrl.isNotEmpty) return _truncateCreativeInboxTitle(fallbackUrl);
+    return 'Idea capturada';
+  }
+
+  String _truncateCreativeInboxTitle(String value) {
+    return value.length > 80 ? '${value.substring(0, 77)}...' : value;
+  }
+
   Future<void> createNote({
     String title = 'Nueva nota',
     NoteKind kind = NoteKind.loose,
@@ -1100,6 +1116,56 @@ class NarrativeWorkspaceNotifier
       ),
     );
     return newNote;
+  }
+
+  Future<CreativeCard?> addCreativeCardFromInbox({
+    required String body,
+    required String? url,
+    required DateTime capturedAt,
+    required String deviceLabel,
+  }) async {
+    final workspace = state.value;
+    final activeBook = workspace?.activeBook;
+    if (workspace == null || activeBook == null) return null;
+
+    final trimmedBody = body.trim();
+    final trimmedUrl = url?.trim() ?? '';
+    final hasUrl = trimmedUrl.isNotEmpty;
+    final inferredTitle = _creativeInboxTitle(
+      body: trimmedBody,
+      fallbackUrl: trimmedUrl,
+    );
+    final now = DateTime.now();
+    final card = CreativeCard(
+      id: generateEntityId('creative'),
+      bookId: activeBook.id,
+      title: inferredTitle,
+      body: trimmedBody,
+      type: hasUrl ? CreativeCardType.research : CreativeCardType.idea,
+      status: CreativeCardStatus.inbox,
+      attachments: hasUrl
+          ? [
+              CreativeCardAttachment(
+                id: generateEntityId('creative_attachment'),
+                kind: CreativeCardAttachmentKind.link,
+                uri: trimmedUrl,
+                title: deviceLabel.trim(),
+                createdAt: capturedAt,
+              ),
+            ]
+          : const [],
+      source: CreativeCardSource.inbox,
+      createdAt: capturedAt,
+      updatedAt: now,
+    );
+
+    await _persist(
+      workspace.copyWith(
+        creativeCards: [...workspace.creativeCards, card],
+        books: _touchActiveBook(workspace.books, activeBook.id, now),
+      ),
+    );
+    return card;
   }
 
   Future<Note?> createWorkflowNote({
