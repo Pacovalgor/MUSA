@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../modules/books/providers/workspace_providers.dart';
 import '../../modules/creative/models/creative_card.dart';
 import '../../modules/creative/providers/creative_providers.dart';
+import 'creative_card_detail_panel.dart';
 
 class CreativeBoardEditor extends ConsumerStatefulWidget {
   const CreativeBoardEditor({super.key});
@@ -18,6 +19,7 @@ class _CreativeBoardEditorState extends ConsumerState<CreativeBoardEditor> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
   CreativeCardType _type = CreativeCardType.idea;
+  String? _selectedCardId;
   bool _isCreating = false;
 
   @override
@@ -33,6 +35,15 @@ class _CreativeBoardEditorState extends ConsumerState<CreativeBoardEditor> {
     final workspace = ref.watch(narrativeWorkspaceProvider).value;
     final activeBook = workspace?.activeBook;
     final cards = ref.watch(visibleCreativeCardsProvider);
+    final selectedCard = cards.cast<CreativeCard?>().firstWhere(
+          (card) => card?.id == _selectedCardId,
+          orElse: () => null,
+        );
+    if (_selectedCardId != null && selectedCard == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedCardId = null);
+      });
+    }
 
     return ColoredBox(
       color: tokens.canvasBackground,
@@ -65,14 +76,32 @@ class _CreativeBoardEditorState extends ConsumerState<CreativeBoardEditor> {
                         body:
                             'Selecciona o crea un libro para usar la mesa creativa.',
                       )
-                    : cards.isEmpty
-                        ? const _BoardMessage(
-                            icon: Icons.dashboard_customize_outlined,
-                            title: 'No hay tarjetas visibles',
-                            body:
-                                'Crea una tarjeta para capturar ideas, bocetos o preguntas sin llevarlas a memoria narrativa.',
-                          )
-                        : _BoardColumns(cards: cards),
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: cards.isEmpty
+                                ? const _BoardMessage(
+                                    icon: Icons.dashboard_customize_outlined,
+                                    title: 'No hay tarjetas visibles',
+                                    body:
+                                        'Crea una tarjeta para capturar ideas, bocetos o preguntas sin llevarlas a memoria narrativa.',
+                                  )
+                                : _BoardColumns(
+                                    cards: cards,
+                                    selectedCardId: _selectedCardId,
+                                    onSelectCard: (cardId) {
+                                      setState(() => _selectedCardId = cardId);
+                                    },
+                                  ),
+                          ),
+                          const SizedBox(width: 14),
+                          SizedBox(
+                            width: 360,
+                            child: CreativeCardDetailPanel(card: selectedCard),
+                          ),
+                        ],
+                      ),
               ),
             ],
           ),
@@ -231,9 +260,15 @@ class _CreateCardForm extends StatelessWidget {
 }
 
 class _BoardColumns extends StatelessWidget {
-  const _BoardColumns({required this.cards});
+  const _BoardColumns({
+    required this.cards,
+    required this.selectedCardId,
+    required this.onSelectCard,
+  });
 
   final List<CreativeCard> cards;
+  final String? selectedCardId;
+  final ValueChanged<String> onSelectCard;
 
   @override
   Widget build(BuildContext context) {
@@ -251,6 +286,8 @@ class _BoardColumns extends StatelessWidget {
                   cards: cards
                       .where((card) => card.status == status)
                       .toList(growable: false),
+                  selectedCardId: selectedCardId,
+                  onSelectCard: onSelectCard,
                 ),
               ),
             )
@@ -261,10 +298,17 @@ class _BoardColumns extends StatelessWidget {
 }
 
 class _BoardColumn extends StatelessWidget {
-  const _BoardColumn({required this.status, required this.cards});
+  const _BoardColumn({
+    required this.status,
+    required this.cards,
+    required this.selectedCardId,
+    required this.onSelectCard,
+  });
 
   final CreativeCardStatus status;
   final List<CreativeCard> cards;
+  final String? selectedCardId;
+  final ValueChanged<String> onSelectCard;
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +362,12 @@ class _BoardColumn extends StatelessWidget {
                     itemCount: cards.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
-                      return _CreativeCardTile(card: cards[index]);
+                      final card = cards[index];
+                      return _CreativeCardTile(
+                        card: card,
+                        isSelected: card.id == selectedCardId,
+                        onSelect: () => onSelectCard(card.id),
+                      );
                     },
                   ),
                 ),
@@ -331,59 +380,79 @@ class _BoardColumn extends StatelessWidget {
 }
 
 class _CreativeCardTile extends ConsumerWidget {
-  const _CreativeCardTile({required this.card});
+  const _CreativeCardTile({
+    required this.card,
+    required this.isSelected,
+    required this.onSelect,
+  });
 
   final CreativeCard card;
+  final bool isSelected;
+  final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = MusaTheme.tokensOf(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: tokens.canvasBackground,
-        border: Border.all(color: _statusColor(card.status, tokens)),
+    final borderColor =
+        isSelected ? tokens.editorCaret : _statusColor(card.status, tokens);
+    return Material(
+      color: tokens.canvasBackground,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: borderColor, width: isSelected ? 2 : 1),
         borderRadius: BorderRadius.circular(tokens.radiusSm),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              card.title.trim().isEmpty ? 'Idea sin título' : card.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: tokens.textPrimary,
-                    fontWeight: FontWeight.w700,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            key: Key('creative-card-tile-${card.id}'),
+            onTap: onSelect,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    card.title.trim().isEmpty ? 'Idea sin título' : card.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
-            ),
-            if (card.body.trim().isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                card.body,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: tokens.textSecondary,
-                      height: 1.35,
+                  if (card.body.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      card.body,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: tokens.textSecondary,
+                            height: 1.35,
+                          ),
                     ),
+                  ],
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _MetaChip(label: _typeLabel(card.type)),
+                      _MetaChip(label: _sourceLabel(card.source)),
+                      _MetaChip(label: _statusLabel(card.status)),
+                      ...card.tags.map((tag) => _MetaChip(label: '#$tag')),
+                    ],
+                  ),
+                ],
               ),
-            ],
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                _MetaChip(label: _typeLabel(card.type)),
-                _MetaChip(label: _sourceLabel(card.source)),
-                _MetaChip(label: _statusLabel(card.status)),
-                ...card.tags.map((tag) => _MetaChip(label: '#$tag')),
-              ],
             ),
-            const SizedBox(height: 8),
-            if (card.status != CreativeCardStatus.converted)
-              Wrap(
+          ),
+          if (card.status != CreativeCardStatus.converted)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+              child: Wrap(
                 spacing: 6,
                 runSpacing: 4,
                 children: _moveTargetStatuses(card.status)
@@ -398,9 +467,12 @@ class _CreativeCardTile extends ConsumerWidget {
                     )
                     .toList(),
               ),
-            if (card.status != CreativeCardStatus.converted) ...[
-              const SizedBox(height: 4),
-              Wrap(
+            ),
+          if (card.status != CreativeCardStatus.converted) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+              child: Wrap(
                 spacing: 4,
                 runSpacing: 0,
                 children: [
@@ -442,9 +514,9 @@ class _CreativeCardTile extends ConsumerWidget {
                   ),
                 ],
               ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

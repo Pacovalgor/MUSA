@@ -160,6 +160,51 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets('selecting a card opens its detail panel', (tester) async {
+    final repository = _MemoryWorkspaceRepository(
+      _workspaceWithCards([
+        _card('card-1', 'Puerta azul', CreativeCardStatus.inbox),
+      ]),
+    );
+
+    await tester.pumpWidget(_app(repository, const CreativeBoardEditor()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Selecciona una tarjeta'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('creative-card-tile-card-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Detalle de tarjeta'), findsOneWidget);
+    expect(
+      find.byKey(const Key('creative-card-detail-title-field')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('selected card is cleared when it is archived', (tester) async {
+    final repository = _MemoryWorkspaceRepository(
+      _workspaceWithCards([
+        _card('card-1', 'Idea para archivar', CreativeCardStatus.inbox),
+      ]),
+    );
+
+    await tester.pumpWidget(_app(repository, const CreativeBoardEditor()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('creative-card-tile-card-1')));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(CreativeBoardEditor)),
+    );
+    await container
+        .read(narrativeWorkspaceProvider.notifier)
+        .archiveCreativeCard('card-1');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Selecciona una tarjeta'), findsOneWidget);
+  });
 }
 
 Widget _app(_MemoryWorkspaceRepository repository, Widget child) {
