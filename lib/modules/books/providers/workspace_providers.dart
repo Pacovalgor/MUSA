@@ -705,6 +705,8 @@ class NarrativeWorkspaceNotifier
 
     final card = _creativeCardById(workspace, cardId);
     if (card == null) return null;
+    final existing = _convertedNote(workspace, card);
+    if (existing != null || card.convertedTo != null) return existing;
 
     final now = DateTime.now();
     final note = Note(
@@ -748,6 +750,8 @@ class NarrativeWorkspaceNotifier
 
     final card = _creativeCardById(workspace, cardId);
     if (card == null) return null;
+    final existing = _convertedCharacter(workspace, card);
+    if (existing != null || card.convertedTo != null) return existing;
 
     final now = DateTime.now();
     final character = Character(
@@ -790,6 +794,8 @@ class NarrativeWorkspaceNotifier
 
     final card = _creativeCardById(workspace, cardId);
     if (card == null) return null;
+    final existing = _convertedScenario(workspace, card);
+    if (existing != null || card.convertedTo != null) return existing;
 
     final now = DateTime.now();
     final scenario = Scenario(
@@ -832,6 +838,8 @@ class NarrativeWorkspaceNotifier
 
     final card = _creativeCardById(workspace, cardId);
     if (card == null) return null;
+    final existing = _convertedDocument(workspace, card);
+    if (existing != null || card.convertedTo != null) return existing;
 
     final now = DateTime.now();
     final content = card.body.trim();
@@ -904,6 +912,55 @@ class NarrativeWorkspaceNotifier
   List<String> _appendUnique(List<String> values, String value) {
     if (values.contains(value)) return values;
     return [...values, value];
+  }
+
+  Note? _convertedNote(NarrativeWorkspace workspace, CreativeCard card) {
+    final conversion = card.convertedTo;
+    if (conversion?.kind != CreativeCardConversionKind.note) return null;
+    final targetId = conversion!.targetId;
+    for (final note in workspace.notes) {
+      if (note.id == targetId) return note;
+    }
+    return null;
+  }
+
+  Character? _convertedCharacter(
+    NarrativeWorkspace workspace,
+    CreativeCard card,
+  ) {
+    final conversion = card.convertedTo;
+    if (conversion?.kind != CreativeCardConversionKind.character) return null;
+    final targetId = conversion!.targetId;
+    for (final character in workspace.characters) {
+      if (character.id == targetId) return character;
+    }
+    return null;
+  }
+
+  Scenario? _convertedScenario(
+    NarrativeWorkspace workspace,
+    CreativeCard card,
+  ) {
+    final conversion = card.convertedTo;
+    if (conversion?.kind != CreativeCardConversionKind.scenario) return null;
+    final targetId = conversion!.targetId;
+    for (final scenario in workspace.scenarios) {
+      if (scenario.id == targetId) return scenario;
+    }
+    return null;
+  }
+
+  Document? _convertedDocument(
+    NarrativeWorkspace workspace,
+    CreativeCard card,
+  ) {
+    final conversion = card.convertedTo;
+    if (conversion?.kind != CreativeCardConversionKind.document) return null;
+    final targetId = conversion!.targetId;
+    for (final document in workspace.documents) {
+      if (document.id == targetId) return document;
+    }
+    return null;
   }
 
   NoteKind _noteKindForCreativeCard(CreativeCard card) {
