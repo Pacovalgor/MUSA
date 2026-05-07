@@ -255,6 +255,52 @@ void main() {
       expect(card.linkedNoteIds, ['note-1']);
     });
 
+    test('workspace notifier can replace creative card links with empty lists',
+        () async {
+      final now = DateTime.utc(2026, 5, 7);
+      final repository = _MemoryWorkspaceRepository(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(id: 'book-1', title: 'Libro', createdAt: now, updatedAt: now),
+        ],
+        creativeCards: [
+          CreativeCard(
+            id: 'creative-1',
+            bookId: 'book-1',
+            title: 'Idea',
+            linkedCharacterIds: const ['char-1'],
+            linkedScenarioIds: const ['scenario-1'],
+            linkedDocumentIds: const ['doc-1'],
+            linkedNoteIds: const ['note-1'],
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+      ));
+      final container = ProviderContainer(
+        overrides: [
+          narrativeWorkspaceRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(narrativeWorkspaceProvider.notifier);
+      await notifier.bootstrap();
+      await notifier.setCreativeCardLinks(
+        cardId: 'creative-1',
+        characterIds: const [],
+        scenarioIds: const [],
+        documentIds: const [],
+        noteIds: const [],
+      );
+
+      final card = container.read(activeCreativeCardsProvider).single;
+      expect(card.linkedCharacterIds, isEmpty);
+      expect(card.linkedScenarioIds, isEmpty);
+      expect(card.linkedDocumentIds, isEmpty);
+      expect(card.linkedNoteIds, isEmpty);
+    });
+
     test('workspace notifier ignores unknown creative card ids', () async {
       final now = DateTime.utc(2026, 5, 7);
       final card = CreativeCard(

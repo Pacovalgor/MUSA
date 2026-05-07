@@ -159,6 +159,30 @@ class _CreativeCardDetailPanelState
         );
   }
 
+  Future<void> _toggleLink(
+    CreativeCard card, {
+    String? characterId,
+    String? scenarioId,
+    String? documentId,
+    String? noteId,
+  }) async {
+    List<String> toggled(List<String> ids, String? id) {
+      if (id == null) return ids;
+      if (ids.contains(id)) {
+        return ids.where((item) => item != id).toList(growable: false);
+      }
+      return [...ids, id];
+    }
+
+    await ref.read(narrativeWorkspaceProvider.notifier).setCreativeCardLinks(
+          cardId: card.id,
+          characterIds: toggled(card.linkedCharacterIds, characterId),
+          scenarioIds: toggled(card.linkedScenarioIds, scenarioId),
+          documentIds: toggled(card.linkedDocumentIds, documentId),
+          noteIds: toggled(card.linkedNoteIds, noteId),
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     final workspace = ref.watch(narrativeWorkspaceProvider).valueOrNull;
@@ -171,6 +195,10 @@ class _CreativeCardDetailPanelState
                   orElse: () => widgetCard,
                 ) ??
             widgetCard;
+    final activeBookCharacters = workspace?.activeBookCharacters ?? const [];
+    final activeBookScenarios = workspace?.activeBookScenarios ?? const [];
+    final activeBookDocuments = workspace?.activeBookDocuments ?? const [];
+    final activeBookNotes = workspace?.activeBookNotes ?? const [];
     final isConverted = selectedCard?.status == CreativeCardStatus.converted;
 
     return DecoratedBox(
@@ -302,6 +330,86 @@ class _CreativeCardDetailPanelState
                             onPressed: () => _addLinkAttachment(selectedCard),
                             icon: const Icon(Icons.link, size: 16),
                             label: const Text('Añadir enlace'),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Enlaces',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(
+                                  color: tokens.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final character in activeBookCharacters)
+                                FilterChip(
+                                  key: Key(
+                                    'creative-link-character-${character.id}',
+                                  ),
+                                  label: Text(character.displayName),
+                                  selected: selectedCard.linkedCharacterIds
+                                      .contains(character.id),
+                                  onSelected: (_) => _toggleLink(
+                                    selectedCard,
+                                    characterId: character.id,
+                                  ),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              for (final scenario in activeBookScenarios)
+                                FilterChip(
+                                  key: Key(
+                                    'creative-link-scenario-${scenario.id}',
+                                  ),
+                                  label: Text(scenario.name),
+                                  selected: selectedCard.linkedScenarioIds
+                                      .contains(scenario.id),
+                                  onSelected: (_) => _toggleLink(
+                                    selectedCard,
+                                    scenarioId: scenario.id,
+                                  ),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              for (final document in activeBookDocuments)
+                                FilterChip(
+                                  key: Key(
+                                    'creative-link-document-${document.id}',
+                                  ),
+                                  label: Text(document.title),
+                                  selected: selectedCard.linkedDocumentIds
+                                      .contains(document.id),
+                                  onSelected: (_) => _toggleLink(
+                                    selectedCard,
+                                    documentId: document.id,
+                                  ),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              for (final note in activeBookNotes)
+                                FilterChip(
+                                  key: Key('creative-link-note-${note.id}'),
+                                  label: Text(note.title ?? ''),
+                                  selected: selectedCard.linkedNoteIds
+                                      .contains(note.id),
+                                  onSelected: (_) => _toggleLink(
+                                    selectedCard,
+                                    noteId: note.id,
+                                  ),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 10),
                           InputDecorator(

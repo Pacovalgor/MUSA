@@ -8,7 +8,11 @@ import 'package:musa/modules/books/models/book.dart';
 import 'package:musa/modules/books/models/narrative_workspace.dart';
 import 'package:musa/modules/books/providers/workspace_providers.dart';
 import 'package:musa/modules/books/services/narrative_workspace_repository.dart';
+import 'package:musa/modules/characters/models/character.dart';
 import 'package:musa/modules/creative/models/creative_card.dart';
+import 'package:musa/modules/manuscript/models/document.dart';
+import 'package:musa/modules/notes/models/note.dart';
+import 'package:musa/modules/scenarios/models/scenario.dart';
 
 class _MemoryWorkspaceRepository implements NarrativeWorkspaceRepository {
   _MemoryWorkspaceRepository(this.workspace);
@@ -222,6 +226,43 @@ void main() {
     expect(find.text('Foto de referencia'), findsOneWidget);
     expect(find.text('/tmp/reference.png'), findsOneWidget);
   });
+
+  testWidgets('detail panel links and unlinks existing entities',
+      (tester) async {
+    final repository = _MemoryWorkspaceRepository(_workspaceWithEntities());
+    final card = repository.workspace.creativeCards.single;
+
+    await tester
+        .pumpWidget(_app(repository, CreativeCardDetailPanel(card: card)));
+    await tester.pumpAndSettle();
+
+    await _tapLink(tester, const Key('creative-link-character-char-1'));
+    await _tapLink(tester, const Key('creative-link-scenario-scenario-1'));
+    await _tapLink(tester, const Key('creative-link-document-doc-1'));
+    await _tapLink(tester, const Key('creative-link-note-note-1'));
+
+    var stored = repository.workspace.creativeCards.single;
+    expect(stored.linkedCharacterIds, ['char-1']);
+    expect(stored.linkedScenarioIds, ['scenario-1']);
+    expect(stored.linkedDocumentIds, ['doc-1']);
+    expect(stored.linkedNoteIds, ['note-1']);
+
+    await _tapLink(tester, const Key('creative-link-character-char-1'));
+
+    stored = repository.workspace.creativeCards.single;
+    expect(stored.linkedCharacterIds, isEmpty);
+    expect(stored.linkedScenarioIds, ['scenario-1']);
+    expect(stored.linkedDocumentIds, ['doc-1']);
+    expect(stored.linkedNoteIds, ['note-1']);
+  });
+}
+
+Future<void> _tapLink(WidgetTester tester, Key key) async {
+  final finder = find.byKey(key);
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
 }
 
 Widget _app(_MemoryWorkspaceRepository repository, Widget child) {
@@ -249,6 +290,61 @@ NarrativeWorkspace _workspaceWithCards(List<CreativeCard> cards) {
       ),
     ],
     creativeCards: cards,
+  );
+}
+
+NarrativeWorkspace _workspaceWithEntities() {
+  final now = DateTime.utc(2026, 5, 7);
+  return NarrativeWorkspace(
+    appSettings: const AppSettings(activeBookId: 'book-1'),
+    books: [
+      Book(
+        id: 'book-1',
+        title: 'El ojo invisible',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ],
+    characters: [
+      Character(
+        id: 'char-1',
+        bookId: 'book-1',
+        name: 'Clara',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ],
+    scenarios: [
+      Scenario(
+        id: 'scenario-1',
+        bookId: 'book-1',
+        name: 'Casa azul',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ],
+    documents: [
+      Document(
+        id: 'doc-1',
+        bookId: 'book-1',
+        title: 'Capitulo 1',
+        orderIndex: 0,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ],
+    notes: [
+      Note(
+        id: 'note-1',
+        bookId: 'book-1',
+        title: 'Pista',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ],
+    creativeCards: [
+      _card('card-1', 'Puerta azul', CreativeCardStatus.inbox),
+    ],
   );
 }
 

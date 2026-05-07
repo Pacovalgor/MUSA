@@ -711,6 +711,47 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  Future<void> setCreativeCardLinks({
+    required String cardId,
+    required List<String> characterIds,
+    required List<String> scenarioIds,
+    required List<String> documentIds,
+    required List<String> noteIds,
+  }) async {
+    final workspace = state.value;
+    if (workspace == null) return;
+
+    final now = DateTime.now();
+    String? bookId;
+    var changed = false;
+    final updatedCards = workspace.creativeCards.map((card) {
+      if (card.id != cardId) return card;
+      bookId = card.bookId;
+      final hasChanges =
+          !_stringListsEqual(card.linkedCharacterIds, characterIds) ||
+              !_stringListsEqual(card.linkedScenarioIds, scenarioIds) ||
+              !_stringListsEqual(card.linkedDocumentIds, documentIds) ||
+              !_stringListsEqual(card.linkedNoteIds, noteIds);
+      if (!hasChanges) return card;
+      changed = true;
+      return card.copyWith(
+        linkedCharacterIds: characterIds,
+        linkedScenarioIds: scenarioIds,
+        linkedDocumentIds: documentIds,
+        linkedNoteIds: noteIds,
+        updatedAt: now,
+      );
+    }).toList();
+    if (!changed) return;
+
+    await _persist(
+      workspace.copyWith(
+        creativeCards: updatedCards,
+        books: _touchActiveBook(workspace.books, bookId, now),
+      ),
+    );
+  }
+
   Future<Note?> convertCreativeCardToNote(String cardId) async {
     final workspace = state.value;
     if (workspace == null) return null;
