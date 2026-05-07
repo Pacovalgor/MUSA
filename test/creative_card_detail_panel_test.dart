@@ -56,10 +56,16 @@ void main() {
 
   testWidgets('converted card cannot be moved to editable statuses',
       (tester) async {
+    const conversion = CreativeCardConversion(
+      kind: CreativeCardConversionKind.note,
+      targetId: 'note-1',
+    );
     final card = _card(
       'card-1',
       'Puerta convertida',
       CreativeCardStatus.converted,
+      type: CreativeCardType.character,
+      convertedTo: conversion,
     );
     final repository = _MemoryWorkspaceRepository(_workspaceWithCards([card]));
 
@@ -67,11 +73,66 @@ void main() {
         .pumpWidget(_app(repository, CreativeCardDetailPanel(card: card)));
     await tester.pumpAndSettle();
 
+    final typeDropdown = tester.widget<DropdownButton<CreativeCardType>>(
+      find.byType(DropdownButton<CreativeCardType>),
+    );
+    expect(typeDropdown.onChanged, isNull);
     expect(
       find.byKey(const Key('creative-card-detail-status-field')),
       findsNothing,
     );
     expect(find.text('Convertida'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('creative-card-detail-save-button')));
+    await tester.pumpAndSettle();
+
+    final stored = repository.workspace.creativeCards.single;
+    expect(stored.type, CreativeCardType.character);
+    expect(stored.status, CreativeCardStatus.converted);
+    expect(stored.convertedTo?.kind, CreativeCardConversionKind.note);
+    expect(stored.convertedTo?.targetId, 'note-1');
+  });
+
+  testWidgets('same-card external status move is preserved when saving title',
+      (tester) async {
+    final card = _card('card-1', 'Puerta azul', CreativeCardStatus.inbox);
+    final repository = _MemoryWorkspaceRepository(_workspaceWithCards([card]));
+
+    await tester.pumpWidget(
+      _app(
+        repository,
+        Consumer(
+          builder: (context, ref, _) {
+            final workspace = ref.watch(narrativeWorkspaceProvider).value;
+            final selectedCard = workspace?.creativeCards
+                .where((item) => item.id == 'card-1')
+                .firstOrNull;
+            return CreativeCardDetailPanel(card: selectedCard);
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(CreativeCardDetailPanel)),
+    );
+    await container.read(narrativeWorkspaceProvider.notifier).moveCreativeCard(
+          cardId: 'card-1',
+          status: CreativeCardStatus.readyToUse,
+        );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('creative-card-detail-title-field')),
+      'Puerta roja',
+    );
+    await tester.tap(find.byKey(const Key('creative-card-detail-save-button')));
+    await tester.pumpAndSettle();
+
+    final stored = repository.workspace.creativeCards.single;
+    expect(stored.title, 'Puerta roja');
+    expect(stored.status, CreativeCardStatus.readyToUse);
   });
 }
 
@@ -106,17 +167,20 @@ NarrativeWorkspace _workspaceWithCards(List<CreativeCard> cards) {
 CreativeCard _card(
   String id,
   String title,
-  CreativeCardStatus status,
-) {
+  CreativeCardStatus status, {
+  CreativeCardType type = CreativeCardType.idea,
+  CreativeCardConversion? convertedTo,
+}) {
   final now = DateTime.utc(2026, 5, 7);
   return CreativeCard(
     id: id,
     bookId: 'book-1',
     title: title,
     body: 'Detalle inicial',
-    type: CreativeCardType.idea,
+    type: type,
     status: status,
     tags: const ['inicial'],
+    convertedTo: convertedTo,
     createdAt: now,
     updatedAt: now,
   );

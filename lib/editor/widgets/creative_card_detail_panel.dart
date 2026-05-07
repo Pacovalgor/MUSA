@@ -50,6 +50,8 @@ class _CreativeCardDetailPanelState
   CreativeCardType _type = CreativeCardType.idea;
   CreativeCardStatus _status = CreativeCardStatus.inbox;
   String? _syncedCardId;
+  CreativeCardType? _syncedType;
+  CreativeCardStatus? _syncedStatus;
 
   @override
   void initState() {
@@ -72,18 +74,33 @@ class _CreativeCardDetailPanelState
   }
 
   void _syncCard(CreativeCard? card) {
-    if (card?.id == _syncedCardId) return;
-
-    _syncedCardId = card?.id;
-    _titleController.text = card?.title ?? '';
-    _bodyController.text = card?.body ?? '';
-    _tagsController.text = card?.tags.join(', ') ?? '';
-    _type = card?.type ?? CreativeCardType.idea;
-
+    final cardId = card?.id;
+    final cardType = card?.type ?? CreativeCardType.idea;
     final cardStatus = card?.status ?? CreativeCardStatus.inbox;
-    _status = _editableStatuses.contains(cardStatus)
+    final editableStatus = _editableStatuses.contains(cardStatus)
         ? cardStatus
         : CreativeCardStatus.inbox;
+
+    if (cardId != _syncedCardId) {
+      _syncedCardId = cardId;
+      _titleController.text = card?.title ?? '';
+      _bodyController.text = card?.body ?? '';
+      _tagsController.text = card?.tags.join(', ') ?? '';
+      _type = cardType;
+      _status = editableStatus;
+      _syncedType = cardType;
+      _syncedStatus = cardStatus;
+      return;
+    }
+
+    if (cardType != _syncedType) {
+      _type = cardType;
+      _syncedType = cardType;
+    }
+    if (cardStatus != _syncedStatus) {
+      _status = editableStatus;
+      _syncedStatus = cardStatus;
+    }
   }
 
   Future<void> _save(CreativeCard card) async {
@@ -92,17 +109,15 @@ class _CreativeCardDetailPanelState
         .map((tag) => tag.trim())
         .where((tag) => tag.isNotEmpty)
         .toList(growable: false);
-    final status = card.status == CreativeCardStatus.converted
-        ? CreativeCardStatus.converted
-        : _status;
+    final isConverted = card.status == CreativeCardStatus.converted;
 
     await ref.read(narrativeWorkspaceProvider.notifier).updateCreativeCard(
           card.copyWith(
             title: _titleController.text.trim(),
             body: _bodyController.text.trim(),
             tags: tags,
-            type: _type,
-            status: status,
+            type: isConverted ? card.type : _type,
+            status: isConverted ? card.status : _status,
           ),
         );
   }
@@ -112,6 +127,7 @@ class _CreativeCardDetailPanelState
     ref.watch(narrativeWorkspaceProvider);
     final tokens = MusaTheme.tokensOf(context);
     final selectedCard = widget.card;
+    final isConverted = selectedCard?.status == CreativeCardStatus.converted;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -196,15 +212,17 @@ class _CreativeCardDetailPanelState
                                 ),
                               )
                               .toList(),
-                          onChanged: (value) {
-                            if (value == null) return;
-                            setState(() => _type = value);
-                          },
+                          onChanged: isConverted
+                              ? null
+                              : (value) {
+                                  if (value == null) return;
+                                  setState(() => _type = value);
+                                },
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
-                    if (selectedCard.status == CreativeCardStatus.converted)
+                    if (isConverted)
                       Text(
                         _statusLabels[CreativeCardStatus.converted]!,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
