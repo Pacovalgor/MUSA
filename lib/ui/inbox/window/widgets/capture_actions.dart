@@ -34,7 +34,7 @@ class CaptureActions {
     if (storage == null) return;
 
     final body = editedBody ?? c.body;
-    await ref
+    final card = await ref
         .read(narrativeWorkspaceProvider.notifier)
         .addCreativeCardFromInbox(
           body: body,
@@ -42,6 +42,7 @@ class CaptureActions {
           capturedAt: c.capturedAt,
           deviceLabel: c.deviceLabel,
         );
+    if (card == null) return;
     await storage.markProcessed(File(record.path));
     bumpInboxRefreshTick(ref);
   }

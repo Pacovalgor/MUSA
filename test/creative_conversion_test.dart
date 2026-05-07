@@ -68,6 +68,29 @@ void main() {
       expect(stored.attachments.single.title, 'iPhone de Paco');
       expect(stored.attachments.single.createdAt, capturedAt);
     });
+
+    test('returns null without active book and does not create a card',
+        () async {
+      final capturedAt = DateTime.utc(2026, 5, 7, 9, 30);
+      final container = await _containerWithWorkspace(const NarrativeWorkspace(
+        appSettings: AppSettings(),
+        books: [],
+      ));
+      addTearDown(container.dispose);
+
+      final card = await container
+          .read(narrativeWorkspaceProvider.notifier)
+          .addCreativeCardFromInbox(
+            body: 'Idea capturada',
+            url: null,
+            capturedAt: capturedAt,
+            deviceLabel: 'iPhone de Paco',
+          );
+
+      expect(card, isNull);
+      expect(container.read(narrativeWorkspaceProvider).value!.creativeCards,
+          isEmpty);
+    });
   });
 
   group('Creative card conversions', () {
