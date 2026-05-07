@@ -111,6 +111,55 @@ void main() {
     );
     expect(find.text('Mover esta idea'), findsOneWidget);
   });
+
+  testWidgets('creation form resets the visible type after create',
+      (tester) async {
+    final repository = _MemoryWorkspaceRepository(_workspaceWithCards());
+
+    await tester.pumpWidget(_app(repository, const CreativeBoardEditor()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButtonFormField<CreativeCardType>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Personaje').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('creative-card-title-field')),
+      'Diane',
+    );
+    await tester.tap(find.byKey(const Key('creative-card-create-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.workspace.activeBookCreativeCards.single.type,
+        CreativeCardType.character);
+    expect(find.byKey(const ValueKey(CreativeCardType.idea)), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey(CreativeCardType.character)),
+      findsNothing,
+    );
+  });
+
+  testWidgets('converted cards cannot be moved back from the board',
+      (tester) async {
+    final repository = _MemoryWorkspaceRepository(
+      _workspaceWithCards([
+        _card('converted', 'Idea convertida', CreativeCardStatus.converted),
+      ]),
+    );
+
+    await tester.pumpWidget(_app(repository, const CreativeBoardEditor()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Idea convertida'), findsOneWidget);
+    expect(
+      find.byKey(const Key('creative-card-converted-inbox')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('creative-card-converted-readyToUse')),
+      findsNothing,
+    );
+  });
 }
 
 Widget _app(_MemoryWorkspaceRepository repository, Widget child) {

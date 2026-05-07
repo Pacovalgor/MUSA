@@ -198,6 +198,7 @@ class _CreateCardForm extends StatelessWidget {
             SizedBox(
               width: 210,
               child: DropdownButtonFormField<CreativeCardType>(
+                key: ValueKey(type),
                 initialValue: type,
                 onChanged: isEnabled ? onTypeChanged : null,
                 decoration: const InputDecoration(
@@ -381,22 +382,22 @@ class _CreativeCardTile extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: _visibleStatuses
-                  .where((status) => status != card.status)
-                  .map(
-                    (status) => OutlinedButton(
-                      key: Key('creative-card-${card.id}-${status.name}'),
-                      onPressed: () => ref
-                          .read(narrativeWorkspaceProvider.notifier)
-                          .moveCreativeCard(cardId: card.id, status: status),
-                      child: Text(_shortStatusLabel(status)),
-                    ),
-                  )
-                  .toList(),
-            ),
+            if (card.status != CreativeCardStatus.converted)
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: _moveTargetStatuses(card.status)
+                    .map(
+                      (status) => OutlinedButton(
+                        key: Key('creative-card-${card.id}-${status.name}'),
+                        onPressed: () => ref
+                            .read(narrativeWorkspaceProvider.notifier)
+                            .moveCreativeCard(cardId: card.id, status: status),
+                        child: Text(_shortStatusLabel(status)),
+                      ),
+                    )
+                    .toList(),
+              ),
             if (card.status != CreativeCardStatus.converted) ...[
               const SizedBox(height: 4),
               Wrap(
@@ -576,6 +577,13 @@ const _visibleStatuses = [
   CreativeCardStatus.readyToUse,
   CreativeCardStatus.converted,
 ];
+
+List<CreativeCardStatus> _moveTargetStatuses(CreativeCardStatus current) {
+  return _visibleStatuses
+      .where((status) =>
+          status != current && status != CreativeCardStatus.converted)
+      .toList(growable: false);
+}
 
 String _statusLabel(CreativeCardStatus status) => switch (status) {
       CreativeCardStatus.inbox => 'Inbox',
