@@ -117,6 +117,16 @@ class MusaInspector extends ConsumerWidget {
                   scenario,
                   scenarioDocuments,
                 ),
+              WorkspaceEditorMode.creative => _buildBookMode(
+                  context,
+                  ref,
+                  book,
+                  documents,
+                  notes,
+                  characters,
+                  scenarios,
+                  snapshots,
+                ),
             },
             const SizedBox(height: 18),
             _PanelSection(
@@ -225,9 +235,8 @@ class MusaInspector extends ConsumerWidget {
         _PanelSection(
           title: 'Snapshots',
           trailingActionLabel: 'Guardar',
-          onTrailingAction: () => ref
-              .read(narrativeWorkspaceProvider.notifier)
-              .createSnapshot(),
+          onTrailingAction: () =>
+              ref.read(narrativeWorkspaceProvider.notifier).createSnapshot(),
           child: snapshots.isEmpty
               ? const _MutedMessage(
                   'Guarda estados del libro para volver atrás sin miedo.',
@@ -303,7 +312,8 @@ class MusaInspector extends ConsumerWidget {
         if (item.existingCharacterId == null) {
           alerts.add('Aparece ${item.name} sin ficha o vínculo claro.');
         } else if (!document.characterIds.contains(item.existingCharacterId)) {
-          alerts.add('${item.name} pesa en el capítulo pero no está vinculada.');
+          alerts
+              .add('${item.name} pesa en el capítulo pero no está vinculada.');
         }
       }
       final mainScenario = analysis.mainScenario;
@@ -312,7 +322,8 @@ class MusaInspector extends ConsumerWidget {
           alerts.add(
             'El espacio "${mainScenario.name}" gana peso sin escenario consolidado.',
           );
-        } else if (!document.scenarioIds.contains(mainScenario.existingScenarioId)) {
+        } else if (!document.scenarioIds
+            .contains(mainScenario.existingScenarioId)) {
           alerts.add(
             '${mainScenario.name} pesa en el capítulo pero no está vinculado.',
           );
@@ -398,8 +409,8 @@ class MusaInspector extends ConsumerWidget {
     if (document == null) {
       return const SizedBox.shrink();
     }
-    final chapterAnalysis =
-        ref.watch(editorProvider.select((state) => state.currentChapterAnalysis));
+    final chapterAnalysis = ref
+        .watch(editorProvider.select((state) => state.currentChapterAnalysis));
     final workflowNotes = ref.watch(currentDocumentWorkflowNotesProvider);
     final continuityState = _buildDocumentContinuityState(
       document,
@@ -494,8 +505,8 @@ class MusaInspector extends ConsumerWidget {
                                       .textTheme
                                       .bodyLarge
                                       ?.copyWith(
-                                        color:
-                                            MusaTheme.tokensOf(context).textPrimary,
+                                        color: MusaTheme.tokensOf(context)
+                                            .textPrimary,
                                         fontWeight: FontWeight.w600,
                                       ),
                                 ),
@@ -506,8 +517,8 @@ class MusaInspector extends ConsumerWidget {
                                       .textTheme
                                       .bodySmall
                                       ?.copyWith(
-                                        color:
-                                            MusaTheme.tokensOf(context).textSecondary,
+                                        color: MusaTheme.tokensOf(context)
+                                            .textSecondary,
                                         height: 1.35,
                                       ),
                                 ),
@@ -516,7 +527,8 @@ class MusaInspector extends ConsumerWidget {
                                   children: [
                                     TextButton(
                                       onPressed: () => ref
-                                          .read(narrativeWorkspaceProvider.notifier)
+                                          .read(narrativeWorkspaceProvider
+                                              .notifier)
                                           .selectNote(note.id),
                                       child: const Text('Abrir'),
                                     ),
@@ -524,7 +536,8 @@ class MusaInspector extends ConsumerWidget {
                                       onPressed: note.status == NoteStatus.used
                                           ? null
                                           : () => ref
-                                              .read(narrativeWorkspaceProvider.notifier)
+                                              .read(narrativeWorkspaceProvider
+                                                  .notifier)
                                               .updateNoteStatus(
                                                 note.id,
                                                 NoteStatus.used,
@@ -532,10 +545,12 @@ class MusaInspector extends ConsumerWidget {
                                       child: const Text('Usada'),
                                     ),
                                     TextButton(
-                                      onPressed: note.status == NoteStatus.discarded
+                                      onPressed: note.status ==
+                                              NoteStatus.discarded
                                           ? null
                                           : () => ref
-                                              .read(narrativeWorkspaceProvider.notifier)
+                                              .read(narrativeWorkspaceProvider
+                                                  .notifier)
                                               .updateNoteStatus(
                                                 note.id,
                                                 NoteStatus.discarded,

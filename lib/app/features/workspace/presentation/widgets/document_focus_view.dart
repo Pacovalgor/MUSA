@@ -47,6 +47,7 @@ class DocumentFocusView extends ConsumerWidget {
     final defaultSubtitle = switch (editorMode) {
       WorkspaceEditorMode.note => 'Captura o nota en curso',
       WorkspaceEditorMode.book => 'Vista del libro activo',
+      WorkspaceEditorMode.creative => 'Mesa creativa del libro',
       WorkspaceEditorMode.document => currentDocument == null
           ? 'Documento activo'
           : '${currentDocument.wordCount} palabras',
@@ -81,18 +82,21 @@ class DocumentFocusView extends ConsumerWidget {
                       children: [
                         Text(
                           headerTitle,
-                          style:
-                              Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    color: tokens.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                color: tokens.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           subtitle ?? defaultSubtitle,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: tokens.textSecondary,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: tokens.textSecondary,
+                                  ),
                         ),
                       ],
                     ),
