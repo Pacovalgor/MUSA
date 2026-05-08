@@ -20,3 +20,6 @@
 - Se registra V2.3 en memoria estable: mapa editorial derivado por capítulos con prioridad local y comparación profesional de ritmo.
 - Se registra V3.0 en memoria estable: dirección editorial unificada con misiones priorizadas en Libro activo.
 - Se registra V3.1 en memoria estable: Mesa creativa por libro con tarjetas, tablero, conversiones e inbox hacia tarjetas.
+
+## 2026-05-08
+- Se registra V3.2 Mesa creativa en memoria estable: detalle enriquecido de tarjetas creativas con edición, adjuntos y vínculos explícitos.

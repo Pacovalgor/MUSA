@@ -77,6 +77,10 @@
   - ✅ **Mesa creativa por libro**: `CreativeCard` persiste ideas, bocetos, preguntas, research, imagenes y enlaces como tarjetas organizables por estado dentro del workspace.
   - ✅ **Tablero operativo**: `CreativeBoardEditor` expone Inbox, Explorando, Prometedoras, Listas y Convertidas, con creacion rapida, movimiento controlado y conversion a nota, personaje, escenario o documento.
   - ✅ **Entrada desde inbox**: capturas aceptadas pueden entrar como tarjetas creativas con origen y adjuntos, sin sustituir el flujo existente de notas.
+- **V3.2 Mesa creativa (2026-05-08)**:
+  - ✅ **Tarjeta creativa enriquecida**: cada `CreativeCard` puede abrirse en un panel de detalle para editar título, cuerpo, tipo, estado y tags.
+  - ✅ **Adjuntos y vínculos explícitos**: las tarjetas gestionan enlaces, referencias de imagen y relaciones con personajes, escenarios, documentos y notas del libro activo.
+  - ✅ **Antesala no canónica reforzada**: las tarjetas siguen fuera de memoria narrativa, continuidad y auditoría hasta conversión o acción explícita.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -98,6 +102,7 @@
 - V2.3 mantiene el mapa editorial por capítulos como derivado/recalculable; no guardar recomendaciones por capítulo hasta que exista flujo explícito de revisión editorial.
 - V3.0 mantiene la dirección editorial como derivada/recalculable; no aplicar misiones automáticamente ni persistirlas como tareas hasta que exista revisión explícita del usuario.
 - V3.1 mantiene las tarjetas creativas fuera de memoria narrativa, continuidad, auditoria y direccion editorial hasta conversion o accion explicita de uso.
+- V3.2 Mesa creativa mantiene adjuntos de imagen como referencias URI/ruta; no copiar archivos al `.musa` hasta que exista gestor de media explícito.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).
