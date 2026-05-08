@@ -217,6 +217,28 @@ void main() {
     expect(find.text('Idea visible'), findsOneWidget);
     expect(find.text('Selecciona una tarjeta'), findsOneWidget);
   });
+
+  testWidgets('archiving selected card returns board to empty detail state',
+      (tester) async {
+    final repository = _MemoryWorkspaceRepository(
+      _workspaceWithCards([
+        _card('card-1', 'Idea para archivar', CreativeCardStatus.inbox),
+      ]),
+    );
+
+    await tester.pumpWidget(_app(repository, const CreativeBoardEditor()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('creative-card-tile-card-1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Idea para archivar'), findsWidgets);
+
+    await tester.tap(find.byKey(const Key('creative-detail-archive')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Selecciona una tarjeta'), findsOneWidget);
+    expect(find.text('Idea para archivar'), findsNothing);
+  });
 }
 
 Widget _app(_MemoryWorkspaceRepository repository, Widget child) {

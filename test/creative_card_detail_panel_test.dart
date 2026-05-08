@@ -255,6 +255,41 @@ void main() {
     expect(stored.linkedDocumentIds, ['doc-1']);
     expect(stored.linkedNoteIds, ['note-1']);
   });
+
+  testWidgets('detail panel converts an unconverted card to a note',
+      (tester) async {
+    final card = _card('card-1', 'Puerta azul', CreativeCardStatus.inbox);
+    final repository = _MemoryWorkspaceRepository(_workspaceWithCards([card]));
+
+    await tester
+        .pumpWidget(_app(repository, CreativeCardDetailPanel(card: card)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('creative-detail-convert-note')));
+    await tester.pumpAndSettle();
+
+    expect(repository.workspace.notes, hasLength(1));
+    final stored = repository.workspace.creativeCards.single;
+    expect(stored.status, CreativeCardStatus.converted);
+    expect(stored.convertedTo?.kind, CreativeCardConversionKind.note);
+  });
+
+  testWidgets('detail panel archives an unconverted card', (tester) async {
+    final card = _card('card-1', 'Puerta azul', CreativeCardStatus.inbox);
+    final repository = _MemoryWorkspaceRepository(_workspaceWithCards([card]));
+
+    await tester
+        .pumpWidget(_app(repository, CreativeCardDetailPanel(card: card)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('creative-detail-archive')));
+    await tester.pumpAndSettle();
+
+    expect(
+      repository.workspace.creativeCards.single.status,
+      CreativeCardStatus.archived,
+    );
+  });
 }
 
 Future<void> _tapLink(WidgetTester tester, Key key) async {

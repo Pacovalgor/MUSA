@@ -39,7 +39,8 @@ class _CreativeBoardEditorState extends ConsumerState<CreativeBoardEditor> {
           (card) => card?.id == _selectedCardId,
           orElse: () => null,
         );
-    if (_selectedCardId != null && selectedCard == null) {
+    final keepsEmptyDetail = cards.isEmpty && _selectedCardId != null;
+    if (_selectedCardId != null && selectedCard == null && !keepsEmptyDetail) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => _selectedCardId = null);
       });
@@ -77,12 +78,39 @@ class _CreativeBoardEditorState extends ConsumerState<CreativeBoardEditor> {
                             'Selecciona o crea un libro para usar la mesa creativa.',
                       )
                     : cards.isEmpty
-                        ? const _BoardMessage(
-                            icon: Icons.dashboard_customize_outlined,
-                            title: 'No hay tarjetas visibles',
-                            body:
-                                'Crea una tarjeta para capturar ideas, bocetos o preguntas sin llevarlas a memoria narrativa.',
-                          )
+                        ? keepsEmptyDetail
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: _BoardColumns(
+                                      cards: cards,
+                                      selectedCardId: _selectedCardId,
+                                      onSelectCard: (cardId) {
+                                        setState(
+                                          () => _selectedCardId = cardId,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  SizedBox(
+                                    width: 360,
+                                    child: CreativeCardDetailPanel(
+                                      key: const ValueKey(
+                                        'empty-creative-card-detail',
+                                      ),
+                                      card: selectedCard,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const _BoardMessage(
+                                icon: Icons.dashboard_customize_outlined,
+                                title: 'No hay tarjetas visibles',
+                                body:
+                                    'Crea una tarjeta para capturar ideas, bocetos o preguntas sin llevarlas a memoria narrativa.',
+                              )
                         : Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -98,8 +126,13 @@ class _CreativeBoardEditorState extends ConsumerState<CreativeBoardEditor> {
                               const SizedBox(width: 14),
                               SizedBox(
                                 width: 360,
-                                child:
-                                    CreativeCardDetailPanel(card: selectedCard),
+                                child: CreativeCardDetailPanel(
+                                  key: ValueKey(
+                                    selectedCard?.id ??
+                                        'empty-creative-card-detail',
+                                  ),
+                                  card: selectedCard,
+                                ),
                               ),
                             ],
                           ),

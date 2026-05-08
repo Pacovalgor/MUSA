@@ -183,6 +183,13 @@ class _CreativeCardDetailPanelState
         );
   }
 
+  Future<void> _convertAndReturn(Future<Object?> Function() convert) async {
+    final notifier = ref.read(narrativeWorkspaceProvider.notifier);
+    await convert();
+    if (!mounted) return;
+    await notifier.openCreativeBoard();
+  }
+
   @override
   Widget build(BuildContext context) {
     final workspace = ref.watch(narrativeWorkspaceProvider).valueOrNull;
@@ -491,17 +498,105 @@ class _CreativeCardDetailPanelState
                     ),
                   ),
                   const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      key: const Key('creative-card-detail-save-button'),
-                      onPressed: () => _save(selectedCard),
-                      child: const Text('Guardar'),
-                    ),
+                  Row(
+                    children: [
+                      if (!isConverted) ...[
+                        _DetailActions(
+                          onConvertNote: () => _convertAndReturn(
+                            () => ref
+                                .read(narrativeWorkspaceProvider.notifier)
+                                .convertCreativeCardToNote(selectedCard.id),
+                          ),
+                          onConvertCharacter: () => _convertAndReturn(
+                            () => ref
+                                .read(narrativeWorkspaceProvider.notifier)
+                                .convertCreativeCardToCharacter(
+                                  selectedCard.id,
+                                ),
+                          ),
+                          onConvertScenario: () => _convertAndReturn(
+                            () => ref
+                                .read(narrativeWorkspaceProvider.notifier)
+                                .convertCreativeCardToScenario(selectedCard.id),
+                          ),
+                          onConvertDocument: () => _convertAndReturn(
+                            () => ref
+                                .read(narrativeWorkspaceProvider.notifier)
+                                .convertCreativeCardToDocument(selectedCard.id),
+                          ),
+                          onArchive: () => ref
+                              .read(narrativeWorkspaceProvider.notifier)
+                              .archiveCreativeCard(selectedCard.id),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(
+                        child: FilledButton(
+                          key: const Key('creative-card-detail-save-button'),
+                          onPressed: () => _save(selectedCard),
+                          child: const Text('Guardar'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
       ),
+    );
+  }
+}
+
+class _DetailActions extends StatelessWidget {
+  const _DetailActions({
+    required this.onConvertNote,
+    required this.onConvertCharacter,
+    required this.onConvertScenario,
+    required this.onConvertDocument,
+    required this.onArchive,
+  });
+
+  final VoidCallback onConvertNote;
+  final VoidCallback onConvertCharacter;
+  final VoidCallback onConvertScenario;
+  final VoidCallback onConvertDocument;
+  final VoidCallback onArchive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 2,
+      children: [
+        _DetailActionButton(
+          key: const Key('creative-detail-convert-note'),
+          icon: Icons.note_alt_outlined,
+          label: 'Convertir en nota',
+          onPressed: onConvertNote,
+        ),
+        _DetailActionButton(
+          key: const Key('creative-detail-convert-character'),
+          icon: Icons.person_outline,
+          label: 'Convertir en personaje',
+          onPressed: onConvertCharacter,
+        ),
+        _DetailActionButton(
+          key: const Key('creative-detail-convert-scenario'),
+          icon: Icons.place_outlined,
+          label: 'Convertir en escenario',
+          onPressed: onConvertScenario,
+        ),
+        _DetailActionButton(
+          key: const Key('creative-detail-convert-document'),
+          icon: Icons.description_outlined,
+          label: 'Convertir en documento',
+          onPressed: onConvertDocument,
+        ),
+        _DetailActionButton(
+          key: const Key('creative-detail-archive'),
+          icon: Icons.archive_outlined,
+          label: 'Archivar',
+          onPressed: onArchive,
+        ),
+      ],
     );
   }
 }
@@ -511,4 +606,34 @@ String _attachmentKindLabel(CreativeCardAttachmentKind kind) {
     CreativeCardAttachmentKind.link => 'Enlace',
     CreativeCardAttachmentKind.image => 'Imagen',
   };
+}
+
+class _DetailActionButton extends StatelessWidget {
+  const _DetailActionButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = MusaTheme.tokensOf(context);
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: label,
+      icon: Icon(icon, size: 18),
+      style: IconButton.styleFrom(
+        foregroundColor: tokens.textSecondary,
+        side: BorderSide(color: tokens.borderSoft),
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        minimumSize: const Size.square(34),
+      ),
+    );
+  }
 }
