@@ -209,6 +209,12 @@ class TextAnalysisLexicons {
     'Con',
     'Para',
     'Atiende',
+    'Posible',
+    'Escrib',
+    'Escribí',
+    'Escribi',
+    'Decía',
+    'Decia',
   };
 
   static const Set<String> commonNonEntityWords = <String>{
@@ -319,6 +325,11 @@ class TextAnalysisLexicons {
     'Guardo',
     'Decido',
     'Escribía',
+    'Escrib',
+    'Escribí',
+    'Escribi',
+    'Decía',
+    'Decia',
     'Llevaba',
     'Fui',
     'Soy',
@@ -888,7 +899,11 @@ class TextAnalysisLexicons {
     ' caja ',
     ' palé ',
   ];
-  static const List<String> coffeeTerms = <String>[' taza ', ' café ', ' chai '];
+  static const List<String> coffeeTerms = <String>[
+    ' taza ',
+    ' café ',
+    ' chai '
+  ];
   static const List<String> workFurnitureTerms = <String>[
     ' escritorio ',
     ' silla ',
@@ -1367,8 +1382,7 @@ class TextAnalysisLexicons {
   /// Las búsquedas con sinónimos pasan a través del stemmer, así que un
   /// sinónimo cubre también sus formas conjugadas (ej. 'opta' → 'optó',
   /// 'optaba', 'optaron').
-  static const Map<String, List<String>> synonymMap =
-      <String, List<String>>{
+  static const Map<String, List<String>> synonymMap = <String, List<String>>{
     // Miedo / amenaza
     'miedo': <String>['temor', 'pavor', 'angustia'],
     'amenaza': <String>['peligro', 'advertencia'],

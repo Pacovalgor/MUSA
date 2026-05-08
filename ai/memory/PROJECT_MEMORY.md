@@ -81,6 +81,9 @@
   - ✅ **Tarjeta creativa enriquecida**: cada `CreativeCard` puede abrirse en un panel de detalle para editar título, cuerpo, tipo, estado y tags.
   - ✅ **Adjuntos y vínculos explícitos**: las tarjetas gestionan enlaces, referencias de imagen y relaciones con personajes, escenarios, documentos y notas del libro activo.
   - ✅ **Antesala no canónica reforzada**: las tarjetas siguen fuera de memoria narrativa, continuidad y auditoría hasta conversión o acción explícita.
+- **V3.3 (2026-05-08)**:
+  - ✅ **Validación local de personajes en análisis de capítulo**: `ChapterAnalysisService.analyzeAsync` mantiene la detección heurística como primer paso y añade un filtro opcional con modelo local para confirmar si los candidatos son personas reales en escena.
+  - ✅ **Fallback conservador**: si el modelo local no está disponible o no devuelve JSON válido, el análisis no se bloquea y conserva el resultado heurístico; falsos positivos conocidos como verbos capitalizados se bloquean en léxico.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -103,6 +106,7 @@
 - V3.0 mantiene la dirección editorial como derivada/recalculable; no aplicar misiones automáticamente ni persistirlas como tareas hasta que exista revisión explícita del usuario.
 - V3.1 mantiene las tarjetas creativas fuera de memoria narrativa, continuidad, auditoria y direccion editorial hasta conversion o accion explicita de uso.
 - V3.2 Mesa creativa mantiene adjuntos de imagen como referencias URI/ruta; no copiar archivos al `.musa` hasta que exista gestor de media explícito.
+- V3.3 mantiene la validación de personajes local-first y no dependiente de nube: el modelo solo filtra candidatos ya detectados, nunca inventa nombres nuevos.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

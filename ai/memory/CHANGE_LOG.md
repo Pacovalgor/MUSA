@@ -23,3 +23,4 @@
 
 ## 2026-05-08
 - Se registra V3.2 Mesa creativa en memoria estable: detalle enriquecido de tarjetas creativas con edición, adjuntos y vínculos explícitos.
+- Se registra V3.3 en memoria estable: validación local opcional de personajes detectados en análisis de capítulo, con fallback heurístico conservador y bloqueo léxico de verbos capitalizados.

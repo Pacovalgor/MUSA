@@ -1,27 +1,41 @@
 import 'dart:isolate';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../modules/books/services/narrative_document_classifier.dart';
 import '../../modules/characters/models/character.dart';
 import '../../modules/scenarios/models/scenario.dart';
+import '../../services/ia/embedded/management/model_manager.dart';
 import '../models/chapter_analysis.dart';
 import '../models/fragment_analysis.dart';
+import 'chapter_character_validation_service.dart';
 import 'fragment_analysis_service.dart';
 import 'fragment_inference_utils.dart';
 
 final chapterAnalysisServiceProvider = Provider<ChapterAnalysisService>((ref) {
-  return const ChapterAnalysisService();
+  final activeModelPath = Platform.isMacOS
+      ? ref.watch(modelManagerProvider.select((s) => s.activeModelPath))
+      : null;
+  return ChapterAnalysisService(
+    characterValidationService: Platform.isMacOS
+        ? EmbeddedChapterCharacterValidationService(
+            activeModelPath: activeModelPath,
+          )
+        : const UnavailableChapterCharacterValidationService(),
+  );
 });
 
 class ChapterAnalysisService {
   const ChapterAnalysisService({
     this.fragmentAnalysisService = const FragmentAnalysisService(),
     this.documentClassifier = const NarrativeDocumentClassifier(),
+    this.characterValidationService,
   });
 
   final FragmentAnalysisService fragmentAnalysisService;
   final NarrativeDocumentClassifier documentClassifier;
+  final ChapterCharacterValidationService? characterValidationService;
 
   Future<ChapterAnalysis> analyzeAsync({
     required String chapterText,
@@ -49,7 +63,78 @@ class ChapterAnalysisService {
       () => _analyzeChapterPayload(payload),
     );
 
-    return _chapterAnalysisFromJson(result);
+    final analysis = _chapterAnalysisFromJson(result);
+    return _validateMainCharactersWithLocalModel(
+      chapterText: chapterText,
+      analysis: analysis,
+    );
+  }
+
+  Future<ChapterAnalysis> _validateMainCharactersWithLocalModel({
+    required String chapterText,
+    required ChapterAnalysis analysis,
+  }) async {
+    final validator = characterValidationService;
+    if (validator == null ||
+        !validator.isReady ||
+        analysis.mainCharacters.isEmpty) {
+      return analysis;
+    }
+
+    final confirmedNames = await validator.confirmPersonNames(
+      chapterText: chapterText,
+      candidates: analysis.mainCharacters,
+    );
+    if (confirmedNames.length == analysis.mainCharacters.length &&
+        analysis.mainCharacters
+            .every((item) => confirmedNames.contains(item.name))) {
+      return analysis;
+    }
+
+    final filteredCharacters = analysis.mainCharacters
+        .where((item) => confirmedNames.contains(item.name))
+        .toList();
+    final allowedCharacterKeys = <String>{
+      for (final item in filteredCharacters) item.name,
+      for (final item in filteredCharacters)
+        if (item.existingCharacterId != null) item.existingCharacterId!,
+    };
+    final filteredDevelopments = analysis.characterDevelopments
+        .where((item) => allowedCharacterKeys.contains(item.characterIdOrName))
+        .toList();
+    final nextStep = _filterCharacterNextStep(
+      analysis.nextStep,
+      allowedCharacterKeys,
+    );
+
+    return ChapterAnalysis(
+      mainCharacters: filteredCharacters,
+      mainScenario: analysis.mainScenario,
+      narrativeMoments: analysis.narrativeMoments,
+      dominantNarrativeMoment: analysis.dominantNarrativeMoment,
+      chapterFunction: analysis.chapterFunction,
+      characterDevelopments: filteredDevelopments,
+      scenarioDevelopments: analysis.scenarioDevelopments,
+      trajectory: analysis.trajectory,
+      nextStep: nextStep,
+      recommendation: analysis.recommendation,
+    );
+  }
+
+  ChapterNextStep? _filterCharacterNextStep(
+    ChapterNextStep? nextStep,
+    Set<String> allowedCharacterKeys,
+  ) {
+    if (nextStep == null) return null;
+    final isCharacterStep = nextStep.type == NextStepType.createCharacter ||
+        nextStep.type == NextStepType.enrichCharacter;
+    if (!isCharacterStep) return nextStep;
+
+    final targetKey = nextStep.targetId ?? nextStep.entityName;
+    if (targetKey == null || allowedCharacterKeys.contains(targetKey)) {
+      return nextStep;
+    }
+    return null;
   }
 
   ChapterAnalysis _buildNonNarrativeAnalysis(
