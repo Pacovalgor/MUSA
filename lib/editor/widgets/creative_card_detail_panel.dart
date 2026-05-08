@@ -186,7 +186,6 @@ class _CreativeCardDetailPanelState
   Future<void> _convertAndReturn(Future<Object?> Function() convert) async {
     final notifier = ref.read(narrativeWorkspaceProvider.notifier);
     await convert();
-    if (!mounted) return;
     await notifier.openCreativeBoard();
   }
 

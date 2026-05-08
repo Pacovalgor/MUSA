@@ -272,6 +272,7 @@ void main() {
     final stored = repository.workspace.creativeCards.single;
     expect(stored.status, CreativeCardStatus.converted);
     expect(stored.convertedTo?.kind, CreativeCardConversionKind.note);
+    expect(repository.workspace.editorMode, WorkspaceEditorMode.creative);
   });
 
   testWidgets('detail panel archives an unconverted card', (tester) async {
