@@ -6,7 +6,11 @@ El formato sigue una variante ligera de Keep a Changelog: las entradas nuevas em
 
 ## Unreleased
 
-Sin cambios pendientes. Última versión cerrada: V3.4 (2026-05-12).
+### Added
+
+- Workflow de CI en GitHub Actions (`.github/workflows/ci.yml`): `flutter analyze --fatal-infos` + `flutter test --exclude-tags=real_ffi` sobre `macos-latest` en cada push y PR a `main`.
+- `test/flutter_test_config.dart`: deshabilita `GoogleFonts.allowRuntimeFetching` globalmente para que los widget tests que usan `MusaTheme` funcionen en CI sin conexión.
+- Tag `@Tags(['real_ffi'])` en `llama_processor_real_smoke_test.dart` para excluirlo limpiamente del CI headless.
 
 ## 2026-05-12 - V3.4: Captura iPhone orientada a mesa creativa
 

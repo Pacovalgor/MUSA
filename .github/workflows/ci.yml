@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Analizar y testear
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Obtener dependencias
+        run: flutter pub get
+
+      - name: Analizar código
+        run: flutter analyze --fatal-infos
+
+      - name: Ejecutar tests
+        run: flutter test --exclude-tags=real_ffi

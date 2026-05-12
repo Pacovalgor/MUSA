@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:musa/services/ia/embedded/ffi/llama_processor.dart';
 
+@Tags(['real_ffi'])
 void main() {
   test(
     'llama processor returns real tokens',
