@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:musa/modules/creative/models/creative_card.dart';
 import 'package:musa/modules/inbox/models/inbox_capture.dart';
 import 'package:musa/modules/inbox/providers/inbox_captures_provider.dart';
 import 'package:musa/modules/inbox/providers/inbox_folder_provider.dart';
@@ -20,6 +21,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   final _focus = FocusNode();
   final _detector = const KindDetectorService();
   bool _saving = false;
+  CreativeCardType _creativeType = CreativeCardType.idea;
 
   @override
   void initState() {
@@ -47,8 +49,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     setState(() => _saving = true);
     try {
       final det = _detector.detect(text);
-      final deviceLabel =
-          ref.read(inboxDeviceLabelProvider).valueOrNull ?? 'iPhone';
+      final deviceLabel = await ref.read(inboxDeviceLabelProvider.future);
       final capture = InboxCapture(
         schemaVersion: 1,
         id: const Uuid().v4(),
@@ -57,6 +58,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
         kind: det.kind,
         body: det.body,
         url: det.url,
+        creativeTypeHint: _creativeType.name,
       );
       await storage.write(capture);
       await ref.read(inboxHistoryCacheProvider.notifier).add(capture.id);
@@ -114,15 +116,54 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
                       top: 0,
                       right: 0,
                       child: _KindChip(
-                          kind: _controller.text.isEmpty ? null : detection.kind),
+                          kind:
+                              _controller.text.isEmpty ? null : detection.kind),
                     ),
                   ],
                 ),
               ),
             ),
             Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _CreativeTypeChoice(
+                    key: const Key('iphone-capture-type-idea'),
+                    label: 'Idea',
+                    selected: _creativeType == CreativeCardType.idea,
+                    onTap: () =>
+                        setState(() => _creativeType = CreativeCardType.idea),
+                  ),
+                  _CreativeTypeChoice(
+                    key: const Key('iphone-capture-type-sketch'),
+                    label: 'Boceto',
+                    selected: _creativeType == CreativeCardType.sketch,
+                    onTap: () =>
+                        setState(() => _creativeType = CreativeCardType.sketch),
+                  ),
+                  _CreativeTypeChoice(
+                    key: const Key('iphone-capture-type-question'),
+                    label: 'Pregunta',
+                    selected: _creativeType == CreativeCardType.question,
+                    onTap: () => setState(
+                        () => _creativeType = CreativeCardType.question),
+                  ),
+                  _CreativeTypeChoice(
+                    key: const Key('iphone-capture-type-research'),
+                    label: 'Research',
+                    selected: _creativeType == CreativeCardType.research,
+                    onTap: () => setState(
+                        () => _creativeType = CreativeCardType.research),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: ElevatedButton(
+                key: const Key('iphone-capture-save-button'),
                 onPressed: canSave ? _save : null,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
@@ -139,6 +180,28 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CreativeTypeChoice extends StatelessWidget {
+  const _CreativeTypeChoice({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
     );
   }
 }
@@ -168,8 +231,10 @@ class _Header extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(label,
-                style:
-                    const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -196,7 +261,10 @@ class _KindChip extends StatelessWidget {
         border: Border.all(color: Colors.blue.shade200),
       ),
       child: Text('$icon $label',
-          style: TextStyle(fontSize: 11, color: Colors.blue.shade700, fontWeight: FontWeight.w600)),
+          style: TextStyle(
+              fontSize: 11,
+              color: Colors.blue.shade700,
+              fontWeight: FontWeight.w600)),
     );
   }
 }
