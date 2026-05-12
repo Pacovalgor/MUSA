@@ -54,8 +54,7 @@ class InboxPopover extends ConsumerWidget {
                 child: Text('Capturas pendientes (${caps.length})',
                     style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
-              for (final r in visible)
-                _CapturePopoverRow(record: r),
+              for (final r in visible) _CapturePopoverRow(record: r),
               const Divider(height: 16),
               TextButton(
                 onPressed: () {
@@ -96,21 +95,22 @@ class _CapturePopoverRow extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('${_kindEmoji(c.kind)} ${_short(c.body, c.url, 80)}',
-              maxLines: 2, overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12)),
           const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: () => CaptureActions.accept(ref, record),
+                onPressed: () => CaptureActions.accept(ref.read, record),
                 style: TextButton.styleFrom(
                     minimumSize: const Size(0, 28),
                     padding: const EdgeInsets.symmetric(horizontal: 8)),
                 child: const Text('Aceptar', style: TextStyle(fontSize: 11)),
               ),
               TextButton(
-                onPressed: () => CaptureActions.discard(ref, record),
+                onPressed: () => CaptureActions.discard(ref.read, record),
                 style: TextButton.styleFrom(
                     minimumSize: const Size(0, 28),
                     padding: const EdgeInsets.symmetric(horizontal: 8)),

@@ -66,7 +66,7 @@ class _CaptureDetailPanelState extends ConsumerState<CaptureDetailPanel> {
               ),
             const SizedBox(height: 16),
             OutlinedButton(
-              onPressed: () => CaptureActions.discard(ref, widget.record),
+              onPressed: () => CaptureActions.discard(ref.read, widget.record),
               child: const Text('Descartar'),
             ),
           ],
@@ -145,11 +145,12 @@ class _DetailActionsHook extends ConsumerWidget {
       children: [
         if (!editing) ...[
           FilledButton(
-            onPressed: () => CaptureActions.accept(ref, record),
+            onPressed: () => CaptureActions.accept(ref.read, record),
             child: const Text('Aceptar como nota'),
           ),
           OutlinedButton(
-            onPressed: () => CaptureActions.acceptAsCreativeCard(ref, record),
+            onPressed: () =>
+                CaptureActions.acceptAsCreativeCard(ref.read, record),
             child: const Text('Enviar a mesa'),
           ),
           OutlinedButton(
@@ -157,7 +158,7 @@ class _DetailActionsHook extends ConsumerWidget {
             child: const Text('Expandir y editar'),
           ),
           TextButton(
-            onPressed: () => CaptureActions.discard(ref, record),
+            onPressed: () => CaptureActions.discard(ref.read, record),
             child: const Text('Descartar'),
           ),
         ] else ...[
@@ -168,7 +169,7 @@ class _DetailActionsHook extends ConsumerWidget {
           FilledButton(
             onPressed: () async {
               await CaptureActions.accept(
-                ref,
+                ref.read,
                 record,
                 editedBody: editController.text,
               );
@@ -179,7 +180,7 @@ class _DetailActionsHook extends ConsumerWidget {
           FilledButton.tonal(
             onPressed: () async {
               await CaptureActions.acceptAsCreativeCard(
-                ref,
+                ref.read,
                 record,
                 editedBody: editController.text,
               );
