@@ -1078,6 +1078,73 @@ class NarrativeWorkspaceNotifier
     return value.length > 80 ? '${value.substring(0, 77)}...' : value;
   }
 
+  CreativeCardType _inferCreativeCardType({
+    required String body,
+    required String? url,
+  }) {
+    return url == null || url.isEmpty
+        ? CreativeCardType.idea
+        : CreativeCardType.research;
+  }
+
+  CreativeCardType? _creativeCardTypeFromName(String? raw) {
+    final value = raw?.trim();
+    if (value == null || value.isEmpty) return null;
+    for (final type in CreativeCardType.values) {
+      if (type.name == value) return type;
+    }
+    return null;
+  }
+
+  CreativeCardAttachmentKind? _creativeAttachmentKindFromName(String? raw) {
+    final value = raw?.trim();
+    if (value == null || value.isEmpty) return null;
+    for (final kind in CreativeCardAttachmentKind.values) {
+      if (kind.name == value) return kind;
+    }
+    return null;
+  }
+
+  List<CreativeCardAttachment> _creativeInboxAttachments({
+    required String? url,
+    required String? attachmentUri,
+    required String? attachmentKind,
+    required String deviceLabel,
+    required DateTime capturedAt,
+  }) {
+    final attachments = <CreativeCardAttachment>[];
+    final label = deviceLabel.trim();
+    final trimmedUrl = url?.trim() ?? '';
+    if (trimmedUrl.isNotEmpty) {
+      attachments.add(CreativeCardAttachment(
+        id: generateEntityId('creative_attachment'),
+        kind: CreativeCardAttachmentKind.link,
+        uri: trimmedUrl,
+        title: label,
+        createdAt: capturedAt,
+      ));
+    }
+
+    final uri = attachmentUri?.trim() ?? '';
+    final kind = _creativeAttachmentKindFromName(attachmentKind);
+    if (uri.isNotEmpty && kind != null) {
+      final alreadyAdded = attachments.any(
+        (attachment) => attachment.uri == uri && attachment.kind == kind,
+      );
+      if (!alreadyAdded) {
+        attachments.add(CreativeCardAttachment(
+          id: generateEntityId('creative_attachment'),
+          kind: kind,
+          uri: uri,
+          title: label,
+          createdAt: capturedAt,
+        ));
+      }
+    }
+
+    return attachments;
+  }
+
   Future<void> createNote({
     String title = 'Nueva nota',
     NoteKind kind = NoteKind.loose,
@@ -1164,6 +1231,9 @@ class NarrativeWorkspaceNotifier
     required String? url,
     required DateTime capturedAt,
     required String deviceLabel,
+    String? creativeTypeHint,
+    String? attachmentUri,
+    String? attachmentKind,
   }) async {
     final workspace = state.value;
     final activeBook = workspace?.activeBook;
@@ -1176,25 +1246,26 @@ class NarrativeWorkspaceNotifier
       body: trimmedBody,
       fallbackUrl: trimmedUrl,
     );
+    final explicitType = _creativeCardTypeFromName(creativeTypeHint);
+    final inferredType = _inferCreativeCardType(
+      body: trimmedBody,
+      url: hasUrl ? trimmedUrl : null,
+    );
     final now = DateTime.now();
     final card = CreativeCard(
       id: generateEntityId('creative'),
       bookId: activeBook.id,
       title: inferredTitle,
       body: trimmedBody,
-      type: hasUrl ? CreativeCardType.research : CreativeCardType.idea,
+      type: explicitType ?? inferredType,
       status: CreativeCardStatus.inbox,
-      attachments: hasUrl
-          ? [
-              CreativeCardAttachment(
-                id: generateEntityId('creative_attachment'),
-                kind: CreativeCardAttachmentKind.link,
-                uri: trimmedUrl,
-                title: deviceLabel.trim(),
-                createdAt: capturedAt,
-              ),
-            ]
-          : const [],
+      attachments: _creativeInboxAttachments(
+        url: hasUrl ? trimmedUrl : null,
+        attachmentUri: attachmentUri,
+        attachmentKind: attachmentKind,
+        deviceLabel: deviceLabel,
+        capturedAt: capturedAt,
+      ),
       source: CreativeCardSource.inbox,
       createdAt: capturedAt,
       updatedAt: now,

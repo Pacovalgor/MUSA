@@ -91,6 +91,101 @@ void main() {
       expect(container.read(narrativeWorkspaceProvider).value!.creativeCards,
           isEmpty);
     });
+
+    test('uses explicit creative type when creating card from inbox', () async {
+      final capturedAt = DateTime.utc(2026, 5, 8, 10, 15);
+      final container = await _containerWithWorkspace(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(
+            id: 'book-1',
+            title: 'Libro',
+            createdAt: capturedAt,
+            updatedAt: capturedAt,
+          ),
+        ],
+      ));
+      addTearDown(container.dispose);
+
+      final card = await container
+          .read(narrativeWorkspaceProvider.notifier)
+          .addCreativeCardFromInbox(
+            body: '¿Y si Diane no abrió la puerta?',
+            url: null,
+            capturedAt: capturedAt,
+            deviceLabel: 'iPhone de Paco',
+            creativeTypeHint: 'question',
+          );
+
+      expect(card, isNotNull);
+      expect(card!.type, CreativeCardType.question);
+      expect(container.read(activeCreativeCardsProvider).single.type,
+          CreativeCardType.question);
+    });
+
+    test('ignores invalid creative type hint and keeps inference', () async {
+      final capturedAt = DateTime.utc(2026, 5, 8, 10, 15);
+      final container = await _containerWithWorkspace(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(
+            id: 'book-1',
+            title: 'Libro',
+            createdAt: capturedAt,
+            updatedAt: capturedAt,
+          ),
+        ],
+      ));
+      addTearDown(container.dispose);
+
+      final card = await container
+          .read(narrativeWorkspaceProvider.notifier)
+          .addCreativeCardFromInbox(
+            body: 'https://example.com/door',
+            url: 'https://example.com/door',
+            capturedAt: capturedAt,
+            deviceLabel: 'iPhone de Paco',
+            creativeTypeHint: 'unknown-kind',
+          );
+
+      expect(card, isNotNull);
+      expect(card!.type, CreativeCardType.research);
+    });
+
+    test('creates image attachment reference from inbox metadata', () async {
+      final capturedAt = DateTime.utc(2026, 5, 8, 10, 15);
+      final container = await _containerWithWorkspace(NarrativeWorkspace(
+        appSettings: const AppSettings(activeBookId: 'book-1'),
+        books: [
+          Book(
+            id: 'book-1',
+            title: 'Libro',
+            createdAt: capturedAt,
+            updatedAt: capturedAt,
+          ),
+        ],
+      ));
+      addTearDown(container.dispose);
+
+      final card = await container
+          .read(narrativeWorkspaceProvider.notifier)
+          .addCreativeCardFromInbox(
+            body: 'Foto del callejón',
+            url: null,
+            capturedAt: capturedAt,
+            deviceLabel: 'iPhone de Paco',
+            creativeTypeHint: 'image',
+            attachmentUri: 'file:///tmp/alley.png',
+            attachmentKind: 'image',
+          );
+
+      expect(card, isNotNull);
+      expect(card!.type, CreativeCardType.image);
+      expect(card.attachments, hasLength(1));
+      expect(card.attachments.single.kind, CreativeCardAttachmentKind.image);
+      expect(card.attachments.single.uri, 'file:///tmp/alley.png');
+      expect(card.attachments.single.title, 'iPhone de Paco');
+    });
   });
 
   group('Creative card conversions', () {
