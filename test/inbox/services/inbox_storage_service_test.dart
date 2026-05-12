@@ -39,18 +39,39 @@ void main() {
   }
 
   group('write', () {
-    test('writes capture in MUSA-Inbox/<localDate>/<HH-MM-SS>-<id>.json', () async {
-      final capture = makeCapture(capturedAt: DateTime.utc(2026, 4, 25, 17, 32, 14));
+    test('writes capture in MUSA-Inbox/<localDate>/<HH-MM-SS>-<id>.json',
+        () async {
+      final capture =
+          makeCapture(capturedAt: DateTime.utc(2026, 4, 25, 17, 32, 14));
       final file = await storage.write(capture);
 
       expect(file.existsSync(), isTrue);
       final relPath = p.relative(file.path, from: tempRoot.path);
       expect(relPath.startsWith('MUSA-Inbox/'), isTrue);
-      expect(p.basename(file.path),
-          endsWith('${capture.id}.json'));
+      expect(p.basename(file.path), endsWith('${capture.id}.json'));
 
       final json = jsonDecode(await file.readAsString());
       expect(json['id'], capture.id);
+    });
+
+    test('writes and reads creative metadata unchanged', () async {
+      final capture = makeCapture(
+        id: 'creative-meta',
+        body: 'Imagen de escalera',
+        url: 'file:///tmp/stair.png',
+      ).copyWith(
+        creativeTypeHint: 'image',
+        attachmentUri: 'file:///tmp/stair.png',
+        attachmentKind: 'image',
+      );
+
+      await storage.write(capture);
+
+      final all = await storage.readAll();
+      final stored = all.single.capture!;
+      expect(stored.creativeTypeHint, 'image');
+      expect(stored.attachmentUri, 'file:///tmp/stair.png');
+      expect(stored.attachmentKind, 'image');
     });
   });
 
@@ -95,7 +116,8 @@ void main() {
       expect(all.first.capture, isNull);
     });
 
-    test('files with schemaVersion > currentSchemaVersion are unreadable', () async {
+    test('files with schemaVersion > currentSchemaVersion are unreadable',
+        () async {
       final dir = Directory(p.join(tempRoot.path, 'MUSA-Inbox', '2026-04-25'))
         ..createSync(recursive: true);
       File(p.join(dir.path, '17-32-14-future.json'))
@@ -132,8 +154,8 @@ void main() {
 
       await storage.markProcessed(f);
       expect(f.existsSync(), isFalse);
-      final processedFile = File(p.join(
-          tempRoot.path, 'MUSA-Inbox', 'processed', basename));
+      final processedFile =
+          File(p.join(tempRoot.path, 'MUSA-Inbox', 'processed', basename));
       expect(processedFile.existsSync(), isTrue);
     });
 
@@ -142,8 +164,8 @@ void main() {
       final basename = p.basename(f.path);
 
       await storage.markDiscarded(f);
-      final discardedFile = File(p.join(
-          tempRoot.path, 'MUSA-Inbox', 'discarded', basename));
+      final discardedFile =
+          File(p.join(tempRoot.path, 'MUSA-Inbox', 'discarded', basename));
       expect(discardedFile.existsSync(), isTrue);
     });
   });

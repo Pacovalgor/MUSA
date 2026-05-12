@@ -18,6 +18,9 @@ class InboxCapture {
     this.url,
     this.title,
     this.projectHint,
+    this.creativeTypeHint,
+    this.attachmentUri,
+    this.attachmentKind,
   });
 
   final int schemaVersion;
@@ -29,6 +32,9 @@ class InboxCapture {
   final String? url;
   final String? title;
   final String? projectHint;
+  final String? creativeTypeHint;
+  final String? attachmentUri;
+  final String? attachmentKind;
 
   /// Schema version soportada por esta versión del cliente.
   static const int currentSchemaVersion = 1;
@@ -43,6 +49,9 @@ class InboxCapture {
         'url': url,
         'title': title,
         'projectHint': projectHint,
+        'creativeTypeHint': creativeTypeHint,
+        'attachmentUri': attachmentUri,
+        'attachmentKind': attachmentKind,
       };
 
   factory InboxCapture.fromJson(Map<String, dynamic> json) {
@@ -66,7 +75,8 @@ class InboxCapture {
         deviceLabel is! String ||
         kindRaw is! String ||
         body is! String) {
-      throw const FormatException('Campos requeridos ausentes o de tipo erróneo');
+      throw const FormatException(
+          'Campos requeridos ausentes o de tipo erróneo');
     }
     final kind = InboxCaptureKind.values.firstWhere(
       (k) => k.name == kindRaw,
@@ -83,6 +93,9 @@ class InboxCapture {
       url: json['url'] as String?,
       title: json['title'] as String?,
       projectHint: json['projectHint'] as String?,
+      creativeTypeHint: json['creativeTypeHint'] as String?,
+      attachmentUri: json['attachmentUri'] as String?,
+      attachmentKind: json['attachmentKind'] as String?,
     );
   }
 
@@ -90,6 +103,9 @@ class InboxCapture {
     String? body,
     String? url,
     String? title,
+    String? creativeTypeHint,
+    String? attachmentUri,
+    String? attachmentKind,
   }) {
     return InboxCapture(
       schemaVersion: schemaVersion,
@@ -101,6 +117,9 @@ class InboxCapture {
       url: url ?? this.url,
       title: title ?? this.title,
       projectHint: projectHint,
+      creativeTypeHint: creativeTypeHint ?? this.creativeTypeHint,
+      attachmentUri: attachmentUri ?? this.attachmentUri,
+      attachmentKind: attachmentKind ?? this.attachmentKind,
     );
   }
 

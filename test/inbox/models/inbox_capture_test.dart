@@ -57,6 +57,49 @@ void main() {
       expect(back.kind, InboxCaptureKind.link);
     });
 
+    test('round-trips creative card metadata', () {
+      final original = InboxCapture(
+        schemaVersion: 1,
+        id: 'creative-meta',
+        capturedAt: DateTime.utc(2026, 5, 8, 10, 15),
+        deviceLabel: 'iPhone de Paco',
+        kind: InboxCaptureKind.link,
+        body: 'Referencia de puerta',
+        url: 'https://example.com/door',
+        creativeTypeHint: 'sketch',
+        attachmentUri: '/tmp/reference.png',
+        attachmentKind: 'image',
+      );
+
+      final json = original.toJson();
+      expect(json['creativeTypeHint'], 'sketch');
+      expect(json['attachmentUri'], '/tmp/reference.png');
+      expect(json['attachmentKind'], 'image');
+
+      final back = InboxCapture.fromJson(json);
+      expect(back.creativeTypeHint, 'sketch');
+      expect(back.attachmentUri, '/tmp/reference.png');
+      expect(back.attachmentKind, 'image');
+    });
+
+    test('accepts old capture json without creative card metadata', () {
+      final back = InboxCapture.fromJson(const {
+        'schemaVersion': 1,
+        'id': 'old-capture',
+        'capturedAt': '2026-04-25T17:32:14Z',
+        'deviceLabel': 'iPhone',
+        'kind': 'text',
+        'body': 'Idea antigua',
+        'url': null,
+        'title': null,
+        'projectHint': null,
+      });
+
+      expect(back.creativeTypeHint, isNull);
+      expect(back.attachmentUri, isNull);
+      expect(back.attachmentKind, isNull);
+    });
+
     test('serializes capturedAt in ISO8601 UTC ("Z")', () {
       final c = InboxCapture(
         schemaVersion: 1,
