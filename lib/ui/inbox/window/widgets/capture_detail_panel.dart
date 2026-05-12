@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:musa/modules/creative/models/creative_card.dart';
 import 'package:musa/modules/inbox/services/inbox_storage_service.dart';
 import 'package:musa/ui/inbox/window/widgets/capture_actions.dart';
 
@@ -14,12 +15,14 @@ class CaptureDetailPanel extends ConsumerStatefulWidget {
 class _CaptureDetailPanelState extends ConsumerState<CaptureDetailPanel> {
   late TextEditingController _editController;
   bool _editing = false;
+  CreativeCardType _creativeType = CreativeCardType.idea;
 
   @override
   void initState() {
     super.initState();
     _editController =
         TextEditingController(text: widget.record.capture?.body ?? '');
+    _creativeType = _typeFromCapture();
   }
 
   @override
@@ -28,7 +31,16 @@ class _CaptureDetailPanelState extends ConsumerState<CaptureDetailPanel> {
     if (oldWidget.record.path != widget.record.path) {
       _editController.text = widget.record.capture?.body ?? '';
       _editing = false;
+      _creativeType = _typeFromCapture();
     }
+  }
+
+  CreativeCardType _typeFromCapture() {
+    final raw = widget.record.capture?.creativeTypeHint;
+    for (final type in CreativeCardType.values) {
+      if (type.name == raw) return type;
+    }
+    return CreativeCardType.idea;
   }
 
   @override
@@ -108,10 +120,46 @@ class _CaptureDetailPanelState extends ConsumerState<CaptureDetailPanel> {
                   ),
           ),
           const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _TypeChip(
+                key: const Key('capture-detail-type-idea'),
+                label: 'Idea',
+                selected: _creativeType == CreativeCardType.idea,
+                onTap: () =>
+                    setState(() => _creativeType = CreativeCardType.idea),
+              ),
+              _TypeChip(
+                key: const Key('capture-detail-type-sketch'),
+                label: 'Boceto',
+                selected: _creativeType == CreativeCardType.sketch,
+                onTap: () =>
+                    setState(() => _creativeType = CreativeCardType.sketch),
+              ),
+              _TypeChip(
+                key: const Key('capture-detail-type-question'),
+                label: 'Pregunta',
+                selected: _creativeType == CreativeCardType.question,
+                onTap: () =>
+                    setState(() => _creativeType = CreativeCardType.question),
+              ),
+              _TypeChip(
+                key: const Key('capture-detail-type-research'),
+                label: 'Research',
+                selected: _creativeType == CreativeCardType.research,
+                onTap: () =>
+                    setState(() => _creativeType = CreativeCardType.research),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           _DetailActionsHook(
             record: widget.record,
             editing: _editing,
             editController: _editController,
+            creativeType: _creativeType,
             onToggleEdit: () => setState(() => _editing = !_editing),
             onCancelEdit: () => setState(() {
               _editController.text = c.body;
@@ -129,12 +177,14 @@ class _DetailActionsHook extends ConsumerWidget {
     required this.record,
     required this.editing,
     required this.editController,
+    required this.creativeType,
     required this.onToggleEdit,
     required this.onCancelEdit,
   });
   final InboxCaptureRecord record;
   final bool editing;
   final TextEditingController editController;
+  final CreativeCardType creativeType;
   final VoidCallback onToggleEdit;
   final VoidCallback onCancelEdit;
 
@@ -145,13 +195,17 @@ class _DetailActionsHook extends ConsumerWidget {
       children: [
         if (!editing) ...[
           FilledButton(
-            onPressed: () => CaptureActions.accept(ref.read, record),
-            child: const Text('Aceptar como nota'),
+            key: const Key('capture-detail-create-card'),
+            onPressed: () => CaptureActions.acceptAsCreativeCard(
+              ref.read,
+              record,
+              creativeTypeHint: creativeType.name,
+            ),
+            child: const Text('Crear tarjeta'),
           ),
           OutlinedButton(
-            onPressed: () =>
-                CaptureActions.acceptAsCreativeCard(ref.read, record),
-            child: const Text('Enviar a mesa'),
+            onPressed: () => CaptureActions.accept(ref.read, record),
+            child: const Text('Aceptar como nota'),
           ),
           OutlinedButton(
             onPressed: onToggleEdit,
@@ -183,13 +237,36 @@ class _DetailActionsHook extends ConsumerWidget {
                 ref.read,
                 record,
                 editedBody: editController.text,
+                creativeTypeHint: creativeType.name,
               );
               onCancelEdit();
             },
-            child: const Text('Enviar a mesa'),
+            child: const Text('Guardar y crear tarjeta'),
           ),
         ],
       ],
+    );
+  }
+}
+
+class _TypeChip extends StatelessWidget {
+  const _TypeChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
     );
   }
 }
