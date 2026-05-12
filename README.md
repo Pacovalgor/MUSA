@@ -64,7 +64,7 @@ Capturas reales del estado actual de la app.
 
 ## Estado actual
 
-El proyecto ya supera la fase de prototipo visual. Hay una base funcional clara en estos ejes:
+El proyecto ya supera la fase de prototipo visual. Hay una base funcional sólida en estos ejes:
 
 - Onboarding con detección de hardware y selección de modelo local.
 - Gestión de workspace narrativa persistida localmente.
@@ -73,15 +73,20 @@ El proyecto ya supera la fase de prototipo visual. Hay una base funcional clara 
 - Importación local de modelos `.gguf` ya descargados.
 - Edición de manuscrito y entidades narrativas.
 - Flujo de sugerencias editoriales con IA embebida en macOS.
-- Análisis heurístico del texto para continuidad y ayudas contextuales.
+- Análisis heurístico del texto con gating estructural y refinamiento contextual por fragmento.
 - ADN narrativo del libro con género, escala, ritmo objetivo, prioridad y promesa de lectura.
 - Copiloto narrativo con memoria narrativa, memoria contextual y siguiente mejor movimiento trazable.
+- Musas con aprendizaje adaptativo local: atribución precisa de feedback por Musa, estado visible (Aprendiendo / Estable / Afinada / En pausa) y calibración profesional separada sobre 15 referencias literarias derivadas por género.
+- Reescritura guiada controlada: propuestas deterministas para tensión, claridad, exposición y diálogo, siempre revisables antes de aplicar, con auditoría de seguridad y planificador contextual que destaca la acción más relevante.
+- Auditoría editorial derivada: ledger de promesas, contradicciones y riesgos de continuidad recalculable sin persistir reportes.
+- Mapa editorial por capítulos con prioridad local y comparación contra corpus profesional del género.
+- Dirección editorial unificada: máximo 3 misiones priorizadas en la vista de libro activo.
 - Workflows editoriales estructurados para expandir momentos y conectar trama.
 - Notas editoriales con estado, origen de capítulo y dirección reutilizable.
-- Mesa creativa por libro para ideas, bocetos, preguntas, research, imágenes y enlaces antes de convertirlos en material canónico.
+- Mesa creativa por libro para ideas, bocetos, preguntas, research, imágenes y enlaces, con detalle enriquecido, adjuntos y vínculos explícitos a entidades del libro.
 - Bandeja de captura iPhone/Mac que convierte capturas rápidas en tarjetas creativas del libro activo sin contaminar manuscrito ni memoria narrativa.
 - Snapshots manuales ligeros del workspace.
-- Focus mode visual y modo máquina de escribir.
+- Focus mode visual y música lofi embebida (30 pistas con selector por categoría).
 - Impresión de capítulos y libro completo en PDF.
 
 Todavía hay recorrido en robustez, packaging, testing automatizado y documentación operativa de producción.
@@ -204,21 +209,36 @@ flowchart TD
 - Modelos locales descargables durante onboarding.
 - Importación de modelos `.gguf` existentes desde archivo local.
 - Reconciliación de modelos ya presentes en `Application Support`.
-- Servicio IA embebido para macOS.
-- Musas con reglas editoriales específicas.
+- Servicio IA embebido para macOS con smoke FFI real validado.
+- Musas con reglas editoriales específicas e intervención quirúrgica sobre el fragmento activo.
 - Flujo de sugerencias sobre selección o pasaje activo.
+- Aprendizaje adaptativo local por Musa: `MusaEffectivenessTracker` aplica multiplicadores conservadores tras mínimo de 5 muestras; atribución precisa al `sourceMusaId` de la sugerencia final.
+- Estado visible de aprendizaje por Musa en ajustes: Aprendiendo, Estable, Afinada o En pausa.
+- Feedback loops en pipeline: evita ejecutar Musas redundantes cuando una anterior ya resolvió el problema.
+- Calibración profesional separada (`ProfessionalCorpusCalibration`): 15 referencias literarias derivadas en fantasy, thriller e historical, con métricas agregadas sin guardar texto fuente.
+- Confidence scoring en `NarrativeDocumentClassifier` (0.0–1.0) para descartar sugerencias en textos ambiguos.
+- Reescritura guiada controlada (`GuidedRewriteService`): propuestas deterministas para subir tensión, aclarar, reducir exposición y naturalizar diálogo; no aplica cambios directamente.
+- Planificador contextual de reescritura (`GuidedRewritePlanner`): recomienda la acción guiada más relevante según fragmento, estado de novela, memoria y género.
+- Auditoría de seguridad para reescrituras (`GuidedRewriteSafetyService`): detecta nombres nuevos, expansión excesiva y pérdida de términos clave antes de mostrar la propuesta.
+- Capa preparada para reescritura guiada con modelo local (`GuidedRewriteGenerationService`) con fallback determinista y auditoría previa.
 
 ### Análisis automatizado
 
 - Detección heurística de narrador.
-- Detección de personajes y escenarios presentes en un fragmento.
+- Detección de personajes y escenarios presentes en un fragmento, con validación local opcional mediante modelo instalado y fallback conservador.
 - Análisis de capítulo por fragmentación interna.
 - Resolución de momento dominante, función del capítulo y siguiente paso sugerido.
 - Motor de `nextStep` con acciones estructuradas para `expandMoment` y `connectToPlot`.
+- Gating estructural en `ChapterAnalysisService` y `NextBestMoveService` para rechazar contexto débil antes de convertirlo en recomendación editorial.
 - Recomendaciones de copiloto sensibles a género para thriller, ciencia ficción y fantasía.
-- Clasificación heurística de documentos para evitar que investigación, worldbuilding o material técnico contaminen el estado narrativo.
-- Compuertas de calidad para rechazar contexto débil antes de convertirlo en recomendación editorial.
+- Clasificación heurística de documentos con confidence scoring para evitar que investigación, worldbuilding o material técnico contaminen el estado narrativo.
+- Ponderación de verbos por categoría (físicos, operacionales, dicendi) sin penalizar escenas de diálogo puro.
 - Filtro de ruido visible para evitar entidades no defendibles en la UI.
+- Auditor de continuidad derivado (`ContinuityAuditService`): detecta promesas abiertas, contradicciones prohibidas, personajes y escenarios sin ficha y patrones repetidos; panel de riesgos en libro activo.
+- Auditor editorial derivado (`EditorialAuditService`): ledger de promesas leídas, pagadas, abiertas y olvidadas; contradicciones críticas elevadas como hallazgos editoriales.
+- Estado de la novela derivado (`NovelStatusService`): salud narrativa, tensión, ritmo, promesa, memoria viva y comparación con corpus profesional; vista con semáforo en libro activo.
+- Mapa editorial por capítulos (`ChapterEditorialMapService`): prioridad local de tensión, ritmo, promesa o consecuencia y comparación de ritmo contra corpus profesional del género.
+- Dirección editorial unificada (`EditorialDirectorService`): fusiona todos los análisis anteriores en máximo 3 misiones priorizadas (preparación, intervención, revisión o avance).
 
 ### Workflows editoriales
 
@@ -238,17 +258,21 @@ flowchart TD
 MUSA define cuatro perfiles editoriales principales:
 
 - `Musa de Estilo`: mejora cadencia, precisión léxica y elegancia verbal.
-- `Musa de Tensión`: intensifica fricción dramática y amenaza implícita.
+- `Musa de Tensión`: intensifica fricción dramática y amenaza implícita, con detección de diálogo estancado.
 - `Musa de Ritmo`: reorganiza respiración, pausas y flujo del texto.
 - `Musa de Claridad`: elimina ambigüedad innecesaria sin aplanar la voz.
 
 Cada musa incorpora:
 
 - intención editorial explícita,
-- reglas de intervención,
+- reglas de intervención quirúrgica sobre el fragmento activo,
 - recordatorio de alcance,
 - límite de expansión del pasaje,
-- mensajes de thinking/streaming para el panel de revisión.
+- mensajes de thinking/streaming para el panel de revisión,
+- aprendizaje adaptativo local: estado de aceptación, muestras acumuladas y multiplicadores conservadores,
+- atribución precisa de feedback al `sourceMusaId` de la sugerencia final.
+
+Además de las cuatro Musas clásicas, el sistema incorpora **reescritura guiada** como capa complementaria: propuestas deterministas por tipo de acción (subir tensión, aclarar, reducir exposición, naturalizar diálogo) con planificador contextual, auditoría de seguridad y aprendizaje separado por slug de acción.
 
 ## Módulos principales del código
 
@@ -284,6 +308,29 @@ Cada musa incorpora:
 - `lib/modules/books/services/narrative_memory_updater.dart`
 - `lib/modules/books/services/story_state_updater.dart`
 - `lib/modules/books/services/next_best_move_service.dart`
+
+### Aprendizaje y calibración de Musas
+
+- `lib/modules/musa/services/musa_effectiveness_tracker.dart`
+- `lib/modules/musa/services/musa_autopilot.dart`
+- `lib/modules/musa/services/professional_corpus_calibration.dart`
+- `lib/modules/musa/models/editorial_signals.dart`
+
+### Reescritura guiada
+
+- `lib/editor/services/guided_rewrite_service.dart`
+- `lib/editor/services/guided_rewrite_planner.dart`
+- `lib/editor/services/guided_rewrite_safety_service.dart`
+- `lib/editor/services/guided_rewrite_generation_service.dart`
+- `lib/editor/models/guided_rewrite_result.dart`
+
+### Auditoría y dirección editorial
+
+- `lib/modules/books/services/novel_status_service.dart`
+- `lib/modules/books/services/continuity_audit_service.dart`
+- `lib/modules/books/services/editorial_audit_service.dart`
+- `lib/modules/books/services/chapter_editorial_map_service.dart`
+- `lib/modules/books/services/editorial_director_service.dart`
 
 ### IA local
 
@@ -525,6 +572,10 @@ El autor define que el libro es thriller, ciencia ficción o fantasía, añade u
 - Los `nextStep` importantes se convierten en acciones estructuradas, no solo consejos.
 - El copiloto narrativo cruza ADN del libro, memoria reciente y señales de género para proponer una decisión breve.
 - La memoria contextual permite usar reglas, restricciones y hallazgos sin contaminar el estado narrativo con documentos de apoyo.
+- Las Musas aprenden del autor: atribución precisa de feedback, multiplicadores conservadores y estado visible por perfil editorial.
+- La calibración profesional usa referencias literarias derivadas por género sin guardar texto fuente; el aprendizaje personal del autor permanece separado.
+- La reescritura guiada propone cambios deterministas revisables antes de tocar el manuscrito, con auditoría de seguridad y planificador que destaca la acción más relevante.
+- La dirección editorial unificada fusiona auditoría, continuidad, mapa de capítulos y memoria narrativa en misiones priorizadas accionables.
 - Los proyectos `.musa` permiten tratar cada novela como documento portable, no solo como estado interno de aplicación.
 - La importación `.gguf` permite reutilizar modelos locales ya descargados.
 - Las notas funcionan como sistema vivo de trabajo editorial.
@@ -536,13 +587,14 @@ El autor define que el libro es thriller, ciencia ficción o fantasía, añade u
 
 - El target principal hoy es macOS; ya existe base de arquitectura adaptativa para iPad/iPhone, pero no equivale todavía a una distribución final móvil.
 - La robustez del motor IA depende del modelo instalado y del hardware disponible.
-- El análisis narrativo actual es mayoritariamente heurístico; no sustituye lectura editorial humana.
-- La continuidad actual es light: señala actividad y vínculos básicos, no contradicciones globales profundas.
-- El copiloto narrativo es V1 heurístico y requiere auditoría editorial con muestras reales por género.
-- La memoria contextual sigue siendo heurística; las auditorías V1.4/V1.5 muestran que necesita compuertas estrictas para evitar falsos positivos.
+- El análisis narrativo es mayoritariamente heurístico; no sustituye lectura editorial humana.
+- El auditor de continuidad y los reportes de salud narrativa son derivados y recalculables; no persisten hasta que exista un flujo explícito de revisión por el autor.
+- El aprendizaje adaptativo de Musas requiere mínimo de 5 muestras por Musa antes de ajustar multiplicadores; con pocos datos el sistema permanece en modo conservador.
+- La calibración del corpus profesional se basa en señales agregadas derivadas; no refleja criterio editorial humano completo.
 - La importación de modelos depende de que el archivo coincida con nombres y hashes esperados en el catálogo.
-- La captura iPhone actual guarda texto, enlaces e intención editorial; no copia media al `.musa`, no reproduce audio y no transcribe notas de voz.
-- Faltan más tests de integración y validación de regresiones en flujos complejos.
+- La captura iPhone guarda texto, enlaces e intención editorial; no copia media al `.musa`, no reproduce audio y no transcribe notas de voz.
+- Los adjuntos de tarjetas creativas se guardan como referencias URI/ruta; no existe gestor de media embebido en el `.musa`.
+- Faltan más tests de integración y validación de regresiones en flujos complejos; CI aún no está estabilizado.
 - El README documenta el estado observable del código, no una distribución empaquetada para usuarios finales.
 
 ## Próximas features sugeridas
@@ -552,22 +604,21 @@ El autor define que el libro es thriller, ciencia ficción o fantasía, añade u
 - Archivado y organización avanzada de proyectos recientes.
 - Historial editorial más profundo sobre los snapshots actuales.
 - Exportación adicional a formatos editoriales más allá de impresión.
-- Panel de continuidad más profundo con conflictos abiertos y alertas cross-capítulo.
 - Modo de revisión por escenas, no solo por capítulo.
+- Flujo explícito de revisión y aceptación para persistir hallazgos de auditoría de continuidad.
+- Gestor de media embebido en `.musa` para adjuntos de tarjetas creativas.
 
 ### IA
 
 - Selección manual y benchmarking de modelos desde ajustes.
-- Pipeline multi-musa con estrategias combinadas.
-- Memoria editorial persistente por libro y por personaje.
+- Activación de reescritura guiada con modelo local en UI (la capa de integración ya está preparada).
+- Auditoría del copiloto narrativo con muestras reales adicionales por género.
 - Análisis de arco de personaje y evolución de tensión a nivel de libro.
-- Auditoría editorial del copiloto narrativo con 20-30 salidas reales por género.
-- Persistencia pública de la clasificación de documentos si la heurística demuestra estabilidad.
-- Detección de contradicciones entre capítulos.
+- Persistencia de clasificación de documentos si la heurística demuestra estabilidad sostenida.
 
 ### Operación técnica
 
-- Mejor cobertura de tests.
+- Mejor cobertura de tests de integración y regresión.
 - CI estable para análisis, test y build de macOS.
 - Empaquetado reproducible para distribución interna.
 - Telemetría local opcional para rendimiento y fallos.

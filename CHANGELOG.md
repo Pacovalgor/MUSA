@@ -6,19 +6,84 @@ El formato sigue una variante ligera de Keep a Changelog: las entradas nuevas em
 
 ## Unreleased
 
+Sin cambios pendientes. Última versión cerrada: V3.4 (2026-05-12).
+
+## 2026-05-12 - V3.4: Captura iPhone orientada a mesa creativa
+
 ### Added
 
-- Captura iPhone con intención editorial para crear tarjetas creativas por libro: idea, boceto, pregunta o research.
-- Conversión desde bandeja Mac a `CreativeCard`, con tipo explícito, enlaces y referencias de adjunto cuando existen.
-- Acción rápida `Crear tarjeta` en el popover de bandeja y corrección de tipo en el detalle completo de captura.
+- `InboxCapture` transporta intención editorial opcional (`creativeTypeHint`) y referencias de adjunto sin romper JSON antiguo.
+- Popover y detalle de bandeja Mac crean `CreativeCard` del libro activo usando el tipo sugerido o corregido antes de confirmar.
+- Capturas sin libro activo permanecen pendientes y no se marcan como procesadas.
 - Tests de modelo, storage, provider y widgets para el flujo de captura iPhone a tarjeta creativa.
+
+## 2026-05-08 - V3.2/V3.3: Mesa creativa enriquecida y validación local de personajes
+
+### Added
+
+- Panel de detalle de tarjeta creativa con edición de título, cuerpo, tipo, estado y tags.
+- Adjuntos y vínculos explícitos en tarjetas: enlaces, referencias de imagen y relaciones con personajes, escenarios, documentos y notas del libro activo.
+- Las tarjetas refuerzan su rol de antesala no canónica: permanecen fuera de memoria narrativa, continuidad y auditoría hasta conversión o acción explícita.
+- Validación local opcional de personajes en `ChapterAnalysisService.analyzeAsync`: el modelo local filtra candidatos detectados por heurística sin inventar nombres nuevos.
+- Fallback conservador cuando el modelo local no está disponible o no devuelve JSON válido; el análisis no se bloquea.
+- Bloqueo léxico de verbos capitalizados para reducir falsos positivos conocidos en detección de personajes.
+
+## 2026-05-07 - V3.1: Mesa creativa por libro
+
+### Added
+
+- `CreativeCard` persiste ideas, bocetos, preguntas, research, imágenes y enlaces como tarjetas organizables por estado dentro del workspace.
+- `CreativeBoardEditor` con columnas Inbox, Explorando, Prometedoras, Listas y Convertidas; creación rápida, movimiento controlado y conversión a nota, personaje, escenario o documento.
+- Entrada desde bandeja: capturas aceptadas pueden entrar como tarjetas creativas con origen y adjuntos, sin sustituir el flujo existente de notas.
+
+## 2026-05-06 - V1.5–V3.0: Motor editorial, aprendizaje adaptativo y dirección unificada
+
+### Added
+
+- **Aprendizaje adaptativo de Musas**: `MusaEffectivenessTracker` aplica multiplicadores conservadores tras un mínimo de 5 muestras por Musa.
+- **Atribución precisa de feedback**: las sugerencias conservan `sourceMusaId`; aceptación/rechazo se registra sobre la Musa que produjo la propuesta final, no sobre toda la pipeline.
+- **Estado visible de aprendizaje**: `MusaSettingsDialog` muestra estado por Musa (Aprendiendo, Estable, Afinada, En pausa) con muestras, aceptación y descartes.
+- **Calibración profesional separada**: `ProfessionalCorpusCalibration` con 15 referencias derivadas en fantasy, thriller e historical; métricas agregadas sin guardar texto fuente ni EPUBs en el repositorio.
+- **Composición conservadora**: multiplicadores profesionales y personales se combinan con límites en `MusaAutopilot` para evitar sesgos bruscos.
+- **Memoria narrativa ampliada**: `NarrativeMemory` persiste promesas de lectura, promesas abiertas, señales de tono y avisos de patrón repetido por libro, con compatibilidad para proyectos `.musa` anteriores.
+- **Estado de la novela derivado**: `NovelStatusService` calcula salud narrativa, tensión, ritmo, promesa, memoria viva y comparación con corpus profesional sin llamar al modelo local ni persistir reportes.
+- **Vista de estado de novela en libro activo**: semáforo, métricas, señales críticas, acciones siguientes y comparación profesional.
+- **Auditor de continuidad derivado**: `ContinuityAuditService` detecta promesas abiertas, contradicciones prohibidas, personajes y escenarios sin ficha y patrones repetidos.
+- **Panel de riesgos en libro activo**: muestra gravedad, evidencia y acción sugerida de cada hallazgo de continuidad.
+- **Reescritura guiada controlada** (V2.0): `GuidedRewriteService` genera propuestas deterministas para subir tensión, aclarar, reducir exposición y naturalizar diálogo; no aplica cambios directamente y entra siempre por comparación.
+- **Planificador contextual de reescritura** (V2.0): `GuidedRewritePlanner` recomienda una acción guiada según fragmento, estado de novela, memoria narrativa, continuidad y género; la recomendación aparece destacada en el menú de selección con razón breve.
+- **Auditoría de seguridad para reescrituras** (V2.0): `GuidedRewriteSafetyService` detecta nombres nuevos, expansión excesiva y pérdida de términos clave entre original y propuesta; las advertencias aparecen en la vista de comparación, no bloquean el flujo.
+- **Aprendizaje de reescritura guiada** (V2.0): slugs estables por acción (`guided-rewrite.raise-tension`, `guided-rewrite.clarify`, etc.) con estado de aceptación/rechazo visible en ajustes.
+- **Capa para modelo local en reescritura** (V2.1): `GuidedRewriteGenerationService` acepta `GuidedRewriteModelClient` inyectable; si no está listo cae a `GuidedRewriteService` determinista; auditoría de seguridad previa a mostrar el resultado.
+- **Auditor editorial derivado** (V2.2): `EditorialAuditService` construye ledger de promesas leídas, pagadas, abiertas y olvidadas; contradicciones críticas del auditor de continuidad se elevan como hallazgos editoriales críticos.
+- **Mapa editorial por capítulos** (V2.3): `ChapterEditorialMapService` calcula prioridad local de tensión, ritmo, promesa o consecuencia y compara el ritmo de cada capítulo contra el corpus profesional del género.
+- **Dirección editorial unificada** (V3.0): `EditorialDirectorService` fusiona estado de novela, auditoría editorial, mapa de capítulos, memoria narrativa y estado narrativo en máximo 3 misiones priorizadas mostradas en la vista de libro activo.
+- Smoke FFI real validado con modelo instalado en macOS (`llama_processor_real_smoke_test.dart`).
+- Tests golden de calibración (`professional_corpus_calibration_test.dart`) que validan ausencia de texto fuente para preservar privacidad y copyright.
+
+## 2026-04-24 - V1.4: Música lofi, señales editoriales y pipeline de Musas
+
+### Added
+
+- Música lofi embebida: 30 pistas Open-Lofi (~88 MB) con widget de selección por categoría y persistencia de preferencias.
+- Confidence scoring en `NarrativeDocumentClassifier`: las clasificaciones retornan probabilidad (0.0–1.0) para descartar sugerencias en textos ambiguos.
+- Ponderación de verbos en `EditorialSignals`: tres categorías (físicos, operacionales, dicendi) con blending contextual, sin penalizar escenas de diálogo puro.
+- Feedback loops en pipeline de Musas: `_shouldSkipMusaByFeedback()` analiza la salida de la Musa N antes de ejecutar N+1 para evitar procesamiento redundante.
 
 ### Changed
 
-- Reforzado el README público como presentación de producto y pieza de portfolio.
-- Ampliado `.gitignore` para excluir secretos, credenciales locales, proyectos `.musa`, modelos `.gguf` y artefactos generados de Flutter.
-- Registrada en memoria estable la convención de higiene para repositorio público local-first.
-- Las capturas que no pueden convertirse en tarjeta, por ejemplo por no haber libro activo, permanecen pendientes en la bandeja.
+- `musaExecutionHistory` rastrea musas ejecutadas y saltadas en cada ejecución de pipeline.
+
+## 2026-04-20 - V1.3: Gating estructural y refinamiento contextual
+
+### Added
+
+- Gating estructural en `ChapterAnalysisService` y `NextBestMoveService` para evitar que contexto débil se convierta en recomendación editorial.
+- Refinamiento por contexto local en `NextBestMoveService` y Musas individuales (`ClarityMusa`, `StyleMusa`, `RhythmMusa`, `TensionMusa`) para instrucciones quirúrgicas sobre el fragmento seleccionado.
+- Detección de diálogo estancado en `TensionMusa`.
+- Explicabilidad basada en señales en `MusaAutopilot` para trazabilidad de recomendaciones editoriales.
+- `PROJECT_PROFILE.yaml` anclado a estructura real del repositorio.
+- `PROJECT_MEMORY.md` inicializado con decisiones estables de arquitectura y restricciones recurrentes.
 
 ## 2026-04-12 - Contexto narrativo, importación local y picker seguro
 
