@@ -103,11 +103,21 @@ class _CapturePopoverRow extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
+                key: Key('inbox-popover-create-card-${c.id}'),
+                onPressed: () =>
+                    CaptureActions.acceptAsCreativeCard(ref.read, record),
+                style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 28),
+                    padding: const EdgeInsets.symmetric(horizontal: 8)),
+                child:
+                    const Text('Crear tarjeta', style: TextStyle(fontSize: 11)),
+              ),
+              TextButton(
                 onPressed: () => CaptureActions.accept(ref.read, record),
                 style: TextButton.styleFrom(
                     minimumSize: const Size(0, 28),
                     padding: const EdgeInsets.symmetric(horizontal: 8)),
-                child: const Text('Aceptar', style: TextStyle(fontSize: 11)),
+                child: const Text('Nota', style: TextStyle(fontSize: 11)),
               ),
               TextButton(
                 onPressed: () => CaptureActions.discard(ref.read, record),
