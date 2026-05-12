@@ -17,6 +17,7 @@ class Book {
   final String toneNotes;
   final String? activeModelProfileId;
   final BookNarrativeProfile narrativeProfile;
+  final List<String> dismissedContinuityFindingIds;
 
   const Book({
     required this.id,
@@ -30,6 +31,7 @@ class Book {
     this.toneNotes = '',
     this.activeModelProfileId,
     this.narrativeProfile = const BookNarrativeProfile(),
+    this.dismissedContinuityFindingIds = const [],
   });
 
   Book copyWith({
@@ -44,6 +46,7 @@ class Book {
     String? activeModelProfileId,
     bool clearActiveModelProfileId = false,
     BookNarrativeProfile? narrativeProfile,
+    List<String>? dismissedContinuityFindingIds,
   }) {
     return Book(
       id: id,
@@ -59,6 +62,8 @@ class Book {
           ? null
           : (activeModelProfileId ?? this.activeModelProfileId),
       narrativeProfile: narrativeProfile ?? this.narrativeProfile,
+      dismissedContinuityFindingIds:
+          dismissedContinuityFindingIds ?? this.dismissedContinuityFindingIds,
     );
   }
 
@@ -74,6 +79,8 @@ class Book {
         'toneNotes': toneNotes,
         'activeModelProfileId': activeModelProfileId,
         'narrativeProfile': narrativeProfile.toJson(),
+        if (dismissedContinuityFindingIds.isNotEmpty)
+          'dismissedContinuityFindingIds': dismissedContinuityFindingIds,
       };
 
   factory Book.fromJson(Map<String, dynamic> json) => Book(
@@ -94,5 +101,9 @@ class Book {
         narrativeProfile: BookNarrativeProfile.fromJson(
           json['narrativeProfile'] as Map<String, dynamic>?,
         ),
+        dismissedContinuityFindingIds:
+            (json['dismissedContinuityFindingIds'] as List<dynamic>?)
+                    ?.cast<String>() ??
+                const [],
       );
 }

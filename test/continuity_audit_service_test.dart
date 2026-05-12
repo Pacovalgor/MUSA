@@ -142,6 +142,114 @@ void main() {
 
       expect(findings, isEmpty);
     });
+
+    test('each finding has a non-empty stable id', () {
+      final findingsA = const ContinuityAuditService().audit(
+        book: _book(now),
+        documents: [
+          _chapter(
+            now,
+            0,
+            'Clara entró al Observatorio Norte. Diane la observó desde lejos.',
+          ),
+        ],
+        memory: NarrativeMemory(
+          bookId: 'book-1',
+          unresolvedPromises: const [
+            '¿Quién abrió la puerta?',
+            '¿Por qué la llave estaba escondida?',
+            '¿Qué vio el testigo?',
+          ],
+          updatedAt: now,
+        ),
+        storyState: StoryState(bookId: 'book-1', updatedAt: now),
+        continuityState: ContinuityState(bookId: 'book-1', lastUpdatedAt: now),
+        characters: [_character(now, 'Diane')],
+        scenarios: const [],
+        now: now,
+      );
+
+      // Re-run with identical input: ids must be identical.
+      final findingsB = const ContinuityAuditService().audit(
+        book: _book(now),
+        documents: [
+          _chapter(
+            now,
+            0,
+            'Clara entró al Observatorio Norte. Diane la observó desde lejos.',
+          ),
+        ],
+        memory: NarrativeMemory(
+          bookId: 'book-1',
+          unresolvedPromises: const [
+            '¿Quién abrió la puerta?',
+            '¿Por qué la llave estaba escondida?',
+            '¿Qué vio el testigo?',
+          ],
+          updatedAt: now,
+        ),
+        storyState: StoryState(bookId: 'book-1', updatedAt: now),
+        continuityState: ContinuityState(bookId: 'book-1', lastUpdatedAt: now),
+        characters: [_character(now, 'Diane')],
+        scenarios: const [],
+        now: now,
+      );
+
+      expect(findingsA, isNotEmpty);
+      for (final finding in findingsA) {
+        expect(finding.id, isNotEmpty);
+        expect(finding.id, startsWith('cf_'));
+      }
+      final idsA = findingsA.map((f) => f.id).toList();
+      final idsB = findingsB.map((f) => f.id).toList();
+      expect(idsA, equals(idsB));
+    });
+  });
+
+  group('Book.dismissedContinuityFindingIds', () {
+    test('serializes and deserializes dismissed ids', () {
+      final book = Book(
+        id: 'book-1',
+        title: 'Fixture',
+        createdAt: DateTime(2026, 5, 12),
+        updatedAt: DateTime(2026, 5, 12),
+        dismissedContinuityFindingIds: const ['cf_contradiction_prueba'],
+      );
+
+      final restored = Book.fromJson(book.toJson());
+      expect(
+        restored.dismissedContinuityFindingIds,
+        equals(['cf_contradiction_prueba']),
+      );
+    });
+
+    test('omits key when list is empty (no bloat en .musa)', () {
+      final book = Book(
+        id: 'book-1',
+        title: 'Fixture',
+        createdAt: DateTime(2026, 5, 12),
+        updatedAt: DateTime(2026, 5, 12),
+      );
+
+      final json = book.toJson();
+      expect(json.containsKey('dismissedContinuityFindingIds'), isFalse);
+    });
+
+    test('copyWith preserves existing dismissed ids when not overridden', () {
+      final book = Book(
+        id: 'book-1',
+        title: 'Fixture',
+        createdAt: DateTime(2026, 5, 12),
+        updatedAt: DateTime(2026, 5, 12),
+        dismissedContinuityFindingIds: const ['cf_unresolved_x'],
+      );
+
+      final updated = book.copyWith(title: 'Nuevo título');
+      expect(
+        updated.dismissedContinuityFindingIds,
+        equals(['cf_unresolved_x']),
+      );
+    });
   });
 }
 

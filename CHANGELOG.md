@@ -8,6 +8,8 @@ El formato sigue una variante ligera de Keep a Changelog: las entradas nuevas em
 
 ### Added
 
+- **Descarte persistente de hallazgos de continuidad**: `ContinuityFinding` tiene ahora un `id` estable derivado de tipo + evidencia. `Book.dismissedContinuityFindingIds` persiste los ids descartados en el `.musa` sin guardar la lista completa de findings. `activeContinuityFindingsProvider` filtra los descartados. Botón "Descartar" en cada fila del panel de riesgos llama a `NarrativeWorkspaceNotifier.dismissContinuityFinding`.
+- Tests de id estable en `ContinuityAuditService` y de serialización/copyWith en `Book.dismissedContinuityFindingIds`.
 - Reescritura guiada activada con modelo local: `LlamaGuidedRewriteModelClient` implementa `GuidedRewriteModelClient` usando `LlamaProcessor` directamente. `guidedRewriteGenerationServiceProvider` inyecta el cliente cuando hay modelo activo y cae a determinista si no. `EditorController` pasa a usar `GuidedRewriteGenerationService` en lugar de `GuidedRewriteService`.
 - `runGuidedRewrite` es ahora async: muestra `MusaGenerationPhase.invoking` durante la inferencia y vuelve a `idle` si falla.
 - Tests para `LlamaGuidedRewriteModelClient`: `isReady` con paths inexistentes y `resolveDylibPath` fuera de bundle.

@@ -2403,6 +2403,32 @@ class NarrativeWorkspaceNotifier
     );
   }
 
+  /// Marca un hallazgo de continuidad como descartado para el libro activo.
+  ///
+  /// El [findingId] se añade a [Book.dismissedContinuityFindingIds] y se
+  /// persiste en el `.musa`. El finding deja de aparecer en
+  /// [activeContinuityFindingsProvider] mientras el libro no cambie.
+  Future<void> dismissContinuityFinding(String findingId) async {
+    final workspace = state.value;
+    final activeBook = workspace?.activeBook;
+    if (workspace == null || activeBook == null) return;
+    if (activeBook.dismissedContinuityFindingIds.contains(findingId)) return;
+
+    final now = DateTime.now();
+    final updatedBooks = workspace.books.map((book) {
+      if (book.id != activeBook.id) return book;
+      return book.copyWith(
+        dismissedContinuityFindingIds: [
+          ...book.dismissedContinuityFindingIds,
+          findingId,
+        ],
+        updatedAt: now,
+      );
+    }).toList();
+
+    await _persist(workspace.copyWith(books: updatedBooks));
+  }
+
   List<T> _replaceByBookId<T>(
     List<T> items,
     T replacement,

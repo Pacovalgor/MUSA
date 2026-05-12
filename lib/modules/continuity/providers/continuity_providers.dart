@@ -28,7 +28,9 @@ final activeContinuityFindingsProvider =
   final workspace = ref.watch(narrativeWorkspaceProvider).value;
   final book = workspace?.activeBook;
   if (workspace == null || book == null) return const [];
-  return ref.watch(continuityAuditServiceProvider).audit(
+
+  final dismissed = book.dismissedContinuityFindingIds.toSet();
+  final findings = ref.watch(continuityAuditServiceProvider).audit(
         book: book,
         documents: workspace.activeBookDocuments,
         memory: workspace.activeNarrativeMemory,
@@ -38,4 +40,7 @@ final activeContinuityFindingsProvider =
         scenarios: workspace.activeBookScenarios,
         now: DateTime.now(),
       );
+
+  if (dismissed.isEmpty) return findings;
+  return findings.where((f) => !dismissed.contains(f.id)).toList();
 });

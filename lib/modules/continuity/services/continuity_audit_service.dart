@@ -38,14 +38,16 @@ class ContinuityAuditService {
   ) {
     final unresolved = memory?.unresolvedPromises ?? const [];
     if (unresolved.length < 3) return const [];
+    final evidence = unresolved.take(3).join(' · ');
     return [
       ContinuityFinding(
+        id: _makeId(ContinuityFindingType.unresolvedPromise, evidence),
         type: ContinuityFindingType.unresolvedPromise,
         severity: ContinuityFindingSeverity.warning,
         title: 'Promesas abiertas sin pago',
         detail:
             'La novela acumula promesas abiertas que pueden competir entre sí.',
-        evidence: unresolved.take(3).join(' · '),
+        evidence: evidence,
         action:
             'Cierra, transforma o jerarquiza una promesa antes de abrir otra.',
       ),
@@ -65,6 +67,7 @@ class ContinuityAuditService {
       if (!lowered.contains(normalized.toLowerCase())) continue;
       findings.add(
         ContinuityFinding(
+          id: _makeId(ContinuityFindingType.contradiction, normalized),
           type: ContinuityFindingType.contradiction,
           severity: ContinuityFindingSeverity.critical,
           title: 'Contradicción prohibida detectada',
@@ -91,6 +94,7 @@ class ContinuityAuditService {
       if (_blockedNames.contains(name)) continue;
       results.add(
         ContinuityFinding(
+          id: _makeId(ContinuityFindingType.untrackedCharacter, name),
           type: ContinuityFindingType.untrackedCharacter,
           severity: ContinuityFindingSeverity.info,
           title: 'Personaje sin ficha',
@@ -119,6 +123,7 @@ class ContinuityAuditService {
       }
       results.add(
         ContinuityFinding(
+          id: _makeId(ContinuityFindingType.untrackedScenario, place),
           type: ContinuityFindingType.untrackedScenario,
           severity: ContinuityFindingSeverity.info,
           title: 'Escenario sin ficha',
@@ -135,16 +140,30 @@ class ContinuityAuditService {
   List<ContinuityFinding> _repeatedPatternFindings(NarrativeMemory? memory) {
     final warnings = memory?.scenePatternWarnings ?? const [];
     if (warnings.isEmpty) return const [];
+    final evidence = warnings.take(2).join(' · ');
     return [
       ContinuityFinding(
+        id: _makeId(ContinuityFindingType.repeatedPattern, evidence),
         type: ContinuityFindingType.repeatedPattern,
         severity: ContinuityFindingSeverity.warning,
         title: 'Patrón de escena repetido',
         detail: warnings.first,
-        evidence: warnings.take(2).join(' · '),
+        evidence: evidence,
         action: 'Convierte la repetición en consecuencia visible.',
       ),
     ];
+  }
+
+  /// Genera un id estable a partir del tipo de hallazgo y una clave de evidencia.
+  /// El id es reproducible entre sesiones siempre que el hallazgo subyacente
+  /// no cambie, lo que permite persistir los descartados sin guardar los findings.
+  static String _makeId(ContinuityFindingType type, String key) {
+    final clean = key
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-záéíóúña-z0-9·]+'), '_');
+    final truncated = clean.length > 48 ? clean.substring(0, 48) : clean;
+    return 'cf_${type.name}_$truncated';
   }
 
   List<String> _capitalizedNames(String text) {

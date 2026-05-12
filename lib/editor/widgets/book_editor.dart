@@ -229,7 +229,12 @@ class _BookEditorState extends ConsumerState<BookEditor> {
                 title: 'Riesgos de continuidad',
                 subtitle:
                     'Promesas, contradicciones y elementos que necesitan ficha o pago narrativo.',
-                child: _ContinuityAuditPanel(findings: continuityFindings),
+                child: _ContinuityAuditPanel(
+                  findings: continuityFindings,
+                  onDismiss: (id) => ref
+                      .read(narrativeWorkspaceProvider.notifier)
+                      .dismissContinuityFinding(id),
+                ),
               ),
               const SizedBox(height: 28),
               _Section(
@@ -1096,9 +1101,13 @@ class _EditorialDirectorMissionRow extends StatelessWidget {
 }
 
 class _ContinuityAuditPanel extends StatelessWidget {
-  const _ContinuityAuditPanel({required this.findings});
+  const _ContinuityAuditPanel({
+    required this.findings,
+    required this.onDismiss,
+  });
 
   final List<ContinuityFinding> findings;
+  final void Function(String id) onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -1113,7 +1122,10 @@ class _ContinuityAuditPanel extends StatelessWidget {
       children: findings.take(4).map((finding) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: _ContinuityFindingRow(finding: finding),
+          child: _ContinuityFindingRow(
+            finding: finding,
+            onDismiss: () => onDismiss(finding.id),
+          ),
         );
       }).toList(),
     );
@@ -1121,9 +1133,13 @@ class _ContinuityAuditPanel extends StatelessWidget {
 }
 
 class _ContinuityFindingRow extends StatelessWidget {
-  const _ContinuityFindingRow({required this.finding});
+  const _ContinuityFindingRow({
+    required this.finding,
+    required this.onDismiss,
+  });
 
   final ContinuityFinding finding;
+  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -1165,6 +1181,16 @@ class _ContinuityFindingRow extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.black87,
                         fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              GestureDetector(
+                onTap: onDismiss,
+                child: Text(
+                  'Descartar',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.black38,
+                        fontWeight: FontWeight.w500,
                       ),
                 ),
               ),
