@@ -326,7 +326,9 @@ class MusaEditorOverlay extends ConsumerWidget {
           case _SelectionMenuActionKind.guidedRewrite:
             final rewriteAction = action.rewriteAction;
             if (rewriteAction != null) {
-              ref.read(editorProvider.notifier).runGuidedRewrite(rewriteAction);
+              await ref
+                  .read(editorProvider.notifier)
+                  .runGuidedRewrite(rewriteAction);
             }
             break;
           case _SelectionMenuActionKind.musa:

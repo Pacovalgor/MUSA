@@ -8,6 +8,9 @@ El formato sigue una variante ligera de Keep a Changelog: las entradas nuevas em
 
 ### Added
 
+- Reescritura guiada activada con modelo local: `LlamaGuidedRewriteModelClient` implementa `GuidedRewriteModelClient` usando `LlamaProcessor` directamente. `guidedRewriteGenerationServiceProvider` inyecta el cliente cuando hay modelo activo y cae a determinista si no. `EditorController` pasa a usar `GuidedRewriteGenerationService` en lugar de `GuidedRewriteService`.
+- `runGuidedRewrite` es ahora async: muestra `MusaGenerationPhase.invoking` durante la inferencia y vuelve a `idle` si falla.
+- Tests para `LlamaGuidedRewriteModelClient`: `isReady` con paths inexistentes y `resolveDylibPath` fuera de bundle.
 - Workflow de CI en GitHub Actions (`.github/workflows/ci.yml`): `flutter analyze --fatal-infos` + `flutter test --exclude-tags=real_ffi` sobre `macos-latest` en cada push y PR a `main`.
 - `test/flutter_test_config.dart`: deshabilita `GoogleFonts.allowRuntimeFetching` globalmente para que los widget tests que usan `MusaTheme` funcionen en CI sin conexión.
 - Tag `@Tags(['real_ffi'])` en `llama_processor_real_smoke_test.dart` para excluirlo limpiamente del CI headless.

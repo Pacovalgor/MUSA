@@ -38,7 +38,8 @@ import 'musa_text_editing_controller.dart';
 import '../../modules/books/models/writing_settings.dart';
 import '../../modules/books/services/story_state_updater.dart';
 import '../../modules/musa/models/guided_rewrite.dart';
-import '../../modules/musa/services/guided_rewrite_service.dart';
+import '../../modules/musa/providers/guided_rewrite_providers.dart';
+import '../../modules/musa/services/guided_rewrite_generation_service.dart';
 
 enum MusaGenerationPhase {
   idle,
@@ -184,7 +185,7 @@ class EditorState {
 /// Coordinates editor text, selection UI, analysis and Musa invocation flows.
 class EditorController extends StateNotifier<EditorState> {
   final Ref _ref;
-  final GuidedRewriteService _guidedRewriteService;
+  final GuidedRewriteGenerationService _guidedRewriteGenerationService;
   final GlobalKey editorKey = GlobalKey();
   StreamSubscription? _aiSubscription;
   bool _isSyncingControllers = false;
@@ -195,8 +196,9 @@ class EditorController extends StateNotifier<EditorState> {
 
   EditorController(
     this._ref, {
-    GuidedRewriteService guidedRewriteService = const GuidedRewriteService(),
-  })  : _guidedRewriteService = guidedRewriteService,
+    GuidedRewriteGenerationService? guidedRewriteGenerationService,
+  })  : _guidedRewriteGenerationService = guidedRewriteGenerationService ??
+            const GuidedRewriteGenerationService(),
         super(EditorState(
           controller: MusaTextEditingController(
             writingSettings: _ref.read(writingSettingsProvider),
@@ -492,30 +494,20 @@ class EditorController extends StateNotifier<EditorState> {
     );
   }
 
-  void runGuidedRewrite(GuidedRewriteAction action) {
+  Future<void> runGuidedRewrite(GuidedRewriteAction action) async {
     final selectionContext = state.selectionContext;
     if (selectionContext == null || state.isProcessing) {
       return;
     }
 
-    final result = _guidedRewriteService.rewrite(
-      selection: selectionContext.selectedText,
-      action: action,
-    );
     final feedbackSlug = action.feedbackSlug;
-
     _markSelectionActionUsed();
+
+    // Mostrar estado de generación mientras el modelo produce la propuesta.
     state = state.copyWith(
-      currentSuggestion: narrative.MusaSuggestion(
-        id: 'guided-${action.name}-${DateTime.now().millisecondsSinceEpoch}',
-        originalText: result.originalText,
-        suggestedText: result.suggestedText,
-        editorComment: _guidedRewriteEditorComment(result),
-        sourceMusaId: feedbackSlug,
-      ),
       showOverlay: false,
       clearStreamingText: true,
-      generationPhase: MusaGenerationPhase.completed,
+      generationPhase: MusaGenerationPhase.invoking,
       clearActiveMusa: true,
       clearEditorialRecommendation: true,
       clearActivePipeline: true,
@@ -523,9 +515,32 @@ class EditorController extends StateNotifier<EditorState> {
       pipelineStepIndex: 0,
       clearFragmentAnalysis: true,
       clearChapterAnalysis: true,
-      isComparisonMode: true,
     );
-    _recordMusaSuggestionShown(feedbackSlug);
+
+    try {
+      final result = await _guidedRewriteGenerationService.rewrite(
+        selection: selectionContext.selectedText,
+        action: action,
+      );
+
+      if (!mounted) return;
+
+      state = state.copyWith(
+        currentSuggestion: narrative.MusaSuggestion(
+          id: 'guided-${action.name}-${DateTime.now().millisecondsSinceEpoch}',
+          originalText: result.originalText,
+          suggestedText: result.suggestedText,
+          editorComment: _guidedRewriteEditorComment(result),
+          sourceMusaId: feedbackSlug,
+        ),
+        generationPhase: MusaGenerationPhase.completed,
+        isComparisonMode: true,
+      );
+      _recordMusaSuggestionShown(feedbackSlug);
+    } catch (_) {
+      if (!mounted) return;
+      state = state.copyWith(generationPhase: MusaGenerationPhase.idle);
+    }
   }
 
   String _guidedRewriteEditorComment(GuidedRewriteResult result) {
@@ -3277,5 +3292,9 @@ class _ChapterChunk {
 
 final editorProvider =
     StateNotifierProvider<EditorController, EditorState>((ref) {
-  return EditorController(ref);
+  return EditorController(
+    ref,
+    guidedRewriteGenerationService:
+        ref.watch(guidedRewriteGenerationServiceProvider),
+  );
 });
