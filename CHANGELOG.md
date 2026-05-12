@@ -6,11 +6,19 @@ El formato sigue una variante ligera de Keep a Changelog: las entradas nuevas em
 
 ## Unreleased
 
+### Added
+
+- Captura iPhone con intención editorial para crear tarjetas creativas por libro: idea, boceto, pregunta o research.
+- Conversión desde bandeja Mac a `CreativeCard`, con tipo explícito, enlaces y referencias de adjunto cuando existen.
+- Acción rápida `Crear tarjeta` en el popover de bandeja y corrección de tipo en el detalle completo de captura.
+- Tests de modelo, storage, provider y widgets para el flujo de captura iPhone a tarjeta creativa.
+
 ### Changed
 
 - Reforzado el README público como presentación de producto y pieza de portfolio.
 - Ampliado `.gitignore` para excluir secretos, credenciales locales, proyectos `.musa`, modelos `.gguf` y artefactos generados de Flutter.
 - Registrada en memoria estable la convención de higiene para repositorio público local-first.
+- Las capturas que no pueden convertirse en tarjeta, por ejemplo por no haber libro activo, permanecen pendientes en la bandeja.
 
 ## 2026-04-12 - Contexto narrativo, importación local y picker seguro
 

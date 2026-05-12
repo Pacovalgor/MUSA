@@ -84,6 +84,10 @@
 - **V3.3 (2026-05-08)**:
   - ✅ **Validación local de personajes en análisis de capítulo**: `ChapterAnalysisService.analyzeAsync` mantiene la detección heurística como primer paso y añade un filtro opcional con modelo local para confirmar si los candidatos son personas reales en escena.
   - ✅ **Fallback conservador**: si el modelo local no está disponible o no devuelve JSON válido, el análisis no se bloquea y conserva el resultado heurístico; falsos positivos conocidos como verbos capitalizados se bloquean en léxico.
+- **V3.4 (2026-05-12)**:
+  - ✅ **Captura iPhone orientada a Mesa creativa**: `InboxCapture` transporta intención editorial opcional (`creativeTypeHint`) y referencias de adjunto sin romper JSON antiguo.
+  - ✅ **Bandeja Mac crea tarjetas**: el popover y el detalle de bandeja pueden crear `CreativeCard` del libro activo usando el tipo sugerido o corregido.
+  - ✅ **Fallo recuperable**: si no hay libro activo o la tarjeta no se crea, la captura permanece pendiente y no se marca como procesada.
 
 ## Restricciones operativas recurrentes
 - Priorizar cambio mínimo correcto y scope estricto.
@@ -107,6 +111,7 @@
 - V3.1 mantiene las tarjetas creativas fuera de memoria narrativa, continuidad, auditoria y direccion editorial hasta conversion o accion explicita de uso.
 - V3.2 Mesa creativa mantiene adjuntos de imagen como referencias URI/ruta; no copiar archivos al `.musa` hasta que exista gestor de media explícito.
 - V3.3 mantiene la validación de personajes local-first y no dependiente de nube: el modelo solo filtra candidatos ya detectados, nunca inventa nombres nuevos.
+- V3.4 mantiene la bandeja como frontera local-first entre iPhone y Mac; no sincronizar `.musa` directamente ni copiar media al proyecto desde capturas.
 
 ## Guía de entrada rápida para futuras tareas
 1. Confirmar impacto en capa (`ui`, `editor`, `dominio`, `ia`, `storage`).

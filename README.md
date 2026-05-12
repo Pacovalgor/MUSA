@@ -78,6 +78,8 @@ El proyecto ya supera la fase de prototipo visual. Hay una base funcional clara 
 - Copiloto narrativo con memoria narrativa, memoria contextual y siguiente mejor movimiento trazable.
 - Workflows editoriales estructurados para expandir momentos y conectar trama.
 - Notas editoriales con estado, origen de capítulo y dirección reutilizable.
+- Mesa creativa por libro para ideas, bocetos, preguntas, research, imágenes y enlaces antes de convertirlos en material canónico.
+- Bandeja de captura iPhone/Mac que convierte capturas rápidas en tarjetas creativas del libro activo sin contaminar manuscrito ni memoria narrativa.
 - Snapshots manuales ligeros del workspace.
 - Focus mode visual y modo máquina de escribir.
 - Impresión de capítulos y libro completo en PDF.
@@ -186,6 +188,16 @@ flowchart TD
 - Memoria contextual separada para reglas de mundo, restricciones, hallazgos de investigación y conceptos persistentes.
 - Estado de historia con acto, función de capítulo, tensión global, ritmo percibido y siguiente mejor movimiento.
 - Snapshots manuales para guardar estados del libro sin introducir versionado complejo.
+
+### Mesa creativa y captura
+
+- Tarjetas creativas por libro para ideas, bocetos, preguntas, research, personajes, escenarios e imágenes.
+- Estados de trabajo: inbox, explorando, prometedoras, listas, convertidas y archivadas.
+- Detalle de tarjeta con edición de título, cuerpo, tipo, estado, tags, adjuntos y vínculos a entidades del libro.
+- Entrada desde bandeja local `MUSA-Inbox/` para que iPhone o Mac depositen capturas JSON.
+- Captura iPhone con intención editorial explícita: idea, boceto, pregunta o research.
+- Conversión desde bandeja Mac a tarjeta creativa, conservando origen, tipo sugerido, enlace y referencia de adjunto.
+- Las tarjetas permanecen como antesala no canónica hasta una conversión o acción explícita del autor.
 
 ### IA editorial
 
@@ -434,6 +446,24 @@ flutter analyze
 5. MUSA crea una nota estructural vinculada al capítulo.
 6. Desde el inspector puedes abrirla, marcarla como usada o descartarla.
 
+### Mesa creativa
+
+1. Abre el libro activo.
+2. Entra en la mesa creativa del libro.
+3. Crea tarjetas para ideas, bocetos, preguntas, research, imágenes o entidades posibles.
+4. Mueve cada tarjeta por su estado de maduración.
+5. Abre el detalle para añadir tags, adjuntos y vínculos.
+6. Convierte una tarjeta en nota, personaje, escenario o documento cuando ya deba pasar al workspace canónico.
+
+### Captura iPhone a tarjeta
+
+1. Configura la carpeta local compartida de bandeja.
+2. Desde la pantalla iPhone, escribe una idea, frase o enlace.
+3. Marca la intención: idea, boceto, pregunta o research.
+4. Guarda la captura en la bandeja.
+5. En Mac, usa el popover para crear tarjeta rápidamente o abre la bandeja completa para corregir el tipo antes de crearla.
+6. Si no hay libro activo, la captura queda pendiente y no se marca como procesada.
+
 ### Snapshots
 
 1. Abre la vista del libro.
@@ -498,6 +528,8 @@ El autor define que el libro es thriller, ciencia ficción o fantasía, añade u
 - Los proyectos `.musa` permiten tratar cada novela como documento portable, no solo como estado interno de aplicación.
 - La importación `.gguf` permite reutilizar modelos locales ya descargados.
 - Las notas funcionan como sistema vivo de trabajo editorial.
+- La mesa creativa separa ideas y material embrionario del canon narrativo hasta que el autor decide convertirlo.
+- La bandeja iPhone/Mac permite capturar fuera del escritorio y crear tarjetas por libro sin sincronizar directamente el workspace.
 - La salida editorial incluye impresión, no solo edición en pantalla.
 
 ## Limitaciones actuales
@@ -509,6 +541,7 @@ El autor define que el libro es thriller, ciencia ficción o fantasía, añade u
 - El copiloto narrativo es V1 heurístico y requiere auditoría editorial con muestras reales por género.
 - La memoria contextual sigue siendo heurística; las auditorías V1.4/V1.5 muestran que necesita compuertas estrictas para evitar falsos positivos.
 - La importación de modelos depende de que el archivo coincida con nombres y hashes esperados en el catálogo.
+- La captura iPhone actual guarda texto, enlaces e intención editorial; no copia media al `.musa`, no reproduce audio y no transcribe notas de voz.
 - Faltan más tests de integración y validación de regresiones en flujos complejos.
 - El README documenta el estado observable del código, no una distribución empaquetada para usuarios finales.
 
@@ -602,6 +635,10 @@ Regla práctica:
 - Controlador del editor: [`lib/editor/controller/editor_controller.dart`](./lib/editor/controller/editor_controller.dart)
 - Workflows de capítulo: [`lib/editor/widgets/chapter_insight_panel.dart`](./lib/editor/widgets/chapter_insight_panel.dart)
 - Copiloto narrativo: [`lib/modules/books/models/narrative_copilot.dart`](./lib/modules/books/models/narrative_copilot.dart)
+- Modelo de tarjetas creativas: [`lib/modules/creative/models/creative_card.dart`](./lib/modules/creative/models/creative_card.dart)
+- Capturas de bandeja: [`lib/modules/inbox/models/inbox_capture.dart`](./lib/modules/inbox/models/inbox_capture.dart)
+- Pantalla iPhone de captura: [`lib/ui/inbox/iphone/capture_screen.dart`](./lib/ui/inbox/iphone/capture_screen.dart)
+- Popover de bandeja Mac: [`lib/ui/inbox/popover/inbox_popover.dart`](./lib/ui/inbox/popover/inbox_popover.dart)
 - Clasificador narrativo: [`lib/modules/books/services/narrative_document_classifier.dart`](./lib/modules/books/services/narrative_document_classifier.dart)
 - Memoria contextual: [`lib/modules/books/services/contextual_memory_updater.dart`](./lib/modules/books/services/contextual_memory_updater.dart)
 - Siguiente mejor movimiento: [`lib/modules/books/services/next_best_move_service.dart`](./lib/modules/books/services/next_best_move_service.dart)

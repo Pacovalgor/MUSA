@@ -24,3 +24,6 @@
 ## 2026-05-08
 - Se registra V3.2 Mesa creativa en memoria estable: detalle enriquecido de tarjetas creativas con edición, adjuntos y vínculos explícitos.
 - Se registra V3.3 en memoria estable: validación local opcional de personajes detectados en análisis de capítulo, con fallback heurístico conservador y bloqueo léxico de verbos capitalizados.
+
+## 2026-05-12
+- Se registra V3.4 en memoria estable: captura iPhone con intención editorial y creación de tarjetas creativas desde la bandeja Mac, manteniendo capturas pendientes si no hay libro activo.
